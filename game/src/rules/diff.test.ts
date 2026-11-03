@@ -19,9 +19,21 @@ describe('previewDiff (Codex chain 4: every visible change is in the preview)', 
   it('a creature riding its plate shows its destination (First Peak P1E: goat 9 -> 10)', () => {
     const d = previewDiff(fp, fp.start, after(1, 1));
     expect(d.moved).toEqual([[0, 9, 10]]);
-    expect(d.rise).toEqual([]); // the plate's own height-1 cells slide to 10 and 16: not uplift
+    expect(d.rise).toEqual([]); // the plate's own height-1 cells slide to 10 and 16: not uplift...
+    expect(d.carry).toEqual([[10, 1], [16, 1]]); // ...but carried terrain, so the preview still shows the new height
     expect(d.arrive).toEqual([11, 17]);
     expect(d.flood).toEqual([9, 15]);
+  });
+
+  it('a peak carried along its own plate shows its new cells (Codex chain 4 round 2: Puzzle 3, P0W P1E then P1W)', () => {
+    const p3 = fromJson((levels as LevelJson[]).find(l => l.name === 'Puzzle 3')!);
+    let s = p3.start;
+    for (const [p, dir] of [[0, 3], [1, 1]] as [number, Dir][]) s = shift(p3, s, p, dir)!;
+    const t = shift(p3, s, 1, 3)!;
+    const d = previewDiff(p3, s, t);
+    expect(d.rise).toEqual([]);
+    expect(d.carry.filter(([, h]) => h >= 2)).toHaveLength(5);
+    for (const [i, h] of d.carry) expect(t.elev[i]).toBe(h);
   });
 
   it('a push marks the risen cells with their new height and the goal that flips (First Peak P0E)', () => {

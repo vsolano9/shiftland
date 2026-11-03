@@ -127,6 +127,10 @@ function drawDiff(a: State, b: State) {
     ctx.fillStyle = '#ff8a1f'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText(`▲${h}`, x + 6, y + 6);
   }
+  // carried terrain (the plate's own cells changing height as it slides): white arrow + new height, no orange box,
+  // so it reads as "this ground arrives here", not as uplift
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  for (const [i, h] of d.carry) { const [x, y] = at(i); ctx.fillText(`${h > a.elev[i] ? '↑' : '↓'}${h}`, x + 6, y + 6); }
   for (const i of d.flood) {
     const [x, y] = at(i);
     ctx.strokeStyle = 'rgba(30,120,255,0.9)'; ctx.lineWidth = 2;

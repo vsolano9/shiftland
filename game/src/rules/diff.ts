@@ -7,6 +7,9 @@ export interface MoveDiff {
   /** uplift: cells the moving plate takes from another plate, with their new height. A plate's own higher cells
    *  sliding along are not uplift (they arrive with the plate) */
   rise: [number, number][];
+  /** carried terrain: cells that stay on the same plate but change height because the plate slid (a peak carried
+   *  along, Codex chain 4 round 2): [cell, new height]; heights can go up or down */
+  carry: [number, number][];
   /** land cells that become water */
   flood: number[];
   /** cells that become land of another plate, or land where there was water (where the moving plate arrives) */
@@ -18,12 +21,13 @@ export interface MoveDiff {
 }
 
 export function previewDiff(lv: Level, a: State, b: State): MoveDiff {
-  const d: MoveDiff = { rise: [], flood: [], arrive: [], moved: [], flips: [] };
+  const d: MoveDiff = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [] };
   for (let i = 0; i < lv.w * lv.h; i++) {
     const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
     if (wasLand && !isLand) d.flood.push(i);
     if (isLand && b.plate[i] !== a.plate[i]) d.arrive.push(i);
     if (wasLand && isLand && b.plate[i] !== a.plate[i] && b.elev[i] > a.elev[i]) d.rise.push([i, b.elev[i]]);
+    if (wasLand && isLand && b.plate[i] === a.plate[i] && b.elev[i] !== a.elev[i]) d.carry.push([i, b.elev[i]]);
   }
   b.objs.forEach((o, k) => { if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]); });
   const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);

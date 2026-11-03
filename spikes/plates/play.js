@@ -468,12 +468,13 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
 
   // game/src/rules/diff.ts
   function previewDiff(lv, a, b) {
-    const d = { rise: [], flood: [], arrive: [], moved: [], flips: [] };
+    const d = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [] };
     for (let i = 0; i < lv.w * lv.h; i++) {
       const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
       if (wasLand && !isLand) d.flood.push(i);
       if (isLand && b.plate[i] !== a.plate[i]) d.arrive.push(i);
       if (wasLand && isLand && b.plate[i] !== a.plate[i] && b.elev[i] > a.elev[i]) d.rise.push([i, b.elev[i]]);
+      if (wasLand && isLand && b.plate[i] === a.plate[i] && b.elev[i] !== a.elev[i]) d.carry.push([i, b.elev[i]]);
     }
     b.objs.forEach((o, k) => {
       if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]);
@@ -635,6 +636,14 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText(`\u25B2${h}`, x + 6, y + 6);
+    }
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    for (const [i, h] of d.carry) {
+      const [x, y] = at(i);
+      ctx.fillText(`${h > a.elev[i] ? "\u2191" : "\u2193"}${h}`, x + 6, y + 6);
     }
     for (const i of d.flood) {
       const [x, y] = at(i);
