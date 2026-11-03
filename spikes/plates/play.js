@@ -413,7 +413,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   }));
   var PLATE_COL = ["#d9a441", "#86a96a", "#a58ad1", "#d1708a"];
   var ICON = { goat: "\u{1F410}", village: "\u{1F3D8}\uFE0F", light: "\u{1F5FC}" };
-  var GOAL_TEXT = { goat: "Goat on a mountain (height 2+)", village: "Village dry and not crushed", light: "Lighthouse on the coast" };
+  var GOAL_TEXT = { goat: "Goat on a mountain (height 2+)", village: "Village not crushed (stays low)", light: "Lighthouse on the coast" };
   var CELL = 64;
   var cv = document.getElementById("board");
   var ctx = cv.getContext("2d");
@@ -428,13 +428,18 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   var history = [];
   var sel = 0;
   var preview = null;
+  var stuck = false;
   var cur = () => history[history.length - 1];
   var L = () => LEVELS[li].lv;
+  function checkStuck() {
+    stuck = !solved(L(), cur()) && !solve({ ...L(), start: cur() }, 6);
+  }
   function load(i) {
     li = i;
     history = [L().start];
     sel = 0;
     preview = null;
+    stuck = false;
     ui.select.value = String(i);
     draw();
   }
@@ -443,6 +448,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     if (commit && t) {
       history.push(t);
       preview = null;
+      checkStuck();
     }
     return t;
   }
@@ -548,8 +554,10 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     const labels = [...cur().objs.map((o) => `${ICON[o.kind]} ${GOAL_TEXT[o.kind]}`), ...lv.buoys.map(() => "\u{1F6DF} Buoy in the open sea")];
     ui.goals.innerHTML = labels.map((t, k) => `<li class="${met[k] ? "ok" : ""}">${met[k] ? "\u2714" : "\u25CB"} ${t}</li>`).join("");
     if (solved(lv, cur())) ui.msg.textContent = moves <= LEVELS[li].par ? `Solved at par! \u2605  (Enter: next level)` : `Solved in ${moves} (par ${LEVELS[li].par}). Enter: next, R: retry for par`;
+    else if (stuck) ui.msg.textContent = "No way back from here: this island can no longer make everyone happy. Z undo, R restart.";
     else ui.msg.textContent = "Click a plate (or Tab), arrow keys slide it along its rail. Hold Shift + arrow to preview. Z undo, R restart.";
-    window.__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null };
+    ui.msg.classList.toggle("stuck", stuck);
+    window.__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck };
   }
   var KEY_DIR = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };
   addEventListener("keydown", (e) => {
@@ -561,7 +569,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
         return;
       }
       if (!tryMove(KEY_DIR[e.key], true)) {
-        ui.msg.textContent = "That plate cannot move that way (rail end or map edge).";
+        ui.msg.textContent = "That plate cannot move that way (rail end, map edge, or two creatures would end up on one spot).";
         return;
       }
       draw();
@@ -573,6 +581,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     } else if (e.key === "z" || e.key === "Z") {
       if (history.length > 1) history.pop();
       preview = null;
+      checkStuck();
       draw();
     } else if (e.key === "r" || e.key === "R") {
       load(li);

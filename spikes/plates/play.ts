@@ -14,7 +14,7 @@ const LEVELS = (raw as Raw[]).map(r => ({
 
 const PLATE_COL = ['#d9a441', '#86a96a', '#a58ad1', '#d1708a'];
 const ICON: Record<string, string> = { goat: '🐐', village: '🏘️', light: '🗼' };
-const GOAL_TEXT: Record<string, string> = { goat: 'Goat on a mountain (height 2+)', village: 'Village dry and not crushed', light: 'Lighthouse on the coast' };
+const GOAL_TEXT: Record<string, string> = { goat: 'Goat on a mountain (height 2+)', village: 'Village not crushed (stays low)', light: 'Lighthouse on the coast' };
 const CELL = 64;
 
 const cv = document.getElementById('board') as HTMLCanvasElement;
@@ -28,19 +28,24 @@ let li = 0;
 let history: State[] = [];
 let sel = 0;
 let preview: State | null = null;
+let stuck = false; // design audit S3: no silent dead ends
 
 const cur = () => history[history.length - 1];
 const L = () => LEVELS[li].lv;
 
+// Can the level still be finished from the current state? Depth 6 covers every grey-box level (par <= 4) with slack.
+// The real game runs this in a worker with depth par + 4 (docs/design-plates.md, Controls).
+function checkStuck() { stuck = !solved(L(), cur()) && !solve({ ...L(), start: cur() }, 6); }
+
 function load(i: number) {
-  li = i; history = [L().start]; sel = 0; preview = null;
+  li = i; history = [L().start]; sel = 0; preview = null; stuck = false;
   ui.select.value = String(i);
   draw();
 }
 
 function tryMove(d: Dir, commit: boolean): State | null {
   const t = shift(L(), cur(), sel, d);
-  if (commit && t) { history.push(t); preview = null; }
+  if (commit && t) { history.push(t); preview = null; checkStuck(); }
   return t;
 }
 
@@ -119,8 +124,10 @@ function draw() {
   const labels = [...cur().objs.map(o => `${ICON[o.kind]} ${GOAL_TEXT[o.kind]}`), ...lv.buoys.map(() => '🛟 Buoy in the open sea')];
   ui.goals.innerHTML = labels.map((t, k) => `<li class="${met[k] ? 'ok' : ''}">${met[k] ? '✔' : '○'} ${t}</li>`).join('');
   if (solved(lv, cur())) ui.msg.textContent = moves <= LEVELS[li].par ? `Solved at par! ★  (Enter: next level)` : `Solved in ${moves} (par ${LEVELS[li].par}). Enter: next, R: retry for par`;
+  else if (stuck) ui.msg.textContent = 'No way back from here: this island can no longer make everyone happy. Z undo, R restart.';
   else ui.msg.textContent = 'Click a plate (or Tab), arrow keys slide it along its rail. Hold Shift + arrow to preview. Z undo, R restart.';
-  (window as unknown as { __plates: unknown }).__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null };
+  ui.msg.classList.toggle('stuck', stuck);
+  (window as unknown as { __plates: unknown }).__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck };
 }
 
 const KEY_DIR: Record<string, Dir> = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };
@@ -128,10 +135,10 @@ addEventListener('keydown', e => {
   if (e.key in KEY_DIR) {
     e.preventDefault();
     if (e.shiftKey) { preview = tryMove(KEY_DIR[e.key], false); draw(); return; }
-    if (!tryMove(KEY_DIR[e.key], true)) { ui.msg.textContent = 'That plate cannot move that way (rail end or map edge).'; return; }
+    if (!tryMove(KEY_DIR[e.key], true)) { ui.msg.textContent = 'That plate cannot move that way (rail end, map edge, or two creatures would end up on one spot).'; return; }
     draw();
   } else if (e.key === 'Tab') { e.preventDefault(); sel = (sel + 1) % L().plates; preview = null; draw(); }
-  else if (e.key === 'z' || e.key === 'Z') { if (history.length > 1) history.pop(); preview = null; draw(); }
+  else if (e.key === 'z' || e.key === 'Z') { if (history.length > 1) history.pop(); preview = null; checkStuck(); draw(); }
   else if (e.key === 'r' || e.key === 'R') { load(li); }
   else if (e.key === 'Enter' && solved(L(), cur()) && li + 1 < LEVELS.length) load(li + 1);
   else if (e.key === 'h' || e.key === 'H') { const r = solve({ ...L(), start: cur() }, 6); ui.msg.textContent = r ? `Hint: ${r.firstSolution[0]} (P = plate number by colour order)` : 'No solution from here within 6 moves: undo.'; }
