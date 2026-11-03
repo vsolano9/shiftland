@@ -92,6 +92,14 @@ describe('canFinish (the "no way back" warning)', () => {
     for (const m of moves.split(' ')) { s = shift(lv, s, Number(m[1]), 'NESW'.indexOf(m[2]) as 0 | 1 | 2 | 3)!; expect(s).not.toBeNull(); }
     return canFinish(lv, s);
   };
+  it('answers fast in breadth-first order (Codex chain 4: depth-first wandered to the 200k cap for 2+ s)', () => {
+    let t = performance.now();
+    expect(play('Puzzle 8', 'P0E')).toBe(true); // depth-first: cap hit after ~2 s, answer unknown
+    expect(performance.now() - t).toBeLessThan(200);
+    t = performance.now();
+    expect(play('Puzzle 2', 'P0W')).toBe(false); // the slowest exported first move: a dead end proven after ~32k states
+    expect(performance.now() - t).toBeLessThan(5000);
+  });
   it('proves a real dead end (Mind the Village after the crushing push)', () => {
     expect(play('Mind the Village', 'P0E')).toBe(false);
   });
