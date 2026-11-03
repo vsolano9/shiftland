@@ -88,7 +88,9 @@ export class Controller {
    * legal stop strains the plate: one `blocked` per push, not one per pointermove frame.
    */
   drag(p: number, dx: number, dy: number) {
-    if (this.session.solved) return;
+    // a cancelled drag stays dead until the pointer is released (the pointer is still down and keeps moving)
+    if (this.session.solved || this.dragCancelled) return;
+    this.dragging = true;
     this.select(p);
     const ask = dragStops(this.levels[this.index].axis[p], dx, dy);
     const steps: Dir[] = [];
@@ -110,19 +112,25 @@ export class Controller {
   /** Pointer released: commit the previewed stops (one move each). */
   release() {
     const pend = this.pending;
-    this.pending = null; this.straining = false;
+    this.pending = null; this.straining = false; this.dragging = false; this.dragCancelled = false;
     if (!pend) return;
     this.emit({ kind: 'preview', plate: pend.plate, steps: 0, diff: null });
     for (const d of pend.steps) if (!this.move(pend.plate, d)) break;
   }
-  /** Esc or pointercancel during a drag: drop the preview, commit nothing. Returns true if a drag was cancelled. */
+  /**
+   * Esc, pointercancel, undo, restart or a level change during a drag: drop the preview, commit nothing, and ignore the
+   * rest of this drag until release. Returns true if a drag was in progress.
+   */
   cancelDrag(): boolean {
-    const pend = this.pending;
-    this.pending = null; this.straining = false;
+    const pend = this.pending, was = this.dragging;
+    this.pending = null; this.straining = false; this.dragging = false;
+    if (was) this.dragCancelled = true;
     if (pend) this.emit({ kind: 'preview', plate: pend.plate, steps: 0, diff: null });
-    return !!pend;
+    return was;
   }
   private pending: { key: string; plate: number; steps: Dir[] } | null = null;
+  private dragging = false;
+  private dragCancelled = false;
   private straining = false;
   private completedNow = false;
 

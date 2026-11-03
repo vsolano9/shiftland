@@ -92,9 +92,11 @@ describe('Controller', () => {
     expect(events.map(e => e.kind)).toEqual(['selected', 'preview']);
     c.act({ kind: 'cancel' });                                       // Esc: preview dropped, nothing committed, plate kept
     expect([c.session.moves, c.selected, events.at(-1)]).toEqual([0, 0, { kind: 'preview', plate: 0, steps: 0, diff: null }]);
+    c.drag(0, -0.9, 0); c.drag(0, -1.2, 0);                          // pointer still down and moving: stays cancelled
+    expect(events.filter(e => e.kind === 'preview').length).toBe(2);
     c.release();                                                      // nothing pending: no-op
     expect(c.session.moves).toBe(0);
-    c.drag(0, 0.7, 0); c.act({ kind: 'cancel' });                    // First Peak P0E would solve: cancelled, not saved
+    c.drag(0, 0.7, 0); c.act({ kind: 'cancel' }); c.release();       // First Peak P0E would solve: cancelled, not saved
     expect([c.session.solved, c.progress.solved(0)]).toEqual([false, false]);
     c.drag(0, -0.7, 0); c.release();
     expect(c.session.moves).toBe(1);
