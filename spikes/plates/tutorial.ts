@@ -70,13 +70,26 @@ export const TUTORIAL: Spec[] = [
       ~  a0 a0 b1V b0 ~
       ~  ~  ~  ~  ~  ~`,
   },
+  // Rebuilt after design audit S2 (the old L4 needed two moves, so its "one plate does both" beat was false).
+  // P2N: c's front edge lifts the goat, its back edge opens sea under the buoy. The obvious P0E lifts the goat only (2 moves).
   {
-    name: 'Two Wishes', teaches: 'a peak and a sea at once: one plate does both if you pick the right one', axis: '-' + '-' + '|', expectPar: 2,
+    name: 'Two Wishes', teaches: 'a plate has a front and a back: its front lifts land, its back opens sea, in the same move', axis: '-' + '-' + '|', expectPar: 1, expectTempting: true,
     map: `
       ~  ~  ~  ~  ~  ~  ~
+      ~  a0 a0 b0 b0 b0 ~
       ~  a0 a0 b1G b0 b0 ~
-      ~  a0 a0 b0 b0* b0 ~
-      ~  c0 c0 c0 c0 c0 ~
+      ~  c0 c0 c0* c0 c0 ~
+      ~  ~  ~  ~  ~  ~  ~`,
+  },
+  // New after S2, found by a small layout search (scratch l5search.ts): ONE shortest solution P2W P1W. Push the far plate
+  // first; pushing b first opens a gap at x4, so c's push lands in water and lifts nothing (tempting P1E finishes in 3).
+  {
+    name: 'Far One First', teaches: 'two goats, two pushes: the order decides, because a move leaves water behind', axis: '|--', expectPar: 2, expectTempting: true,
+    map: `
+      ~  ~  ~  ~  ~  ~  ~
+      ~  a0 a0 b1G b0 c1G ~
+      ~  a0 a0 b0 b0 c0 ~
+      ~  a0 a0 b0 b0 c0 ~
       ~  ~  ~  ~  ~  ~  ~`,
   },
   // Generated (seed 56, 6x5, 2 plates, seam placement), found by a small-map search: par 3, ONE shortest solution

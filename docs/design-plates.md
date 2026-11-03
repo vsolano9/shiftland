@@ -12,29 +12,30 @@ A small island in the ocean is cut into tectonic plates. Slide a plate along its
 2. Level 1 (one plate, one goat, one move): the goat looks at the neighbouring plate; the plate's rail arrow pulses. One drag: columns rise with a rumble, the goat hops onto the peak and bleats. Done in 10 seconds; the verb is learned without text.
 3. Level 2: pulling a plate away opens a rift; the sea pours in and a buoy's fish jump. Water is learned.
 4. Level 3: a goat wants a peak, and the obvious push raises it, but the same push lands on the neighbour's village and lifts it to height 2: houses tilt and crack, undo glows. The first "think first" moment. (Villages ride their plate, so the rules can crush a village but never drown one; Codex review, chain 2.)
-5. Levels 4-5: two plates, goals that need an order. The first real "aha".
+5. Level 4: one plate's front lifts a goat while its back opens sea for a buoy, in one move. Level 5: two goats, two pushes, and the order decides. The first real "aha".
 
 By minute 5 the rater has used every core rule, had one failure that was funny rather than punishing, and solved one real puzzle.
 
-These five are built and solver-checked in `spikes/plates/tutorial.ts` (`node spikes/plates/tutorial.ts`: 5/5 as designed):
+These are built and solver-checked in `spikes/plates/tutorial.ts` (`node spikes/plates/tutorial.ts`: 6/6 as designed; L4 and L5 rebuilt after design audit S2):
 
 | # | Name | Teaches | Par | Shortest solutions | Trap (tempting first move) |
 |---|---|---|---|---|---|
 | 1 | First Peak | push → the seam rises; goat wants a peak | 1 | 2 (push either plate) | none |
 | 2 | Open Water | pull away → the gap is sea; buoy wants sea | 1 | 1 | none |
 | 3 | Mind the Village | the obvious push also crushes the village; slide the village's plate aside first | 2 | 1 | the obvious push: goat ticks, village crushed, no finish (undo) |
-| 4 | Two Wishes | one move can serve two goals; pick the plate that does | 2 | 3 | none |
-| 5 | Dip and Return | moving a plate away and back reshapes the seam; order decides | 3 | 1 | the obvious push: no finish (undo) |
+| 4 | Two Wishes | a plate's front lifts land and its back opens sea in the same move (P2N) | 1 | 1 | P0E lifts the goat only: finish in 2, no par star |
+| 5 | Far One First | two goats, push the far plate first: a move leaves water behind, so the near-first order lands the second push in water | 2 | 1 | P1E: finish in 3 |
+| 7 | Dip and Return | moving a plate away and back reshapes the seam; order decides | 3 | 1 | the obvious push: no finish (undo) |
 
-Level 5 is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its check: the solver beat it in 4 moves by pushing a plate twice and pulling it back twice. That shows a rule worth teaching on purpose: **a plate carries its raised land and creatures with it** (a mountain made by a push stays a mountain when the plate slides back). A Coast or Desert level should be built around "carry the peak".
+Dip and Return sits sixth in the grey-box until L6 ("land remembers") is built. It is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its check: the solver beat it in 4 moves by pushing a plate twice and pulling it back twice. That shows a rule worth teaching on purpose: **a plate carries its raised land and creatures with it** (a mountain made by a push stays a mountain when the plate slides back). A Coast or Desert level should be built around "carry the peak".
 
 ## Level progression (15 levels)
 
 | # | Biome | Beat | Source |
 |---|---|---|---|
 | 1-3 | Meadow | First Peak, Open Water, Mind the Village | built (`tutorial.ts`) |
-| 4 | Meadow | Two Wishes, rebuilt (S2): two goals where the obvious single move ticks one and breaks the other, so the player must pick the plate that does both | hand-made, solver-checked (current L4 is filler: no move ticks both) |
-| 5 | Meadow | two goats on two plates that need lifting in a set order (first real "order matters" with creatures in view) | hand-made, solver-checked (S2) |
+| 4 | Meadow | Two Wishes, rebuilt (S2): one move ticks both goals (front lifts, back opens sea); the obvious plate ticks only one | built (`tutorial.ts`), par 1, one solution |
+| 5 | Meadow | Far One First: two goats on two plates, lifted in a set order (first real "order matters" with creatures in view) | built (`tutorial.ts`), par 2, one solution |
 | 6 | Meadow | land remembers: a plate that moves away leaves water, and moving it back takes the cell again (raised, not restored); the goat ends on the new peak | hand-made, beat checked with the solver (S5) |
 | 7 | Coast | Dip and Return (moved from L5, S2): away and back changes the seam; first lighthouse | built (`tutorial.ts`), lighthouse added |
 | 8 | Coast | reclaim the sea: push a plate into the ocean ring to give a lighthouse a new coast while the buoy keeps open water (villages never drown, so the beat uses lighthouse and buoy, S5) | hand-made, solver-checked |
@@ -154,7 +155,7 @@ Title → level select (the 15 islands as an archipelago map) → level (HUD: le
 
 ## Grey-box (2026-11-03)
 
-`spikes/plates/play.html` (open from disk; rebuild with the command at the top of `play.ts`) is a top-down playable test of the rules with 13 levels (the 5 tutorial levels from `tutorial.ts`, then 8 audited generated puzzles at par 3-4, re-exported after the S4/S8 rule changes). Click or Tab to select a plate, arrows to slide, Shift + arrow to preview, Z undo, R restart, H solver hint.
+`spikes/plates/play.html` (open from disk; rebuild with the command at the top of `play.ts`) is a top-down playable test of the rules with 14 levels (the 6 tutorial levels from `tutorial.ts`, then 8 audited generated puzzles at par 3-4, re-exported after the S2/S4/S8 changes). Click or Tab to select a plate, arrows to slide, Shift + arrow to preview, Z undo, R restart, H solver hint.
 
 Checked headless (Playwright): every level solved at par through the real key handling, no console errors. Screens: `D:\Work\_local\evidence\2026-11-03-gameoff-plates\` (warm-up 1, puzzle 5 with preview, puzzle 5 solved).
 
@@ -169,7 +170,7 @@ What it taught:
 | Id | Finding | Answer |
 |---|---|---|
 | S1 major | The rail looks reversible but is not (moving back takes cells again) | Fixed in design: rail of move steps with the ghost of the taken land; L6 teaches "land remembers" (Controls, Level progression) |
-| S2 major | L4 is filler (no single move ticks both goals); L5 Dip and Return is the least readable "aha" | Fixed in design: L4 and L5 hand-made new, Dip and Return moves to L7 (Level progression). Built on Nov 5 with the rest of the tutorial port |
+| S2 major | L4 is filler (no single move ticks both goals); L5 Dip and Return is the least readable "aha" | Fixed: new L4 Two Wishes (par 1, one solution) and L5 Far One First (par 2, one solution) built in `tutorial.ts` (6/6 as designed); Dip and Return moves to L7. Grey-box re-exported: 14/14 levels solved at par through the real keys, no console errors |
 | S3 major | Stuck states are silent | Fixed in design: per-move solver check in a worker, "no way back from here" + glowing undo (Controls). Built on Nov 6 with input |
 | S4 major | Creatures change plates and stack on one cell (23 of 28 par solutions moved a creature across plates, 5 stacked) | Fixed in the rules: stacking pushes are blocked (`plates.ts` `shift`, fixture in `selfCheck`); crossing plates by being taken stays, it is the "rides the mover" rule and is shown in the preview. Seed-191 regression replaced by seed 25 (191's trap was a stacking move). Level set re-exported: 13/13 solved at par in the grey-box |
 | S5 major | L6-L8 beats contradicted the rules | Fixed: beats rewritten against the rules (L8 uses lighthouse + buoy, villages never drown), village goal labelled "not crushed", and every beat becomes a solver fixture before its level is built. The suggested "pasture wants land" goal is not added: one more goal type costs art, sound and a tutorial beat for little new tension |
