@@ -11,10 +11,10 @@ export interface Audit {
  * The bar a shipped level must meet (`npm run levels:audit`). Puzzles get the full audit plus "par is the true minimum".
  * Tutorial levels teach one idea in 1-3 moves, so "order matters" and "has a tempting move" don't apply to them; they
  * must still solve at par and keep land, plates and no-goal-starts-met. Their designed traps are pinned in audit.test.ts.
- * Until the level schema gains a role field (Nov 4), names not starting with "Puzzle" are tutorials.
+ * The level's `role` decides; a level without one (an old file) is a puzzle and gets the full bar.
  */
 export function shipCheck(lv: Level): { ok: boolean; why: string[]; audit: Audit | null } {
-  const tutorial = !lv.name?.startsWith('Puzzle');
+  const tutorial = lv.role === 'tutorial';
   const a = audit(lv, 6, tutorial ? 1 : 3);
   if (!a) return { ok: false, why: ['unsolvable within 6 moves'], audit: null };
   const why = tutorial ? a.why.filter(w => w !== 'order does not matter' && w !== 'no tempting wrong move') : [...a.why];

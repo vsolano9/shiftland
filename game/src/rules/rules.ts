@@ -16,7 +16,9 @@ export const DIR_NAME = ['N', 'E', 'S', 'W'] as const;
 export type Kind = 'goat' | 'village' | 'light';
 export interface Obj { kind: Kind; cell: number }
 export interface State { plate: Int8Array; elev: Int8Array; objs: Obj[]; off?: Int8Array }
-export interface Level { w: number; h: number; plates: number; start: State; buoys: number[]; axis: number[]; maxTravel: number; name?: string; par?: number }
+export interface Level { w: number; h: number; plates: number; start: State; buoys: number[]; axis: number[]; maxTravel: number; name?: string; par?: number;
+  /** tutorial levels teach one idea and are exempt from the 3-move, order and tempting-move bar (solver/audit.ts shipCheck) */
+  role?: 'tutorial' | 'puzzle' }
 
 export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
   const { w, h } = lv;
@@ -154,10 +156,10 @@ export function solve(lv: Level, maxDepth: number, from: State = lv.start): Solv
 }
 
 /** Level JSON (plain arrays) as written by the level exporter. */
-export interface LevelJson { name: string; w: number; h: number; plates: number; axis: number[]; maxTravel: number;
+export interface LevelJson { name: string; role?: 'tutorial' | 'puzzle'; w: number; h: number; plates: number; axis: number[]; maxTravel: number;
   plate: number[]; elev: number[]; objs: Obj[]; buoys: number[]; par: number }
 
 export function fromJson(r: LevelJson): Level {
-  return { name: r.name, par: r.par, w: r.w, h: r.h, plates: r.plates, axis: r.axis, maxTravel: r.maxTravel, buoys: r.buoys,
+  return { name: r.name, role: r.role, par: r.par, w: r.w, h: r.h, plates: r.plates, axis: r.axis, maxTravel: r.maxTravel, buoys: r.buoys,
     start: { plate: Int8Array.from(r.plate), elev: Int8Array.from(r.elev), objs: r.objs.map(o => ({ ...o })) } };
 }

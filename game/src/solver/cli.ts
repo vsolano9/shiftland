@@ -1,8 +1,8 @@
 // Level CLI (docs/PLAN.md, done-criterion 2). Runs under plain Node 24 (type stripping), no build step:
 //   node src/solver/cli.ts audit [levels.json]     audit every level; exit 1 if any fails
 //   node src/solver/cli.ts gen <seed> [count]      generate and audit candidates from a seed
-// Tutorial levels (names not starting with "Puzzle") are exempt from the 3-move minimum but must still solve at par.
-// The level JSON schema gains an explicit role field on Nov 4; until then the name decides, as in audit.test.ts.
+// Each level's `role` picks the bar (audit.ts shipCheck): tutorials are exempt from the 3-move, order and tempting-move
+// checks but must still solve at par; puzzles (and levels without a role) get the full bar.
 import { readFileSync } from 'node:fs';
 import { fromJson, type Level, type LevelJson } from '../rules/rules.ts';
 import { audit, shipCheck } from './audit.ts';
@@ -35,7 +35,7 @@ if (cmd === 'audit') {
   if (!Number.isInteger(seed)) { console.error('usage: gen <seed> [count]'); process.exit(2); }
   let pass = 0;
   for (let s = seed; s < seed + count; s++) {
-    const lv = { ...generate(s, { place: true }), name: `Puzzle seed ${s}` };
+    const lv = { ...generate(s, { place: true }), name: `Puzzle seed ${s}`, role: 'puzzle' as const };
     const a = audit(lv);
     if (a?.pass) { pass++; console.log(`seed ${s}: pass  min ${a.min}  tempting ${a.tempting?.move}`); }
   }

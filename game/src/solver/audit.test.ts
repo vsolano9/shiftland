@@ -5,7 +5,7 @@ import levels from '../../../spikes/plates/levels.json';
 
 // The exported set: tutorial levels first (exempt from par >= 3), then generated puzzles that must pass the full bar.
 const all = (levels as LevelJson[]).map(fromJson);
-const puzzles = all.filter(l => l.name!.startsWith('Puzzle'));
+const puzzles = all.filter(l => l.role === 'puzzle');
 
 describe('quality bar on the exported puzzles', () => {
   it('has 8 puzzles', () => expect(puzzles.length).toBe(8));
@@ -27,10 +27,15 @@ describe('ship check (npm run levels:audit)', () => {
   it('a wrong par fails', () => {
     expect(shipCheck({ ...puzzles[0], par: puzzles[0].par! + 1 }).why).toContain(`par ${puzzles[0].par! + 1} but min ${puzzles[0].par}`);
   });
-  it('a puzzle named as one gets the full bar (a 1-move level fails it)', () => {
+  it('the role decides the bar: a 1-move tutorial passes, the same level as a puzzle (or with no role) fails', () => {
     const first = all[0];
-    expect(shipCheck({ ...first, name: 'Puzzle x' }).ok).toBe(false);
+    expect(first.role).toBe('tutorial');
     expect(shipCheck(first).ok).toBe(true);
+    expect(shipCheck({ ...first, role: 'puzzle' }).ok).toBe(false);
+    expect(shipCheck({ ...first, role: undefined }).ok).toBe(false);
+  });
+  it('every level carries a role: 6 tutorials, then 8 puzzles', () => {
+    expect(all.map(l => l.role)).toEqual([...Array(6).fill('tutorial'), ...Array(8).fill('puzzle')]);
   });
 });
 
