@@ -3,12 +3,14 @@
 //   node src/solver/cli.ts gen <seed> [count] [--desert]   generate and audit candidates (--desert adds an oasis)
 // Each level's `role` picks the bar (audit.ts shipCheck): tutorials are exempt from the 3-move, order and tempting-move
 // checks but must still solve at par; puzzles (and levels without a role) get the full bar.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { buildLevels } from '../levels/build.ts';
 import { fromJson, type Level, type LevelJson } from '../rules/rules.ts';
 import { audit, shipCheck } from './audit.ts';
 import { generate } from './generate.ts';
 
-const DEFAULT_LEVELS = new URL('../../../spikes/plates/levels.json', import.meta.url);
+const SHIPPED_LEVELS = new URL('../levels/levels.json', import.meta.url);
+const DEFAULT_LEVELS = SHIPPED_LEVELS;
 
 function check(lv: Level): { ok: boolean; line: string } {
   const { why, audit: a } = shipCheck(lv);
@@ -19,7 +21,11 @@ function check(lv: Level): { ok: boolean; line: string } {
 }
 
 const [cmd, arg1, arg2] = process.argv.slice(2);
-if (cmd === 'audit') {
+if (cmd === 'export') {
+  const levels = buildLevels();
+  writeFileSync(SHIPPED_LEVELS, JSON.stringify(levels));
+  console.log(`wrote ${levels.length} levels to src/levels/levels.json: ${levels.map(l => `${l.name} (par ${l.par})`).join(', ')}`);
+} else if (cmd === 'audit') {
   const file = arg1 ?? DEFAULT_LEVELS;
   const levels = (JSON.parse(readFileSync(file, 'utf8')) as LevelJson[]).map(fromJson);
   let failed = 0;

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "e2e": "npm run build && playwright test",
     "levels": "node src/solver/cli.ts gen",
-    "levels:audit": "node src/solver/cli.ts audit"
+    "levels:audit": "node src/solver/cli.ts audit",
+    "levels:export": "node src/solver/cli.ts export"
   },
   "dependencies": {
     "three": "0.186.1"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromJson, type LevelJson } from '../rules/rules';
 import { audit, shipCheck } from './audit';
-import levels from '../../../spikes/plates/levels.json';
+import levels from '../levels/levels.json';
 
 // The exported set: tutorial levels first (exempt from par >= 3), then generated puzzles that must pass the full bar.
 const all = (levels as LevelJson[]).map(fromJson);

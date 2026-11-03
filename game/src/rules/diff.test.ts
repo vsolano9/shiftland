@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromJson, shift, type Dir, type LevelJson } from './rules';
 import { previewDiff } from './diff';
-import levels from '../../../spikes/plates/levels.json';
+import levels from '../levels/levels.json';
 
 // First Peak (6x4): plate 0 = cells 7,8,13,14; plate 1 = cells 9,10,15,16 (heights 1,0,1,0); goat on 9.
 const fp = fromJson((levels as LevelJson[]).find(l => l.name === 'First Peak')!);

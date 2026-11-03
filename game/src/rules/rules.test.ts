@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canFinish, fromJson, goalsMet, seaMask, shift, solve, solved, type Level, type LevelJson, type Obj } from './rules';
-import levels from '../../../spikes/plates/levels.json';
+import levels from '../levels/levels.json';
 
 // 1-row strip helper: plates/elevations per cell, '-1' = water. All plates slide E/W.
 function strip(plate: number[], elev: number[], objs: Obj[] = [], buoys: number[] = [], w = plate.length / 3): Level {

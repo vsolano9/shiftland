@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fromJson, goalsMet, shift, type LevelJson } from '../rules/rules';
 import { audit } from './audit';
 import { generate } from './generate';
-import levels from '../../../spikes/plates/levels.json';
+import levels from '../levels/levels.json';
 
 describe('generator', () => {
   it('oasis option adds exactly one oasis on free land and leaves the rest of the seed unchanged', () => {
