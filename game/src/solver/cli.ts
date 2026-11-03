@@ -20,7 +20,9 @@ function check(lv: Level): { ok: boolean; line: string } {
   return { ok: why.length === 0, line: why.length ? `${line}  FAIL: ${why.join('; ')}` : line };
 }
 
-const [cmd, arg1, arg2] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const flags = new Set(argv.filter(a => a.startsWith('--')));
+const [cmd, arg1, arg2] = argv.filter(a => !a.startsWith('--')); // flags may come anywhere (Codex chain 5 Minor 2)
 if (cmd === 'export') {
   const levels = buildLevels();
   writeFileSync(SHIPPED_LEVELS, JSON.stringify(levels));
@@ -37,8 +39,12 @@ if (cmd === 'export') {
   console.log(`${levels.length - failed}/${levels.length} levels pass`);
   if (failed) process.exitCode = 1;
 } else if (cmd === 'gen') {
-  const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = process.argv.includes('--desert');
-  if (!Number.isInteger(seed)) { console.error('usage: gen <seed> [count]'); process.exit(2); }
+  const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = flags.has('--desert');
+  const unknown = [...flags].filter(f => f !== '--desert');
+  if (!Number.isInteger(seed) || !Number.isInteger(count) || count < 1 || unknown.length) {
+    console.error(`usage: gen <seed> [count >= 1] [--desert]${unknown.length ? ` (unknown flag ${unknown.join(', ')})` : ''}`);
+    process.exit(2);
+  }
   let pass = 0;
   for (let s = seed; s < seed + count; s++) {
     const lv = { ...generate(s, { place: true, oasis }), name: `Puzzle seed ${s}`, role: 'puzzle' as const };
