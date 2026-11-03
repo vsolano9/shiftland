@@ -39,6 +39,18 @@ Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for Gi
 | Nov 30-Dec 1 | Buffer | Hotfixes only (itch allows updating the build until the deadline) | |
 | Dec 1-Jan 1 | Rating | Victor plays and rates 20+ entries, comments, answers comments on ours; agents fix only critical bugs after the deadline if the jam allows | Our rating count ≥ the jam median |
 
+## Week 1 in detail (Nov 4-7, grey-box to kill gate)
+
+| Day | Work | Check before the day ends |
+|---|---|---|
+| Nov 4 | Scaffold `Games/GameOff2026/game/` (Vite + TS + three.js, vitest, Playwright, `base: './'`); port `plates.ts` rules into `src/rules/` (grid, shift, seaMask, goals, rails, plate cap) with unit tests for every rule in the spike's `selfCheck` plus the Codex fixtures (edge lighthouse, seed 191 trap, crushed-not-drowned village); level JSON schema; ask Victor for G0 (repo + itch draft) | `npm test` green; `npm run build` makes a dist that opens from disk |
+| Nov 4-5 | Concept sheets for the build (see Schedule), started in parallel in the background while the code is written | sheets critiqued, in `concepts/` |
+| Nov 5 | Solver + audit + generator as a Node CLI (`npm run levels`, `npm run levels:audit`); `tutorial.ts` levels 1-5 and 3 curated generated levels exported as JSON; plain-box three.js render of the grid (plates as tinted columns, water plane, sea vs lake colour), orbit-limited camera | audit passes on all 8 levels; screenshot of level 3 inspected |
+| Nov 6 | Input: hover/select a plate, rail drawn with stops, drag one stop (mouse + touch), keyboard; diff-only preview (rising columns, new water, goal ticks/crosses) per the grey-box lesson; undo/restart; move counter vs par; level complete → next | Playwright plays every level's solver solution through pointer events to "complete"; console clean |
+| Nov 7 | itch draft upload (if G0 approved) and iframe test (WebGL2, audio unlock, sizing); **G2 kill gate**: Victor plays 6 levels for 10 minutes | draft loads in Chrome and Firefox (screenshot); Victor's "aha" yes/no recorded here |
+
+If G0 is not approved by Nov 7, the iframe test moves to the first day it is; nothing else waits on it.
+
 ## Done-criteria (each with its check)
 
 1. Game is complete: title → 12-15 levels → ending, no dead ends. Check: Playwright autoplay runs every level's solver solution end to end and reaches the ending.

@@ -16,6 +16,35 @@ A small island in the ocean is cut into tectonic plates. Slide a plate along its
 
 By minute 5 the rater has used every core rule, had one failure that was funny rather than punishing, and solved one real puzzle.
 
+These five are built and solver-checked in `spikes/plates/tutorial.ts` (`node spikes/plates/tutorial.ts`: 5/5 as designed):
+
+| # | Name | Teaches | Par | Shortest solutions | Trap (tempting first move) |
+|---|---|---|---|---|---|
+| 1 | First Peak | push → the seam rises; goat wants a peak | 1 | 2 (push either plate) | none |
+| 2 | Open Water | pull away → the gap is sea; buoy wants sea | 1 | 1 | none |
+| 3 | Mind the Village | the obvious push also crushes the village; slide the village's plate aside first | 2 | 1 | the obvious push: goat ticks, village crushed, no finish (undo) |
+| 4 | Two Wishes | one move can serve two goals; pick the plate that does | 2 | 3 | none |
+| 5 | Dip and Return | moving a plate away and back reshapes the seam; order decides | 3 | 1 | the obvious push: no finish (undo) |
+
+Level 5 is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its check: the solver beat it in 4 moves by pushing a plate twice and pulling it back twice. That shows a rule worth teaching on purpose: **a plate carries its raised land and creatures with it** (a mountain made by a push stays a mountain when the plate slides back). A Coast or Desert level should be built around "carry the peak".
+
+## Level progression (15 levels)
+
+| # | Biome | Beat | Source |
+|---|---|---|---|
+| 1-5 | Meadow | the five above | built (`tutorial.ts`) |
+| 6 | Meadow | carry the peak: raise a goat's hill, then slide it back where the goat's family is | hand-made, solver-checked |
+| 7 | Coast | a lighthouse needs a coast: open sea next to it without drowning the buoy's route | generator (seam placement) + curation |
+| 8 | Coast | reclaim the sea: push a plate into the ocean ring to give a village dry land | hand-made |
+| 9 | Coast | first 3-plate puzzle, par 4 | generator + curation |
+| 10 | Desert | lake vs sea: an oasis wants enclosed water, a buoy wants sea, same rift | needs the lake goal in the rules module + solver first |
+| 11 | Desert | close a rift to turn sea into a lake | hand-made |
+| 12 | Tundra | pinned plate (anchor rock): it can be pushed into, never moved | needs the pinned rule + solver first |
+| 13 | Tundra | ice melts when lifted to height 2+ | needs the ice rule + solver first |
+| 14-15 | Finale | larger island (8×8, 4 plates), everything above, par 5-6 | generator + hand edits; the hardest levels |
+
+Rules for the list: every level passes the quality bar from level 3 on (par ≥ 3 from level 5; the tutorial levels are exempt from "par ≥ 3"); a new biome's twist ships only once the rules module, solver and a unit test support it; if a twist misses its date, its levels fall back to Meadow/Coast rules and the twist is cut (12 good levels beat 15 average ones).
+
 ## Rules (as in `spikes/plates/plates.ts`)
 
 - Square grid, an island inside an ocean ring. Every cell is either plate land (plate id, height 0-3) or water.
@@ -43,10 +72,10 @@ A level's goals list shows each creature's icon and a tick. All goals true at on
 
 | Biome | Levels | New idea | Why it adds depth |
 |---|---|---|---|
-| Meadow | 1-4 | plates, uplift, rifts, goats, villages, buoys | the base verb |
-| Coast | 5-7 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
-| Desert | 8-10 | lakes vs sea (oasis wants a lake, buoys want sea) | the same rift must be closed off or opened to the ocean |
-| Tundra | 11-13 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
+| Meadow | 1-6 | plates, uplift, rifts, goats, villages, buoys, carrying a peak | the base verb |
+| Coast | 7-9 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
+| Desert | 10-11 | lakes vs sea (oasis wants a lake, buoys want sea) | the same rift must be closed off or opened to the ocean |
+| Tundra | 12-13 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
 | Finale | 14-15 | all of the above on a larger island | the payoff |
 
 Each twist ships only if the solver and audit support it before levels are made with it.
