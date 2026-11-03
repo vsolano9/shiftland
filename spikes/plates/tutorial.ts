@@ -11,8 +11,10 @@ interface Spec { name: string; teaches: string; axis: string; map: string; expec
 export function parse(spec: Spec): Level {
   if (spec.seed) {
     // generated level (rails, seam placement); the axis string documents what the generator picks
+    const saved = { AXIS: process.env.AXIS, PLACE: process.env.PLACE };
     process.env.AXIS = '2'; process.env.PLACE = '1';
-    const lv = generate(...spec.seed); delete process.env.AXIS; delete process.env.PLACE;
+    const lv = generate(...spec.seed);
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
     const axis = lv.axis!.map(a => (a === 1 ? '-' : '|')).join('');
     if (axis !== spec.axis) throw new Error(`${spec.name}: generator gave axis ${axis}, spec says ${spec.axis}`);
     return { ...lv, name: spec.name };
