@@ -42,7 +42,7 @@ Ship target: levels 1-11 plus level 14 as the one Finale level. Tundra (12-13) a
 | 7 | Coast | Dip and Return (moved from L5, S2): away and back changes the seam; first lighthouse | built (`tutorial.ts`), lighthouse added |
 | 8 | Coast | reclaim the sea: push a plate into the ocean ring to give a lighthouse a new coast while the buoy keeps open water (villages never drown, so the beat uses lighthouse and buoy, S5) | hand-made, solver-checked |
 | 9 | Coast | first 3-plate puzzle, par 4 | generator + curation |
-| 10 | Desert | lake vs sea: an oasis wants enclosed water, a buoy wants sea, same rift | needs the lake goal in the rules module + solver first |
+| 10 | Desert | lake vs sea: an oasis wants enclosed water, a buoy wants sea, same rift | lake goal ported Nov 3 (`game/src/rules` `oasis`, generator `oasis` option; 18/300 desert seeds pass the bar) |
 | 11 | Desert | close a rift to turn sea into a lake | hand-made |
 | 12 | Tundra | pinned plate (anchor rock): it can be pushed into, never moved | needs the pinned rule + solver first |
 | 13 | Tundra | ice melts when lifted to height 2+ | needs the ice rule + solver first |

@@ -1,6 +1,6 @@
 // Level CLI (docs/PLAN.md, done-criterion 2). Runs under plain Node 24 (type stripping), no build step:
 //   node src/solver/cli.ts audit [levels.json]     audit every level; exit 1 if any fails
-//   node src/solver/cli.ts gen <seed> [count]      generate and audit candidates from a seed
+//   node src/solver/cli.ts gen <seed> [count] [--desert]   generate and audit candidates (--desert adds an oasis)
 // Each level's `role` picks the bar (audit.ts shipCheck): tutorials are exempt from the 3-move, order and tempting-move
 // checks but must still solve at par; puzzles (and levels without a role) get the full bar.
 import { readFileSync } from 'node:fs';
@@ -31,11 +31,11 @@ if (cmd === 'audit') {
   console.log(`${levels.length - failed}/${levels.length} levels pass`);
   if (failed) process.exitCode = 1;
 } else if (cmd === 'gen') {
-  const seed = Number(arg1), count = Number(arg2 ?? 1);
+  const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = process.argv.includes('--desert');
   if (!Number.isInteger(seed)) { console.error('usage: gen <seed> [count]'); process.exit(2); }
   let pass = 0;
   for (let s = seed; s < seed + count; s++) {
-    const lv = { ...generate(s, { place: true }), name: `Puzzle seed ${s}`, role: 'puzzle' as const };
+    const lv = { ...generate(s, { place: true, oasis }), name: `Puzzle seed ${s}`, role: 'puzzle' as const };
     const a = audit(lv);
     if (a?.pass) { pass++; console.log(`seed ${s}: pass  min ${a.min}  tempting ${a.tempting?.move}`); }
   }

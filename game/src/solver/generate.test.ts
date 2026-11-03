@@ -5,6 +5,18 @@ import { generate } from './generate';
 import levels from '../../../spikes/plates/levels.json';
 
 describe('generator', () => {
+  it('oasis option adds exactly one oasis on free land and leaves the rest of the seed unchanged', () => {
+    for (const seed of [3, 25, 56, 140]) {
+      const plain = generate(seed, { place: true }), desert = generate(seed, { place: true, oasis: true });
+      const extra = desert.start.objs.slice(plain.start.objs.length);
+      expect(desert.start.objs.slice(0, plain.start.objs.length)).toEqual(plain.start.objs);
+      expect(extra.map(o => o.kind)).toEqual(['oasis']);
+      expect(desert.start.plate[extra[0].cell]).toBeGreaterThanOrEqual(0);
+      expect([...plain.start.objs.map(o => o.cell), ...plain.buoys]).not.toContain(extra[0].cell);
+      expect(Array.from(desert.start.plate)).toEqual(Array.from(plain.start.plate));
+    }
+  });
+
   it('is deterministic per seed', () => {
     expect(generate(7, { place: true })).toEqual(generate(7, { place: true }));
   });

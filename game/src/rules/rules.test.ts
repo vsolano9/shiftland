@@ -84,6 +84,26 @@ describe('water and goals', () => {
   });
 });
 
+describe('oasis (Desert): wants a lake beside it, the opposite of a buoy', () => {
+  // 5x5: land ring around one enclosed water cell (12) = a lake; the outer ring is ocean.
+  const lakePlate = [W, W, W, W, W, W, 0, 0, 0, W, W, 0, W, 0, W, W, 0, 0, 0, W, W, W, W, W, W];
+  const lv = (plate: number[], objs: Obj[]) => strip(plate, plate.map(() => 0), objs, [], 5);
+  it('is happy beside a lake, not beside the sea or diagonal to the lake', () => {
+    const l = lv(lakePlate, [{ kind: 'oasis', cell: 7 }, { kind: 'oasis', cell: 6 }]);
+    expect(seaMask(l, l.start)[12]).toBe(0);
+    expect(goalsMet(l, l.start)).toEqual([true, false]);
+  });
+  it('is unhappy once the lake joins the ocean', () => {
+    const open = lakePlate.slice(); open[13] = W; // 12 now touches 13, which touches the ocean at 14
+    const l = lv(open, [{ kind: 'oasis', cell: 7 }]);
+    expect(goalsMet(l, l.start)).toEqual([false]);
+  });
+  it('a lighthouse on the same cell wants the sea instead', () => {
+    const l = lv(lakePlate, [{ kind: 'light', cell: 7 }, { kind: 'light', cell: 16 }]);
+    expect(goalsMet(l, l.start)).toEqual([true, true]); // both touch the outer ocean ring
+  });
+});
+
 describe('canFinish (the "no way back" warning)', () => {
   const all = (levels as LevelJson[]).map(fromJson);
   const play = (name: string, moves: string) => {

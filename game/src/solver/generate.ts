@@ -12,9 +12,26 @@ export function rng(seed: number) {
   };
 }
 
-export interface GenOptions { w?: number; h?: number; plates?: number; maxTravel?: number; /** creatures and buoys on seam cells */ place?: boolean }
+export interface GenOptions {
+  w?: number; h?: number; plates?: number; maxTravel?: number;
+  /** creatures and buoys on seam cells */ place?: boolean;
+  /** Desert: add one oasis (wants a lake beside it) on a free land cell, from a second RNG so the base level of a
+   *  seed is unchanged (same stream as spikes/plates/twists.ts `variant`, except it never lands on a buoy cell) */
+  oasis?: boolean;
+}
 
 export function generate(seed: number, o: GenOptions = {}): Level {
+  const lv = base(seed, o);
+  if (o.oasis) {
+    const r = rng(seed * 7919 + 13);
+    const used = new Set([...lv.start.objs.map(ob => ob.cell), ...lv.buoys]);
+    const free = [...Array(lv.w * lv.h).keys()].filter(i => lv.start.plate[i] >= 0 && !used.has(i));
+    if (free.length) lv.start.objs.push({ kind: 'oasis', cell: free[Math.floor(r() * free.length)] });
+  }
+  return lv;
+}
+
+function base(seed: number, o: GenOptions): Level {
   const { w = 7, h = 7, plates = 3, maxTravel = 2, place = false } = o;
   const r = rng(seed);
   const n = w * h;

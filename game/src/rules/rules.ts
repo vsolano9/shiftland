@@ -13,7 +13,9 @@ export const DX = [0, 1, 0, -1] as const;
 export const DY = [-1, 0, 1, 0] as const;
 export const DIR_NAME = ['N', 'E', 'S', 'W'] as const;
 
-export type Kind = 'goat' | 'village' | 'light';
+/** goat wants height >= 2; village wants land at height <= 1; light wants sea beside it (the grid edge counts);
+ *  oasis (Desert) wants a LAKE beside it: in-grid water not joined to the ocean, the opposite of a buoy */
+export type Kind = 'goat' | 'village' | 'light' | 'oasis';
 export interface Obj { kind: Kind; cell: number }
 export interface State { plate: Int8Array; elev: Int8Array; objs: Obj[]; off?: Int8Array }
 export interface Level { w: number; h: number; plates: number; start: State; buoys: number[]; axis: number[]; maxTravel: number; name?: string; par?: number;
@@ -87,7 +89,9 @@ export function goalsMet(lv: Level, s: State): boolean[] {
     else if (ob.kind === 'village') out.push(land && s.elev[ob.cell] <= 1);
     else {
       const x = ob.cell % w, y = Math.floor(ob.cell / w);
-      out.push(land && [0, 1, 2, 3].some(d => isSeaAt(x + DX[d], y + DY[d])));
+      const near = (f: (x: number, y: number) => boolean) => [0, 1, 2, 3].some(d => f(x + DX[d], y + DY[d]));
+      if (ob.kind === 'light') out.push(land && near(isSeaAt));
+      else out.push(land && near((nx, ny) => nx >= 0 && ny >= 0 && nx < w && ny < h && s.plate[nx + ny * w] < 0 && sea[nx + ny * w] === 0));
     }
   }
   for (const b of lv.buoys) out.push(sea[b] === 1);
