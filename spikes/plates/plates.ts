@@ -162,13 +162,20 @@ export function generate(seed: number, w = 7, h = 7, plates = 3): Level {
   const land = [...Array(n).keys()].filter(i => plate[i] >= 0);
   const water = [...Array(n).keys()].filter(i => plate[i] < 0);
   const pick = (arr: number[]) => arr.splice(Math.floor(r() * arr.length), 1)[0];
+  // PLACE=1 (experiment): goats, villages and buoys go on seam cells (next to another plate), where moves act first.
+  // Default off, so the seeds in levels.json keep generating the same levels.
+  const place = typeof process !== 'undefined' && !!process.env.PLACE;
+  const seam = (i: number) => { const x = i % w, y = Math.floor(i / w);
+    return [0, 1, 2, 3].some(d => { const j = x + DX[d] + (y + DY[d]) * w; return plate[j] >= 0 && plate[j] !== plate[i]; }); };
+  const seamLand = land.filter(seam);
+  const pickSeam = () => { if (place && seamLand.length) { const c = pick(seamLand); land.splice(land.indexOf(c), 1); return c; } const c = pick(land); const k = seamLand.indexOf(c); if (k >= 0) seamLand.splice(k, 1); return c; };
   const objs: Obj[] = [];
   const goats = 1 + Math.floor(r() * 2), villages = Math.floor(r() * 3), lights = Math.floor(r() * 2);
-  for (let i = 0; i < goats; i++) objs.push({ kind: 'goat', cell: pick(land) });
-  for (let i = 0; i < villages; i++) objs.push({ kind: 'village', cell: pick(land) });
-  for (let i = 0; i < lights; i++) objs.push({ kind: 'light', cell: pick(land) });
+  for (let i = 0; i < goats; i++) objs.push({ kind: 'goat', cell: pickSeam() });
+  for (let i = 0; i < villages; i++) objs.push({ kind: 'village', cell: pickSeam() });
+  for (let i = 0; i < lights; i++) { const c = pick(land); const k = seamLand.indexOf(c); if (k >= 0) seamLand.splice(k, 1); objs.push({ kind: 'light', cell: c }); }
   // buoy: an interior cell that must become sea
-  const interior = land.filter(i => { const x = i % w, y = Math.floor(i / w); return x > 1 && y > 1 && x < w - 2 && y < h - 2; });
+  const interior = land.filter(i => { const x = i % w, y = Math.floor(i / w); return x > 1 && y > 1 && x < w - 2 && y < h - 2 && (!place || seam(i)); });
   const buoys = r() < 0.5 && interior.length ? [pick(interior)] : [];
   void water;
   const lv: Level = { w, h, plates, start: { plate, elev, objs }, buoys };
@@ -212,13 +219,24 @@ function permutations<T>(a: T[]): T[][] {
   a.forEach((x, i) => permutations([...a.slice(0, i), ...a.slice(i + 1)]).forEach(p => out.push([x, ...p])));
   return out;
 }
-export interface Audit { pass: boolean; min: number; temptingWrong: boolean; orderMatters: boolean; land: number; why: string[]; tempting?: { move: string; finish: number | null } }
+// smallest share of any plate's starting cells that it still owns at the end (grey-box lesson: one plate "eating" another reads as conquest)
+export function minPlateKept(lv: Level, s: State): number {
+  let worst = 1;
+  for (let p = 0; p < lv.plates; p++) {
+    const a = lv.start.plate.reduce((n, q) => n + (q === p ? 1 : 0), 0), b = s.plate.reduce((n, q) => n + (q === p ? 1 : 0), 0);
+    if (a) worst = Math.min(worst, b / a);
+  }
+  return worst;
+}
+
+export interface Audit { pass: boolean; min: number; temptingWrong: boolean; orderMatters: boolean; land: number; plateKept: number; why: string[]; tempting?: { move: string; finish: number | null } }
 export function audit(lv: Level, maxDepth = 6, minMoves = 3): Audit | null {
   const r = solve(lv, maxDepth);
   if (!r) return null;
   const why: string[] = [];
   const end = applyAll(lv, lv.start, r.firstSolution)!;
   const land = landShare(lv, end);
+  const plateKept = minPlateKept(lv, end);
   // order matters: some reordering of the shortest solution is illegal or does not solve
   const perms = r.firstSolution.length <= 6 ? permutations(r.firstSolution) : [];
   const orderMatters = perms.some(p => { const s = applyAll(lv, lv.start, p); return !s || !solved(lv, s); });
@@ -237,7 +255,8 @@ export function audit(lv: Level, maxDepth = 6, minMoves = 3): Audit | null {
   if (!orderMatters) why.push('order does not matter');
   if (!temptingWrong) why.push('no tempting wrong move');
   if (land < 0.6) why.push(`land kept ${(land * 100).toFixed(0)}%`);
-  return { pass: why.length === 0, min: r.min, temptingWrong, orderMatters, land, why, tempting };
+  if (plateKept < 0.5) why.push(`a plate keeps ${(plateKept * 100).toFixed(0)}%`);
+  return { pass: why.length === 0, min: r.min, temptingWrong, orderMatters, land, plateKept, why, tempting };
 }
 
 // ---------- main: rule self-checks + depth survey ----------
@@ -267,7 +286,8 @@ function auditMain(count: number) {
   // Invariant checked on every passing level below: 1 + (moves to finish after it) > par, or no finish at all.
   // Regression (Codex review chain 2): a move that ticks one goal while unticking another is still tempting.
   // Seed 191 (rails): P0N turns [F,T,F] into [T,F,F] and leaves no finish within 6.
-  if (process.env.AXIS) {
+  // The fixture is seed 191 of the default rails generator, so it only applies with PLACE unset.
+  if (process.env.AXIS === '2' && !process.env.PLACE) {
     const a191 = audit(generate(191));
     if (!a191?.temptingWrong) throw new Error('seed 191: a goal flipping false->true must count as tempting');
   }

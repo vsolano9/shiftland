@@ -161,14 +161,39 @@
     const land = [...Array(n).keys()].filter((i) => plate[i] >= 0);
     const water = [...Array(n).keys()].filter((i) => plate[i] < 0);
     const pick = (arr) => arr.splice(Math.floor(r() * arr.length), 1)[0];
+    const place = typeof process !== "undefined" && !!process.env.PLACE;
+    const seam = (i) => {
+      const x = i % w, y = Math.floor(i / w);
+      return [0, 1, 2, 3].some((d) => {
+        const j = x + DX[d] + (y + DY[d]) * w;
+        return plate[j] >= 0 && plate[j] !== plate[i];
+      });
+    };
+    const seamLand = land.filter(seam);
+    const pickSeam = () => {
+      if (place && seamLand.length) {
+        const c2 = pick(seamLand);
+        land.splice(land.indexOf(c2), 1);
+        return c2;
+      }
+      const c = pick(land);
+      const k = seamLand.indexOf(c);
+      if (k >= 0) seamLand.splice(k, 1);
+      return c;
+    };
     const objs = [];
     const goats = 1 + Math.floor(r() * 2), villages = Math.floor(r() * 3), lights = Math.floor(r() * 2);
-    for (let i = 0; i < goats; i++) objs.push({ kind: "goat", cell: pick(land) });
-    for (let i = 0; i < villages; i++) objs.push({ kind: "village", cell: pick(land) });
-    for (let i = 0; i < lights; i++) objs.push({ kind: "light", cell: pick(land) });
+    for (let i = 0; i < goats; i++) objs.push({ kind: "goat", cell: pickSeam() });
+    for (let i = 0; i < villages; i++) objs.push({ kind: "village", cell: pickSeam() });
+    for (let i = 0; i < lights; i++) {
+      const c = pick(land);
+      const k = seamLand.indexOf(c);
+      if (k >= 0) seamLand.splice(k, 1);
+      objs.push({ kind: "light", cell: c });
+    }
     const interior = land.filter((i) => {
       const x = i % w, y = Math.floor(i / w);
-      return x > 1 && y > 1 && x < w - 2 && y < h - 2;
+      return x > 1 && y > 1 && x < w - 2 && y < h - 2 && (!place || seam(i));
     });
     const buoys = r() < 0.5 && interior.length ? [pick(interior)] : [];
     void water;
@@ -216,12 +241,21 @@
     a.forEach((x, i) => permutations([...a.slice(0, i), ...a.slice(i + 1)]).forEach((p) => out.push([x, ...p])));
     return out;
   }
+  function minPlateKept(lv, s) {
+    let worst = 1;
+    for (let p = 0; p < lv.plates; p++) {
+      const a = lv.start.plate.reduce((n, q) => n + (q === p ? 1 : 0), 0), b = s.plate.reduce((n, q) => n + (q === p ? 1 : 0), 0);
+      if (a) worst = Math.min(worst, b / a);
+    }
+    return worst;
+  }
   function audit(lv, maxDepth = 6, minMoves = 3) {
     const r = solve(lv, maxDepth);
     if (!r) return null;
     const why = [];
     const end = applyAll(lv, lv.start, r.firstSolution);
     const land = landShare(lv, end);
+    const plateKept = minPlateKept(lv, end);
     const perms = r.firstSolution.length <= 6 ? permutations(r.firstSolution) : [];
     const orderMatters = perms.some((p) => {
       const s = applyAll(lv, lv.start, p);
@@ -244,7 +278,8 @@
     if (!orderMatters) why.push("order does not matter");
     if (!temptingWrong) why.push("no tempting wrong move");
     if (land < 0.6) why.push(`land kept ${(land * 100).toFixed(0)}%`);
-    return { pass: why.length === 0, min: r.min, temptingWrong, orderMatters, land, why, tempting };
+    if (plateKept < 0.5) why.push(`a plate keeps ${(plateKept * 100).toFixed(0)}%`);
+    return { pass: why.length === 0, min: r.min, temptingWrong, orderMatters, land, plateKept, why, tempting };
   }
   function selfCheck() {
     const lv = { w: 5, h: 3, plates: 2, buoys: [], start: {
@@ -268,7 +303,7 @@
     console.log("self-check ok");
   }
   function auditMain(count) {
-    if (process.env.AXIS) {
+    if (process.env.AXIS === "2" && !process.env.PLACE) {
       const a191 = audit(generate(191));
       if (!a191?.temptingWrong) throw new Error("seed 191: a goal flipping false->true must count as tempting");
     }
@@ -350,7 +385,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   if (typeof process !== "undefined" && process.argv?.[1]?.endsWith("plates.ts")) main();
 
   // spikes/plates/levels.json
-  var levels_default = [{ name: "Warm-up 1", seed: 14, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 1, 1, 1, 1, -1, -1, 2, 1, 1, 1, 1, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 9 }, { kind: "village", cell: 39 }], buoys: [], par: 1 }, { name: "Warm-up 2", seed: 26, w: 7, h: 7, plates: 3, axis: [1, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 2, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 0, 0, 2, -1, -1, 0, 0, 0, 0, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 24 }], buoys: [30], par: 2 }, { name: "Puzzle 1", seed: 12, w: 7, h: 7, plates: 3, axis: [1, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 17 }, { kind: "village", cell: 25 }, { kind: "light", cell: 18 }], buoys: [24], par: 3 }, { name: "Puzzle 2", seed: 71, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 22 }], buoys: [24], par: 3 }, { name: "Puzzle 3", seed: 88, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 2, 2, 2, 0, -1, -1, 1, 1, 1, 1, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 0, 0, 0, -1, -1, 1, 1, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 17 }, { kind: "village", cell: 38 }, { kind: "village", cell: 23 }], buoys: [18], par: 3 }, { name: "Puzzle 4", seed: 96, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 2, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 1, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, 1, 1, 1, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 24 }, { kind: "goat", cell: 17 }], buoys: [30], par: 3 }, { name: "Puzzle 5", seed: 7, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 2, 2, 1, -1, -1, 0, 2, 2, 2, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 29 }, { kind: "goat", cell: 39 }, { kind: "village", cell: 36 }, { kind: "village", cell: 8 }, { kind: "light", cell: 12 }], buoys: [23], par: 4 }, { name: "Puzzle 6", seed: 55, w: 7, h: 7, plates: 3, axis: [1, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 2, 2, 1, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, 2, 2, 1, 1, 1, -1, -1, 2, 0, 0, 1, 1, -1, -1, 0, 0, 0, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 18 }, { kind: "goat", cell: 39 }, { kind: "village", cell: 30 }], buoys: [31], par: 4 }, { name: "Puzzle 7", seed: 68, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, -1, -1, 0, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 1, 1, 0, 0, 0, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 23 }, { kind: "goat", cell: 33 }, { kind: "light", cell: 26 }], buoys: [16], par: 4 }, { name: "Puzzle 8", seed: 87, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 1, 1, 1, 1, -1, -1, 0, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 8 }, { kind: "light", cell: 30 }], buoys: [16], par: 4 }];
+  var levels_default = [{ name: "Warm-up 1", seed: 14, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 1, 1, 1, 1, -1, -1, 2, 1, 1, 1, 1, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 8 }, { kind: "village", cell: 37 }], buoys: [], par: 1 }, { name: "Warm-up 2", seed: 19, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 1, 1, 2, -1, -1, 0, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 36 }], buoys: [], par: 2 }, { name: "Puzzle 1", seed: 4, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 2, 2, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 32 }, { kind: "goat", cell: 18 }, { kind: "village", cell: 16 }, { kind: "village", cell: 24 }], buoys: [25], par: 3 }, { name: "Puzzle 2", seed: 12, w: 7, h: 7, plates: 3, axis: [1, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 16 }, { kind: "village", cell: 22 }, { kind: "light", cell: 18 }], buoys: [23], par: 3 }, { name: "Puzzle 3", seed: 15, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 2, 2, 1, 1, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 30 }, { kind: "goat", cell: 10 }, { kind: "light", cell: 12 }], buoys: [31], par: 3 }, { name: "Puzzle 4", seed: 58, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 0, 0, 1, 1, 2, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 0, 0, 2, -1, -1, 0, 0, 0, 0, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 19 }, { kind: "goat", cell: 25 }, { kind: "village", cell: 9 }, { kind: "village", cell: 12 }, { kind: "light", cell: 37 }], buoys: [16], par: 3 }, { name: "Puzzle 5", seed: 7, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 0, 2, 2, 1, -1, -1, 0, 2, 2, 2, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, 2, 2, 2, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 25 }, { kind: "goat", cell: 38 }, { kind: "village", cell: 31 }, { kind: "village", cell: 10 }, { kind: "light", cell: 12 }], buoys: [18], par: 4 }, { name: "Puzzle 6", seed: 34, w: 7, h: 7, plates: 3, axis: [1, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 0, 0, 0, -1, -1, 2, 2, 0, 0, 0, -1, -1, 2, 2, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 24 }, { kind: "goat", cell: 23 }, { kind: "village", cell: 31 }, { kind: "light", cell: 36 }], buoys: [30], par: 4 }, { name: "Puzzle 7", seed: 56, w: 7, h: 7, plates: 3, axis: [0, 0, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 2, 1, 1, -1, -1, 0, 0, 2, 2, 1, -1, -1, 0, 0, 2, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 33 }, { kind: "village", cell: 40 }, { kind: "light", cell: 29 }], buoys: [32], par: 4 }, { name: "Puzzle 8", seed: 57, w: 7, h: 7, plates: 3, axis: [0, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 0, 0, -1, -1, 1, 0, 0, 0, 0, -1, -1, 1, 1, 2, 0, 0, -1, -1, 1, 1, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 30 }, { kind: "goat", cell: 24 }], buoys: [25], par: 4 }];
 
   // spikes/plates/play.ts
   var LEVELS = levels_default.map((r) => ({

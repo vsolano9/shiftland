@@ -1,10 +1,10 @@
 # Game Off 2026 (SHIFT): plan
 
-Status 2026-11-03: research and concept phase done; waiting on Victor's concept pick (gate G1). Research: `research.md`. Concepts, review and spike: `concepts.md`. Mockups: `../concepts/*-mock.png` (internal references only, never shipped).
+Status 2026-11-03: **G1 done: Victor picked Plates** ("I pick Plates. You handle the rest."). The game is **Shiftland** (name chosen by the agent under that mandate; no itch.io or store game of that name found; "Fault Lines" is taken). Changeover is archived as the kill-gate fallback only. Next: G0 approvals, then the grey-box build on Nov 4. Research: `research.md`. Concepts, review and spikes: `concepts.md`. Design: `design-plates.md`. Concept images: `../concepts/` (internal references only, never shipped).
 
 ## Task
 
-Ship one browser game for GitHub Game Off 2026 (theme SHIFT) on itch.io before **Dec 1, 13:37 PST (22:37 CET)**, with the source in a public GitHub repo, aiming for a top-50 finish (top ~7%) out of an expected 600-900 entries. Default pick: **Plates** (tectonic-shift puzzle); fallback **Changeover** (turn-based scene-shift puzzle). Both share the grid, undo, solver and level pipeline below.
+Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for GitHub Game Off 2026 (theme SHIFT) on itch.io before **Dec 1, 13:37 PST (22:37 CET)**, with the source in a public GitHub repo, aiming for a top-50 finish (top ~7%) out of an expected 600-900 entries. If the G2 kill gate fails, the fallback is **Changeover** (turn-based scene-shift puzzle), which reuses the grid, undo, solver and level pipeline below.
 
 ## Guardrails (must not change)
 
@@ -18,8 +18,8 @@ Ship one browser game for GitHub Game Off 2026 (theme SHIFT) on itch.io before *
 
 | Gate | When | What Victor does |
 |---|---|---|
-| G1 pick | Nov 4 | Picks Plates / Changeover / other from the pitch page; picks a name |
-| G0 approvals | Nov 4-5 | Approves the public GitHub repo (`vsolano9/<name>`, created private now, made public at or before submission) and an itch.io draft page for iframe testing (draft pages are not public) |
+| G1 pick | ~~Nov 4~~ done Nov 3 | Picked Plates; left the name and every other choice to the agent (name: Shiftland) |
+| G0 approvals | Nov 4-5 | Approves the public GitHub repo (`vsolano9/shiftland`, created private now, made public at or before submission) and an itch.io draft page for iframe testing (draft pages are not public) |
 | G2 kill gate | Nov 7 | Plays 6 grey-box levels (10 min); "aha" yes/no. No → switch to fallback |
 | G3 playtests | Nov 14, Nov 21, Nov 26 | 15-min play of the current build, notes in his words |
 | G4 release | Nov 28 | Approves the itch page text, AI disclosure, repo going public, and submitting |
@@ -28,8 +28,8 @@ Ship one browser game for GitHub Game Off 2026 (theme SHIFT) on itch.io before *
 
 | Days | Phase | Work (owner: main agent unless noted) | Exit check |
 |---|---|---|---|
-| Nov 3 | Research and concepts | Done: research, 18 ideas scored, review, rules spike, 6 mockups | `concepts.md`, spike output |
-| Nov 4-5 | Concept sheets | For the picked game, Codex image-gen sheets of every view and state the build needs (title, level select, in-level HUD, plate idle / selected / preview / moving, uplift and flood frames, each goal creature happy and unhappy, level complete, 4 biome palettes, cursor/touch affordances, cover 630×500), critiqued with `taste_critic.py --shot` and regenerated until nothing is missing; saved in `concepts/` | Sheets approved by critic; Victor sees them on the pitch page |
+| Nov 3 | Research and concepts | Done: research, 18 ideas scored, review, rules spikes (Plates, Changeover), playable Plates grey-box (10 levels at par), concept images v1-v3 with critic rounds, pitch page, G1 | `concepts.md`, spike output, grey-box headless run |
+| Nov 4-5 | Concept sheets | For Shiftland, Codex image-gen sheets of every view and state the build needs (title, level select, in-level HUD, plate idle / selected / preview / moving, uplift and flood frames, each goal creature happy and unhappy, level complete, 4 biome palettes, cursor/touch affordances, cover 630×500), critiqued with `taste_critic.py --shot` and regenerated until nothing is missing; saved in `concepts/` | Sheets approved by critic; Victor sees them on the pitch page |
 | Nov 4-7 | Grey-box | Vite + TS + three.js repo; rules module ported from the spike with vitest tests; solver + generator CLI (`npm run levels`); level JSON format; grid render (plain boxes), plate select + rail drag, flood/uplift preview, undo/restart, goal checks; 6 levels at the quality bar; itch draft upload to test the iframe (WebGL2, audio unlock, sizing, fullscreen) | vitest green; Playwright plays each level's solver solution to "complete"; draft page loads on itch; **G2** |
 | Nov 8-14 | Look and sound | Diorama to the concept: column terrain, plate tints + edge patterns (colour-blind safe), animated uplift with dust, water shader and pour-in, ocean, sky; goal creatures with reactions; UI screens; WebAudio music per biome + SFX (rumble, crack, pour, bleats, chimes) | Screenshot set vs concept sheets, critic pass; **G3** |
 | Nov 11-21 | Content | Generator + hand curation to **12-15 levels** in 3-4 biomes, each biome adding one twist (e.g. pinned plates, ice that melts to sea, a village that must stay connected); difficulty curve; first 3 levels teach without text walls | Every level passes the quality bar via `npm run levels:audit`; **G3** |
@@ -56,9 +56,9 @@ Ship one browser game for GitHub Game Off 2026 (theme SHIFT) on itch.io before *
 - Modules: `rules/` (pure, deterministic: grid, shift, flood, goals), `solver/` (BFS, audit, generator; Node CLI), `levels/*.json`, `render/` (terrain, water, creatures, fx), `ui/`, `audio/` (WebAudio synth), `input/` (mouse + touch, rail drag).
 - Reuse, not rebuild: three.js for rendering, ZzFX/ZzFXM or hand WebAudio for sound (licence checked before use), @fontsource for fonts; no physics engine needed (grid rules).
 
-## Name candidates (Plates)
+## Name
 
-Drift, Fault Line, Pangaea, Continental, Plate Shift, Tectonic, Faultline Farm, Shiftland. Check itch.io and Steam for clashes before G1.
+**Shiftland.** Picked 2026-11-03 from: Drift, Fault Line, Pangaea, Continental, Plate Shift, Tectonic, Faultline Farm, Shiftland. Web search found no game called Shiftland or Plate Shift (several games are called just "Shift"); "Fault Lines" exists on itch.io. Shiftland carries the theme word and the island. Re-check itch.io once more when the draft page is created (G0).
 
 ## Risks
 

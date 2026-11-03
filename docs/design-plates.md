@@ -1,6 +1,6 @@
-# Plates: game design (draft for G1)
+# Shiftland: game design
 
-Working title **Plates** (name decided at G1). Draft written before Victor's pick so the build can start the day he picks it. If he picks Changeover, this file is archived and `design-changeover.md` is written from `concepts.md` §5.
+**Shiftland** (concept name "Plates"), picked by Victor on 2026-11-03. This is the design the build follows; changes are recorded here.
 
 ## One line
 

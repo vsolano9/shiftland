@@ -1,6 +1,7 @@
 // Picks grey-box levels from the generator and writes levels.json for play.html.
-// Run: node spikes/plates/export-levels.ts   (uses rails: AXIS=2 is set here)
+// Run: node spikes/plates/export-levels.ts   (rails and seam placement: AXIS=2 and PLACE=1 are set here)
 process.env.AXIS = '2';
+process.env.PLACE = '1'; // seam placement doubles the pass rate once the plate cap is on (concepts.md)
 const { generate, audit, solve } = await import('./plates.ts');
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

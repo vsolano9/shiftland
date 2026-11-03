@@ -141,6 +141,15 @@ The bar is now implemented in the spike (`AUDIT=1 node spikes/plates/plates.ts 3
 | Rails (one axis, ±2) | 198 | **28 (9%)** | 3: 13, 4: 8, 5: 6, 6: 1 | no tempting wrong move 144, too short 73, order doesn't matter 55, land < 60% 35 |
 | Free movement | 297 | **44 (15%)** | 3: 29, 4: 10, 5: 4, 6: 1 | no tempting wrong move 182, too short 129, order doesn't matter 109, land < 60% 65 |
 
+**Plate cap and seam placement (after the Plates pick, 2026-11-03).** The grey-box showed one plate eating another; the audit now also fails a level where any plate keeps < 50% of its cells. A generator experiment (`PLACE=1`) puts goats, villages and buoys on seam cells (next to another plate), where moves act first:
+
+| Variant (300 levels, with the plate cap) | Pass, objects anywhere | Pass, seam placement |
+|---|---|---|
+| Rails | 12 (3: 8, 4: 3, 5: 1) | **28** (3: 15, 4: 11, 5: 2) |
+| Free movement | 19 | 34 |
+
+Seam placement is now the default for the level pipeline (`export-levels.ts` sets it); the grey-box's 10 levels were regenerated with it and all solve at par through the real keys (`allplay` headless run, no console errors). Puzzle 8 still ends with a thin island (land kept passes at 60% but reads as barren), so hand-made levels should aim higher than the 60% floor.
+
 (Re-run after Codex review chain 2: "tempting" now means a move that turns any unmet goal true, even if it unticks another, as the bar says; before, the audit wanted the total count to rise, which rejected seed 191's trap. Regression check for seed 191 is in `auditMain`.)
 
 So ~1 in 10 random layouts already passes every automatic check, before any hand design: 3,000 seeds give ~250 candidates to curate 12-15 levels from. The generator needs placement rules (goals near plate edges, a buoy where a rift can reach) to raise the pass rate, and the hardest levels (5-6 moves) will need hand design.
@@ -166,6 +175,8 @@ What it says:
 - **Changeover / Stagehand:** several games use the "Stagehand" name ([afells](https://afells.itch.io/stagehand), [glhfgreg](https://glhfgreg.itch.io/stagehand), [ansa](https://ansa.itch.io/stage-hand)), so that name is out. [Coulisses](https://tlouel.itch.io/coulisses) is a stage-manager puzzle about reaching ropes; "Final Cue: Stage Puzzle" (STOVE, Dec 2025) is a stage-themed escape-room game, not a set-change puzzle. The sliding-flats-in-a-blackout verb was not found.
 
 ## Recommendation
+
+**Decision 2026-11-03: Victor picked Plates** (the game is named Shiftland, see `PLAN.md`). Changeover stays only as the kill-gate fallback; no more work goes into it unless G2 fails. The recommendation as written before the pick:
 
 **Plates, with a kill gate; Changeover as the fallback that shares its tooling.**
 
