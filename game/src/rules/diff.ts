@@ -1,0 +1,32 @@
+// What one move changes, for the move preview and the animations (docs/PLAN.md, Tech: State -> diff(prev, next)).
+// The preview draws only this (design audit S1), so every visible change must be in it: Codex chain 4 found an earlier
+// version that skipped land moving onto water and creatures moving to a new cell.
+import { goalsMet, type Level, type State } from './rules.ts';
+
+export interface MoveDiff {
+  /** uplift: cells the moving plate takes from another plate, with their new height. A plate's own higher cells
+   *  sliding along are not uplift (they arrive with the plate) */
+  rise: [number, number][];
+  /** land cells that become water */
+  flood: number[];
+  /** cells that become land of another plate, or land where there was water (where the moving plate arrives) */
+  arrive: number[];
+  /** creatures that change cell: [object index, from, to] */
+  moved: [number, number, number][];
+  /** goals that flip: [goal index (objects then buoys), now met] */
+  flips: [number, boolean][];
+}
+
+export function previewDiff(lv: Level, a: State, b: State): MoveDiff {
+  const d: MoveDiff = { rise: [], flood: [], arrive: [], moved: [], flips: [] };
+  for (let i = 0; i < lv.w * lv.h; i++) {
+    const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
+    if (wasLand && !isLand) d.flood.push(i);
+    if (isLand && b.plate[i] !== a.plate[i]) d.arrive.push(i);
+    if (wasLand && isLand && b.plate[i] !== a.plate[i] && b.elev[i] > a.elev[i]) d.rise.push([i, b.elev[i]]);
+  }
+  b.objs.forEach((o, k) => { if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]); });
+  const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);
+  g1.forEach((m, k) => { if (m !== g0[k]) d.flips.push([k, m]); });
+  return d;
+}

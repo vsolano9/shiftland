@@ -3,6 +3,8 @@
 // (iife so play.html opens straight from disk; module scripts are blocked on file://)
 import { shift, goalsMet, solved, solve, seaMask, canFinish, type Level, type State, type Dir } from './plates.ts';
 import raw from './levels.json';
+import { previewDiff } from '../../game/src/rules/diff.ts';
+import type { Level as DiffLevel, State as DiffState } from '../../game/src/rules/rules.ts';
 
 type Raw = { name: string; w: number; h: number; plates: number; axis: number[]; maxTravel: number;
   plate: number[]; elev: number[]; objs: { kind: 'goat' | 'village' | 'light'; cell: number }[]; buoys: number[]; par: number };
@@ -34,10 +36,20 @@ const cur = () => history[history.length - 1];
 const L = () => LEVELS[li].lv;
 
 // Warn only on a proven dead end: canFinish searches every reachable state (false = proof; null = cap hit, no warning).
-function checkStuck() { stuck = canFinish(L(), cur()) === false; }
+// It runs after the move is drawn (worst exported case ~0.6 s); a newer move, undo or restart cancels a pending answer.
+// The real game moves it into a worker (docs/PLAN.md, Nov 6).
+let stuckToken = 0, stuckPending = false;
+function checkStuck() {
+  stuck = false; stuckPending = true;
+  const tok = ++stuckToken, lv = L(), s = cur();
+  setTimeout(() => {
+    if (tok !== stuckToken) return;
+    stuck = canFinish(lv, s) === false; stuckPending = false; draw();
+  }, 40);
+}
 
 function load(i: number) {
-  li = i; history = [L().start]; sel = 0; preview = null; stuck = false;
+  li = i; history = [L().start]; sel = 0; preview = null; stuck = false; stuckPending = false; stuckToken++;
   ui.select.value = String(i);
   draw();
 }
@@ -100,32 +112,40 @@ function drawState(s: State, ghost: boolean) {
 // Diff-only preview (grey-box lesson + design audit S1): instead of a ghost of the whole next state, mark only what the
 // move changes: cells that rise (orange, with the new height), cells that turn to water (blue hatch), and goals that
 // flip (a + or - badge next to the creature or buoy).
+// The change list comes from the game's previewDiff (game/src/rules/diff.ts, unit-tested), so the grey-box and the
+// real game mark the same cells: land arriving (also onto water), creatures moving (ghost + arrow at the destination).
 function drawDiff(a: State, b: State) {
   const lv = L();
+  const d = previewDiff(lv as unknown as DiffLevel, a as unknown as DiffState, b as unknown as DiffState);
+  const at = (i: number) => [(i % lv.w) * CELL, ((i / lv.w) | 0) * CELL] as const;
+  ctx.lineWidth = 3;
+  for (const i of d.arrive) { const [x, y] = at(i); ctx.strokeStyle = '#ffffff'; ctx.setLineDash([6, 4]); ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6); ctx.setLineDash([]); }
   ctx.lineWidth = 4;
-  for (let i = 0; i < lv.w * lv.h; i++) {
-    const x = (i % lv.w) * CELL, y = ((i / lv.w) | 0) * CELL;
-    if (b.plate[i] >= 0 && b.elev[i] > (a.plate[i] >= 0 ? a.elev[i] : 0) && a.plate[i] >= 0) {
-      ctx.strokeStyle = '#ff8a1f'; ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
-      ctx.fillStyle = '#ff8a1f'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillText(`▲${b.elev[i]}`, x + 6, y + 6);
-    } else if (b.plate[i] < 0 && a.plate[i] >= 0) {
-      ctx.strokeStyle = 'rgba(30,120,255,0.9)'; ctx.lineWidth = 2;
-      for (let k = -CELL; k < CELL; k += 10) { ctx.beginPath(); ctx.moveTo(x + Math.max(0, k), y + Math.max(0, -k)); ctx.lineTo(x + Math.min(CELL, CELL + k), y + Math.min(CELL, CELL - k)); ctx.stroke(); }
-      ctx.lineWidth = 4;
-    } else if (b.plate[i] >= 0 && a.plate[i] >= 0 && b.plate[i] !== a.plate[i]) {
-      ctx.strokeStyle = '#ffffff'; ctx.setLineDash([6, 4]); ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6); ctx.setLineDash([]);
-    }
+  for (const [i, h] of d.rise) {
+    const [x, y] = at(i);
+    ctx.strokeStyle = '#ff8a1f'; ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+    ctx.fillStyle = '#ff8a1f'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`▲${h}`, x + 6, y + 6);
   }
-  const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);
+  for (const i of d.flood) {
+    const [x, y] = at(i);
+    ctx.strokeStyle = 'rgba(30,120,255,0.9)'; ctx.lineWidth = 2;
+    for (let k = -CELL; k < CELL; k += 10) { ctx.beginPath(); ctx.moveTo(x + Math.max(0, k), y + Math.max(0, -k)); ctx.lineTo(x + Math.min(CELL, CELL + k), y + Math.min(CELL, CELL - k)); ctx.stroke(); }
+  }
+  ctx.font = '30px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const [k, from, to] of d.moved) {
+    const [fx, fy] = at(from), [tx, ty] = at(to);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(fx + CELL / 2, fy + CELL / 2); ctx.lineTo(tx + CELL / 2, ty + CELL / 2); ctx.stroke();
+    ctx.globalAlpha = 0.6; ctx.fillText(ICON[b.objs[k].kind], tx + CELL / 2, ty + CELL / 2); ctx.globalAlpha = 1;
+  }
   const cells = [...b.objs.map(o => o.cell), ...lv.buoys];
   ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  g1.forEach((m, k) => {
-    if (m === g0[k]) return;
+  for (const [k, m] of d.flips) {
     const x = (cells[k] % lv.w) * CELL + CELL - 12, y = ((cells[k] / lv.w) | 0) * CELL + CELL - 14;
     ctx.fillStyle = m ? '#2ecc40' : '#e74c3c'; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(m ? '+' : '−', x, y + 1);
-  });
+  }
 }
 
 function drawRail() {
@@ -157,7 +177,7 @@ function draw() {
   else if (stuck) ui.msg.textContent = 'No way back from here: this island can no longer make everyone happy. Z undo, R restart.';
   else ui.msg.textContent = 'Click a plate (or Tab), arrow keys slide it along its rail. Hold Shift + arrow to preview. Z undo, R restart.';
   ui.msg.classList.toggle('stuck', stuck);
-  (window as unknown as { __plates: unknown }).__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck };
+  (window as unknown as { __plates: unknown }).__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck, stuckPending };
 }
 
 const KEY_DIR: Record<string, Dir> = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };

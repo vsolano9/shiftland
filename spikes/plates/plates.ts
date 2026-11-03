@@ -119,17 +119,19 @@ function key(s: State): string {
 // `false` is a proof of a dead end; `null` means the cap was hit and nothing is proven (design audit S3, Codex chain 3:
 // a depth-6 search called solvable states "no way back").
 export function canFinish(lv: Level, s: State, cap = 200000): boolean | null {
+  // Breadth-first: depth-first wandered to the cap on states that finish in 2 moves (Codex chain 4).
   if (solved(lv, s)) return true;
-  const seen = new Set([key(s)]); const q = [s];
+  const seen = new Set([key(s)]); let q = [s];
   while (q.length) {
-    const c = q.pop()!;
-    for (let p = 0; p < lv.plates; p++) for (let d = 0 as Dir; d < 4; d = (d + 1) as Dir) {
+    const next: State[] = [];
+    for (const c of q) for (let p = 0; p < lv.plates; p++) for (let d = 0 as Dir; d < 4; d = (d + 1) as Dir) {
       const t = shift(lv, c, p, d); if (!t) continue;
       const k = key(t); if (seen.has(k)) continue;
       if (solved(lv, t)) return true;
       seen.add(k); if (seen.size > cap) return null;
-      q.push(t);
+      next.push(t);
     }
+    q = next;
   }
   return false;
 }

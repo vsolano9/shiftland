@@ -94,10 +94,10 @@
   function canFinish(lv, s, cap = 2e5) {
     if (solved(lv, s)) return true;
     const seen = /* @__PURE__ */ new Set([key(s)]);
-    const q = [s];
+    let q = [s];
     while (q.length) {
-      const c = q.pop();
-      for (let p = 0; p < lv.plates; p++) for (let d = 0; d < 4; d = d + 1) {
+      const next = [];
+      for (const c of q) for (let p = 0; p < lv.plates; p++) for (let d = 0; d < 4; d = d + 1) {
         const t = shift(lv, c, p, d);
         if (!t) continue;
         const k = key(t);
@@ -105,8 +105,9 @@
         if (solved(lv, t)) return true;
         seen.add(k);
         if (seen.size > cap) return null;
-        q.push(t);
+        next.push(t);
       }
+      q = next;
     }
     return false;
   }
@@ -418,6 +419,72 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   // spikes/plates/levels.json
   var levels_default = [{ name: "First Peak", seed: 0, w: 6, h: 4, plates: 2, axis: [1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, -1, -1, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 9 }], buoys: [], par: 1 }, { name: "Open Water", seed: 0, w: 7, h: 4, plates: 2, axis: [1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 1, 1, -1, -1, 0, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [], buoys: [10], par: 1 }, { name: "Mind the Village", seed: 0, w: 6, h: 4, plates: 2, axis: [1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, -1, -1, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 9 }, { kind: "village", cell: 15 }], buoys: [], par: 2 }, { name: "Two Wishes", seed: 0, w: 7, h: 5, plates: 3, axis: [1, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 2, 2, 2, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 17 }], buoys: [24], par: 1 }, { name: "Far One First", seed: 0, w: 7, h: 5, plates: 3, axis: [0, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 1, 1, 2, -1, -1, 0, 0, 1, 1, 2, -1, -1, 0, 0, 1, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 10 }, { kind: "goat", cell: 12 }], buoys: [], par: 2 }, { name: "Dip and Return", seed: 56, w: 6, h: 5, plates: 2, axis: [1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, -1, -1, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 7 }, { kind: "goat", cell: 21 }, { kind: "village", cell: 15 }], buoys: [], par: 3 }, { name: "Puzzle 1", seed: 4, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 2, 2, 0, 0, -1, -1, 2, 2, 2, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 32 }, { kind: "goat", cell: 18 }, { kind: "village", cell: 16 }, { kind: "village", cell: 24 }], buoys: [25], par: 3 }, { name: "Puzzle 2", seed: 12, w: 7, h: 7, plates: 3, axis: [1, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 0, 0, 0, -1, -1, 2, 0, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 16 }, { kind: "village", cell: 22 }, { kind: "light", cell: 18 }], buoys: [23], par: 3 }, { name: "Puzzle 3", seed: 143, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, 1, 1, 1, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 32 }, { kind: "goat", cell: 18 }], buoys: [31], par: 3 }, { name: "Puzzle 4", seed: 169, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 1, 2, -1, -1, 0, 0, 0, 1, 2, -1, -1, 0, 0, 0, 1, 2, -1, -1, 0, 0, 0, 1, 2, -1, -1, 0, 0, 0, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 38 }, { kind: "village", cell: 11 }, { kind: "light", cell: 25 }], buoys: [], par: 3 }, { name: "Puzzle 5", seed: 57, w: 7, h: 7, plates: 3, axis: [0, 0, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 0, 0, -1, -1, 1, 0, 0, 0, 0, -1, -1, 1, 1, 2, 0, 0, -1, -1, 1, 1, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 30 }, { kind: "goat", cell: 24 }], buoys: [25], par: 4 }, { name: "Puzzle 6", seed: 87, w: 7, h: 7, plates: 3, axis: [0, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, -1, -1, 0, 1, 1, 1, 1, -1, -1, 0, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 10 }, { kind: "light", cell: 30 }], buoys: [16], par: 4 }, { name: "Puzzle 7", seed: 96, w: 7, h: 7, plates: 3, axis: [1, 1, 1], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 2, -1, -1, 0, 0, 0, 2, 2, -1, -1, 0, 1, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, 1, 1, 1, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 23 }, { kind: "goat", cell: 17 }], buoys: [24], par: 4 }, { name: "Puzzle 8", seed: 140, w: 7, h: 7, plates: 3, axis: [1, 1, 0], maxTravel: 2, plate: [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, -1, -1, 0, 0, 0, 0, 0, -1, -1, 0, 0, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, 1, 1, 2, 2, 2, -1, -1, -1, -1, -1, -1, -1, -1], elev: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], objs: [{ kind: "goat", cell: 26 }, { kind: "village", cell: 31 }], buoys: [24], par: 4 }];
 
+  // game/src/rules/rules.ts
+  var DX2 = [0, 1, 0, -1];
+  var DY2 = [-1, 0, 1, 0];
+  function seaMask2(lv, s) {
+    const { w, h } = lv;
+    const sea = new Uint8Array(w * h);
+    const q = [];
+    for (let i = 0; i < w * h; i++) {
+      const x = i % w, y = Math.floor(i / w);
+      if (s.plate[i] < 0 && (x === 0 || y === 0 || x === w - 1 || y === h - 1)) {
+        sea[i] = 1;
+        q.push(i);
+      }
+    }
+    while (q.length) {
+      const i = q.pop();
+      const x = i % w, y = Math.floor(i / w);
+      for (let d = 0; d < 4; d++) {
+        const nx = x + DX2[d], ny = y + DY2[d];
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = nx + ny * w;
+        if (!sea[j] && s.plate[j] < 0) {
+          sea[j] = 1;
+          q.push(j);
+        }
+      }
+    }
+    return sea;
+  }
+  function goalsMet2(lv, s) {
+    const { w, h } = lv;
+    const sea = seaMask2(lv, s);
+    const isSeaAt = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? true : sea[x + y * w] === 1;
+    const out = [];
+    for (const ob of s.objs) {
+      const land = s.plate[ob.cell] >= 0;
+      if (ob.kind === "goat") out.push(land && s.elev[ob.cell] >= 2);
+      else if (ob.kind === "village") out.push(land && s.elev[ob.cell] <= 1);
+      else {
+        const x = ob.cell % w, y = Math.floor(ob.cell / w);
+        out.push(land && [0, 1, 2, 3].some((d) => isSeaAt(x + DX2[d], y + DY2[d])));
+      }
+    }
+    for (const b of lv.buoys) out.push(sea[b] === 1);
+    return out;
+  }
+
+  // game/src/rules/diff.ts
+  function previewDiff(lv, a, b) {
+    const d = { rise: [], flood: [], arrive: [], moved: [], flips: [] };
+    for (let i = 0; i < lv.w * lv.h; i++) {
+      const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
+      if (wasLand && !isLand) d.flood.push(i);
+      if (isLand && b.plate[i] !== a.plate[i]) d.arrive.push(i);
+      if (wasLand && isLand && b.plate[i] !== a.plate[i] && b.elev[i] > a.elev[i]) d.rise.push([i, b.elev[i]]);
+    }
+    b.objs.forEach((o, k) => {
+      if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]);
+    });
+    const g0 = goalsMet2(lv, a), g1 = goalsMet2(lv, b);
+    g1.forEach((m, k) => {
+      if (m !== g0[k]) d.flips.push([k, m]);
+    });
+    return d;
+  }
+
   // spikes/plates/play.ts
   var LEVELS = levels_default.map((r) => ({
     name: r.name,
@@ -452,8 +519,18 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   var stuck = false;
   var cur = () => history[history.length - 1];
   var L = () => LEVELS[li].lv;
+  var stuckToken = 0;
+  var stuckPending = false;
   function checkStuck() {
-    stuck = canFinish(L(), cur()) === false;
+    stuck = false;
+    stuckPending = true;
+    const tok = ++stuckToken, lv = L(), s = cur();
+    setTimeout(() => {
+      if (tok !== stuckToken) return;
+      stuck = canFinish(lv, s) === false;
+      stuckPending = false;
+      draw();
+    }, 40);
   }
   function load(i) {
     li = i;
@@ -461,6 +538,8 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     sel = 0;
     preview = null;
     stuck = false;
+    stuckPending = false;
+    stuckToken++;
     ui.select.value = String(i);
     draw();
   }
@@ -536,41 +615,58 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   }
   function drawDiff(a, b) {
     const lv = L();
+    const d = previewDiff(lv, a, b);
+    const at = (i) => [i % lv.w * CELL, (i / lv.w | 0) * CELL];
+    ctx.lineWidth = 3;
+    for (const i of d.arrive) {
+      const [x, y] = at(i);
+      ctx.strokeStyle = "#ffffff";
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+      ctx.setLineDash([]);
+    }
     ctx.lineWidth = 4;
-    for (let i = 0; i < lv.w * lv.h; i++) {
-      const x = i % lv.w * CELL, y = (i / lv.w | 0) * CELL;
-      if (b.plate[i] >= 0 && b.elev[i] > (a.plate[i] >= 0 ? a.elev[i] : 0) && a.plate[i] >= 0) {
-        ctx.strokeStyle = "#ff8a1f";
-        ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
-        ctx.fillStyle = "#ff8a1f";
-        ctx.font = "bold 16px sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillText(`\u25B2${b.elev[i]}`, x + 6, y + 6);
-      } else if (b.plate[i] < 0 && a.plate[i] >= 0) {
-        ctx.strokeStyle = "rgba(30,120,255,0.9)";
-        ctx.lineWidth = 2;
-        for (let k = -CELL; k < CELL; k += 10) {
-          ctx.beginPath();
-          ctx.moveTo(x + Math.max(0, k), y + Math.max(0, -k));
-          ctx.lineTo(x + Math.min(CELL, CELL + k), y + Math.min(CELL, CELL - k));
-          ctx.stroke();
-        }
-        ctx.lineWidth = 4;
-      } else if (b.plate[i] >= 0 && a.plate[i] >= 0 && b.plate[i] !== a.plate[i]) {
-        ctx.strokeStyle = "#ffffff";
-        ctx.setLineDash([6, 4]);
-        ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
-        ctx.setLineDash([]);
+    for (const [i, h] of d.rise) {
+      const [x, y] = at(i);
+      ctx.strokeStyle = "#ff8a1f";
+      ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+      ctx.fillStyle = "#ff8a1f";
+      ctx.font = "bold 16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`\u25B2${h}`, x + 6, y + 6);
+    }
+    for (const i of d.flood) {
+      const [x, y] = at(i);
+      ctx.strokeStyle = "rgba(30,120,255,0.9)";
+      ctx.lineWidth = 2;
+      for (let k = -CELL; k < CELL; k += 10) {
+        ctx.beginPath();
+        ctx.moveTo(x + Math.max(0, k), y + Math.max(0, -k));
+        ctx.lineTo(x + Math.min(CELL, CELL + k), y + Math.min(CELL, CELL - k));
+        ctx.stroke();
       }
     }
-    const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);
+    ctx.font = "30px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const [k, from, to] of d.moved) {
+      const [fx, fy] = at(from), [tx, ty] = at(to);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(fx + CELL / 2, fy + CELL / 2);
+      ctx.lineTo(tx + CELL / 2, ty + CELL / 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.6;
+      ctx.fillText(ICON[b.objs[k].kind], tx + CELL / 2, ty + CELL / 2);
+      ctx.globalAlpha = 1;
+    }
     const cells = [...b.objs.map((o) => o.cell), ...lv.buoys];
     ctx.font = "bold 22px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    g1.forEach((m, k) => {
-      if (m === g0[k]) return;
+    for (const [k, m] of d.flips) {
       const x = cells[k] % lv.w * CELL + CELL - 12, y = (cells[k] / lv.w | 0) * CELL + CELL - 14;
       ctx.fillStyle = m ? "#2ecc40" : "#e74c3c";
       ctx.beginPath();
@@ -578,7 +674,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.fillText(m ? "+" : "\u2212", x, y + 1);
-    });
+    }
   }
   function drawRail() {
     const lv = L();
@@ -624,7 +720,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     else if (stuck) ui.msg.textContent = "No way back from here: this island can no longer make everyone happy. Z undo, R restart.";
     else ui.msg.textContent = "Click a plate (or Tab), arrow keys slide it along its rail. Hold Shift + arrow to preview. Z undo, R restart.";
     ui.msg.classList.toggle("stuck", stuck);
-    window.__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck };
+    window.__plates = { level: li, moves, solved: solved(lv, cur()), sel, preview: preview !== null, stuck, stuckPending };
   }
   var KEY_DIR = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };
   addEventListener("keydown", (e) => {
