@@ -47,6 +47,23 @@ describe('Controller', () => {
     expect(events.map(e => e.kind)).toEqual(['selected', 'wrong-axis', 'moved', 'blocked', 'blocked']); // one stop W, then refused
     expect([c.index, c.session.moves]).toEqual([0, 1]);
   });
+  it('drag: commits stops as the pointer crosses them, strains at a refused stop, stops at solve', () => {
+    const { c, events } = make(); events.length = 0;
+    expect(c.drag(0, -0.3, 0.4)).toEqual([-0.3, 0.4]);              // under the snap: nothing yet
+    const left = c.drag(0, -2.4, 0);                                  // one stop W, then refused (see above)
+    expect(c.session.moves).toBe(1);
+    expect(left[0]).toBeCloseTo(-0.99);
+    expect(events.map(e => e.kind)).toEqual(['selected', 'moved', 'blocked']);
+    for (let i = 0; i < 10; i++) c.drag(0, -0.99 - i * 0.01, 0);    // held against the rail end: no shake per frame
+    expect(events.filter(e => e.kind === 'blocked').length).toBe(1);
+    c.drag(0, -0.2, 0); c.drag(0, -0.8, 0);                          // eased off, pushed again: one more shake
+    expect(events.filter(e => e.kind === 'blocked').length).toBe(2);
+    c.dragEnd(); c.drag(0, -0.8, 0);                                 // a new drag strains anew
+    expect(events.filter(e => e.kind === 'blocked').length).toBe(3);
+    c.act({ kind: 'restart' });
+    c.drag(0, 1.7, 0);                                                // First Peak P0E solves; the rest of the drag is ignored
+    expect([c.session.solved, c.session.moves]).toEqual([true, 1]);
+  });
   it('undo and restart', () => {
     const { c, events } = make();
     c.act({ kind: 'move', plate: 0, dir: 3 });

@@ -2,6 +2,7 @@
 // plate, and turns input actions (keys.ts, drag.ts) into state changes plus events for the render/audio layers.
 // Pure: no DOM, no three.js. The render layer reads `session`, `selected` and `progress` and reacts to the events.
 import type { Level } from '../rules/rules.ts';
+import { consumeStep, dragStep } from './drag.ts';
 import type { KeyAction } from './keys.ts';
 import type { Progress } from './progress.ts';
 import { Session, type StuckPort } from './session.ts';
@@ -51,10 +52,34 @@ export class Controller {
     }
   }
 
-  /** Commit one stop (keyboard arrow or a drag step). */
-  move(p: number, d: 0 | 1 | 2 | 3) {
+  /**
+   * Pointer drag on plate p, in cells since the last committed stop (drag.ts). Commits one stop per SNAP crossed until
+   * the rail refuses or the level is solved, and returns the leftover drag for the input layer to keep. A refused stop
+   * keeps its drag (clamped to just under a cell), so the plate strains at the rail end instead of racing ahead.
+   */
+  drag(p: number, dx: number, dy: number): [number, number] {
+    this.select(p);
+    for (let d = dragStep(this.levels[this.index].axis[p], dx, dy); d !== null && !this.session.solved;
+         d = dragStep(this.levels[this.index].axis[p], dx, dy)) {
+      // pointermove fires every frame: a held strain emits `blocked` once, not a shake per frame
+      if (!this.move(p, d, this.straining !== d)) {
+        this.straining = d;
+        return [Math.max(-0.99, Math.min(0.99, dx)), Math.max(-0.99, Math.min(0.99, dy))];
+      }
+      this.straining = null;
+      [dx, dy] = consumeStep(d, dx, dy);
+    }
+    if (dragStep(this.levels[this.index].axis[p], dx, dy) === null) this.straining = null;
+    return [dx, dy];
+  }
+  /** Pointer released or cancelled. */
+  dragEnd() { this.straining = null; }
+  private straining: number | null = null;
+
+  /** Commit one stop (keyboard arrow or a drag step); false when refused. */
+  move(p: number, d: 0 | 1 | 2 | 3, feedback = true): boolean {
     const r = this.session.move(p, d);
-    if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p }); return; }
+    if (!r.ok) { if (r.reason === 'blocked' && feedback) this.emit({ kind: 'blocked', plate: p }); return false; }
     this.emit({ kind: 'moved', plate: p });
     if (r.solved) {
       const s = this.session;
@@ -62,6 +87,7 @@ export class Controller {
       this.selected = null;
       this.emit({ kind: 'solved', moves: s.moves, par: s.par, stars: s.stars });
     }
+    return true;
   }
 
   private select(p: number) {
