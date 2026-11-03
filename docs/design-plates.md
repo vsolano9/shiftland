@@ -80,6 +80,17 @@ A level's goals list shows each creature's icon and a tick. All goals true at on
 
 Each twist ships only if the solver and audit support it before levels are made with it.
 
+Twist spike (`node spikes/plates/twists.ts 150`, 2026-11-03): each twist added to 150 rails levels with seam placement, solved to depth 6. "Tight" = par ≥ 3 with ≤ 4 shortest solutions (a quick depth proxy, weaker than the full audit).
+
+| Variant | Solvable ≤ 6 | Par 4-6 | Tight |
+|---|---|---|---|
+| No twist | 110 | 34 | 46 |
+| Pinned plate | 74 | 18 | 32 |
+| Tundra (pinned plate + 3 ice cells + penguin) | 61 | 26 | 35 |
+| Desert (oasis wants a lake) | 62 | 36 | 50 |
+
+All three twists make puzzles; none is dead weight. The oasis pushes levels deeper (the lake/sea tension is the strongest twist), so Desert is the biome to keep if one is cut. Pinned plates remove options, so they suit early Tundra levels; ice adds unsolvable layouts, so ice levels need curation rather than raw generation. Rules as spiked: a pinned plate never moves but can be pushed into; ice melts to water when its cell is lifted to height ≥ 2 (taking anything on it); penguins want an ice cell that touches sea; an oasis wants an adjacent lake. `selfCheck()` covers melt, pinned and push-into-pinned.
+
 ## Controls
 
 - Mouse: hover a plate to highlight it and show its rail; drag along the rail; while dragging, a **preview** shows the exact result (ghost columns rising, blue water fill including far-off flooding) before release. Release commits, Esc cancels.
