@@ -48,7 +48,7 @@ Dip and Return sits sixth in the grey-box until L6 ("land remembers") is built. 
 
 Every beat in this table is written as a solver fixture before its level is built: the level's intended solution, the trap move and the "aha" move are asserted by `npm run levels:audit` (S5).
 
-Rules for the list: every level passes the quality bar from level 3 on (par ≥ 3 from level 5; the tutorial levels are exempt from "par ≥ 3"); a new biome's twist ships only once the rules module, solver and a unit test support it; if a twist misses its date, its levels fall back to Meadow/Coast rules and the twist is cut (12 good levels beat 15 average ones).
+Rules for the list: every level from level 8 on passes the full quality bar (`audit`: par ≥ 3, order matters, a tempting wrong move, land and plates kept, no goal that starts met); tutorial levels 1-7 are exempt from "par ≥ 3" but each keeps the trap it was designed around (pinned in `game/src/solver/audit.test.ts`); a new biome's twist ships only once the rules module, solver and a unit test support it; if a twist misses its date, its levels fall back to Meadow/Coast rules and the twist is cut (12 good levels beat 15 average ones).
 
 ## Rules (as in `spikes/plates/plates.ts`)
 
@@ -181,6 +181,21 @@ What it taught:
 | S10 minor | Uplift art does not match the rules | Answered: the build draws one column per taken cell (Look and sound) |
 | S11 minor | `render` hid heights under creatures | Fixed: every land cell prints plate + height, then the creature letter |
 | S12 minor | The kill gate on plain boxes needs the preview and the crush reaction | Fixed in PLAN: Nov 6 includes the diff preview and a basic crush reaction (houses tilt) so G2 judges the "aha", not the boxes |
+
+## Scope decision and open player questions (2026-11-03)
+
+Scope, decided under Victor's "you handle the rest": **ship target 12 levels** (Meadow 1-6, Coast 7-9, Desert 10-11, one Finale level), **stretch 15** (Tundra 12-13 and a second Finale level, built only if the Nov 21 playtest is green and the content phase is on schedule). Reasons: Tundra is the weakest twist in the survey (42 of 150 solvable, 24 tight, vs Desert 43 and 35) and adds two rules (pinned, ice) plus two creatures' worth of art and sound; Desert's lake-vs-sea tension is the strongest twist and stays. The archipelago map is drawn for 15 islands either way; with 12, the Tundra islands are left out of the chain.
+
+Questions the build cannot answer by itself, each with the check that answers it:
+
+| # | Question | Why it matters | Answered by |
+|---|---|---|---|
+| Q1 | Does "the creature now rides the mover" read when a plate takes a creature's cell? | 23 of 28 par solutions use it; if players miss it, puzzles feel random | G2: Victor's notes on L3/L5; the preview outlines a creature that changes plate in the mover's band colour |
+| Q2 | Is "land remembers" (moving back raises, never restores) interesting or frustrating? | The rail looks reversible (S1); undo is the escape | G2/G3: does Victor reach L7 Dip and Return without asking how it works; undo presses noted |
+| Q3 | Does the "no way back" warning help or spoil? | It leaks information (a dead end) but stops silent frustration | G3: if it reads as a spoiler, it moves behind a setting ("tell me when I'm stuck", on by default) |
+| Q4 | Do par stars pull players into retries? | Stars are the only replay reason in a 20-30 min game | G3: does Victor retry any level for its star unprompted |
+| Q5 | Are heights readable in the 3D diorama at the default camera, on a laptop and a phone? | The grey-box is top-down with numbers; the real game is isometric | Nov 6 screenshot of L5 and L7 at 1280×720 and 390×844, critic pass; heights must read without hovering |
+| Q6 | Is one move per drag the right grain, or should a drag carry a plate several steps? | Fewer inputs vs exact step-by-step reasoning and par counting | G2: Victor's notes; default is one step per rail stop, a long drag commits several steps that count as several moves |
 
 ## Content budget
 
