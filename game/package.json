@@ -10,6 +10,7 @@
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --port 4327 --strictPort",
     "test": "vitest run",
+    "e2e": "npm run build && playwright test",
     "levels": "node src/solver/cli.ts gen",
     "levels:audit": "node src/solver/cli.ts audit"
   },
@@ -17,6 +18,7 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "26.6.4",
     "@types/three": "0.186.0",
     "typescript": "7.0.2",
