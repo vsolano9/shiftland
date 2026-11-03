@@ -29,7 +29,9 @@ These are built and solver-checked in `spikes/plates/tutorial.ts` (`node spikes/
 
 Dip and Return sits sixth in the grey-box until L6 ("land remembers") is built. It is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its check: the solver beat it in 4 moves by pushing a plate twice and pulling it back twice. That shows a rule worth teaching on purpose: **a plate carries its raised land and creatures with it** (a mountain made by a push stays a mountain when the plate slides back). A Coast or Desert level should be built around "carry the peak".
 
-## Level progression (15 levels)
+## Level progression (12 to ship, 15 with the stretch)
+
+Ship target: levels 1-11 plus level 14 as the one Finale level. Tundra (12-13) and the second Finale level (15) are the stretch (see "Scope decision").
 
 | # | Biome | Beat | Source |
 |---|---|---|---|
@@ -75,7 +77,7 @@ Rules for the list: every level from level 8 on passes the full quality bar (`au
 
 A level's goals list shows each creature's icon and a tick. All goals true at once = level complete.
 
-## Biomes and twists (12-15 levels)
+## Biomes and twists (Tundra is the stretch)
 
 | Biome | Levels | New idea | Why it adds depth |
 |---|---|---|---|

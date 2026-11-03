@@ -534,6 +534,52 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
       ctx.fill();
     });
   }
+  function drawDiff(a, b) {
+    const lv = L();
+    ctx.lineWidth = 4;
+    for (let i = 0; i < lv.w * lv.h; i++) {
+      const x = i % lv.w * CELL, y = (i / lv.w | 0) * CELL;
+      if (b.plate[i] >= 0 && b.elev[i] > (a.plate[i] >= 0 ? a.elev[i] : 0) && a.plate[i] >= 0) {
+        ctx.strokeStyle = "#ff8a1f";
+        ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+        ctx.fillStyle = "#ff8a1f";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(`\u25B2${b.elev[i]}`, x + 6, y + 6);
+      } else if (b.plate[i] < 0 && a.plate[i] >= 0) {
+        ctx.strokeStyle = "rgba(30,120,255,0.9)";
+        ctx.lineWidth = 2;
+        for (let k = -CELL; k < CELL; k += 10) {
+          ctx.beginPath();
+          ctx.moveTo(x + Math.max(0, k), y + Math.max(0, -k));
+          ctx.lineTo(x + Math.min(CELL, CELL + k), y + Math.min(CELL, CELL - k));
+          ctx.stroke();
+        }
+        ctx.lineWidth = 4;
+      } else if (b.plate[i] >= 0 && a.plate[i] >= 0 && b.plate[i] !== a.plate[i]) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+        ctx.setLineDash([]);
+      }
+    }
+    const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);
+    const cells = [...b.objs.map((o) => o.cell), ...lv.buoys];
+    ctx.font = "bold 22px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    g1.forEach((m, k) => {
+      if (m === g0[k]) return;
+      const x = cells[k] % lv.w * CELL + CELL - 12, y = (cells[k] / lv.w | 0) * CELL + CELL - 14;
+      ctx.fillStyle = m ? "#2ecc40" : "#e74c3c";
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.fillText(m ? "+" : "\u2212", x, y + 1);
+    });
+  }
   function drawRail() {
     const lv = L();
     const s = cur();
@@ -566,7 +612,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     cv.width = lv.w * CELL;
     cv.height = lv.h * CELL;
     drawState(cur(), false);
-    if (preview) drawState(preview, true);
+    if (preview) drawDiff(cur(), preview);
     drawRail();
     const moves = history.length - 1;
     ui.title.textContent = LEVELS[li].name;
