@@ -57,6 +57,9 @@ export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
     elev[j] = wasOther ? Math.min(3, Math.max(s.elev[i], s.elev[j]) + 1) : s.elev[i];
   }
   const objs = s.objs.map(o => remap.has(o.cell) ? { ...o, cell: remap.get(o.cell)! } : o);
+  // Design audit S4: a push may never stack two things on one cell; it is blocked (the plate shakes).
+  // Compared with the cells used before the move, so markers that share a cell by design (a twist's penguin on ice) still move.
+  if (new Set(objs.map(o => o.cell)).size < new Set(s.objs.map(o => o.cell)).size) return null;
   return { plate, elev, objs, off };
 }
 
@@ -199,8 +202,8 @@ export function render(lv: Level, s: State): string {
       const i = x + y * lv.w;
       const o = s.objs.find(o => o.cell === i);
       const b = lv.buoys.includes(i);
-      if (s.plate[i] < 0) row += b ? ' ~*' : sea[i] ? ' ~~' : ' ..';
-      else row += ' ' + 'abcdefgh'[s.plate[i]] + (o ? o.kind[0].toUpperCase() : b ? '*' : String(s.elev[i]));
+      if (s.plate[i] < 0) row += b ? ' ~~*' : sea[i] ? ' ~~ ' : ' .. ';
+      else row += ' ' + 'abcdefgh'[s.plate[i]] + String(s.elev[i]) + (o ? o.kind[0].toUpperCase() : b ? '*' : ' ');
     }
     rows.push(row);
   }
@@ -256,6 +259,11 @@ export function audit(lv: Level, maxDepth = 6, minMoves = 3): Audit | null {
   if (!temptingWrong) why.push('no tempting wrong move');
   if (land < 0.6) why.push(`land kept ${(land * 100).toFixed(0)}%`);
   if (plateKept < 0.5) why.push(`a plate keeps ${(plateKept * 100).toFixed(0)}%`);
+  // Design audit S8: a goal the player never has to work for is noise. Goats, lighthouses and buoys must start unhappy
+  // (villages are "don't break it" goals and start happy by design).
+  const start = goalsMet(lv, lv.start);
+  const wishes = [...lv.start.objs.map(o => o.kind !== 'village'), ...lv.buoys.map(() => true)];
+  if (wishes.some((w, k) => w && start[k])) why.push('a goal starts met');
   return { pass: why.length === 0, min: r.min, temptingWrong, orderMatters, land, plateKept, why, tempting };
 }
 
@@ -276,6 +284,11 @@ function selfCheck() {
   const edge: Level = { w: 3, h: 3, plates: 1, buoys: [], start: {
     plate: new Int8Array(9), elev: new Int8Array(9), objs: [{ kind: 'light', cell: 1 }] } };
   if (!goalsMet(edge, edge.start)[0]) throw new Error('edge lighthouse should see the ocean');
+  // two creatures may never share a cell (design audit S4): goat on b's seam, goat on a's edge, a pushes east -> blocked
+  const two: Level = { w: 5, h: 3, plates: 2, buoys: [], start: {
+    plate: Int8Array.from([-1, -1, -1, -1, -1, -1, 0, 1, 1, -1, -1, -1, -1, -1, -1]),
+    elev: new Int8Array(15), objs: [{ kind: 'goat', cell: 6 }, { kind: 'goat', cell: 7 }] } };
+  if (shift(two, two.start, 0, 1) !== null) throw new Error('a push that stacks two creatures must be blocked');
   // "Tempting wrong move" means off every shortest path (finishing costs more than par), not "no solution at all":
   // see the seed-12 regression in auditMain.
   console.log('self-check ok');
@@ -285,11 +298,12 @@ function auditMain(count: number) {
   // Regression (Codex review 2026-11-03): a tempting move may still allow a finish, only above par.
   // Invariant checked on every passing level below: 1 + (moves to finish after it) > par, or no finish at all.
   // Regression (Codex review chain 2): a move that ticks one goal while unticking another is still tempting.
-  // Seed 191 (rails): P0N turns [F,T,F] into [T,F,F] and leaves no finish within 6.
-  // The fixture is seed 191 of the default rails generator, so it only applies with PLACE unset.
+  // Seed 25 (rails): P1N turns [F,T,T,F] into [F,T,F,T] and leaves no finish within 6.
+  // (The first fixture, seed 191, lost its P0N trap when design audit S4 blocked creature stacking.)
+  // The fixture is seed 25 of the default rails generator, so it only applies with PLACE unset.
   if (process.env.AXIS === '2' && !process.env.PLACE) {
-    const a191 = audit(generate(191));
-    if (!a191?.temptingWrong) throw new Error('seed 191: a goal flipping false->true must count as tempting');
+    const a25 = audit(generate(25));
+    if (!a25?.temptingWrong || a25.tempting?.move !== 'P1N') throw new Error('seed 25: a goal flipping false->true must count as tempting');
   }
   const fails = new Map<string, number>();
   const passed: { seed: number; a: Audit }[] = [];

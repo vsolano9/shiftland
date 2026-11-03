@@ -32,16 +32,20 @@ Level 5 is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its 
 
 | # | Biome | Beat | Source |
 |---|---|---|---|
-| 1-5 | Meadow | the five above | built (`tutorial.ts`) |
-| 6 | Meadow | carry the peak: raise a goat's hill, then slide it back where the goat's family is | hand-made, solver-checked |
-| 7 | Coast | a lighthouse needs a coast: open sea next to it without drowning the buoy's route | generator (seam placement) + curation |
-| 8 | Coast | reclaim the sea: push a plate into the ocean ring to give a village dry land | hand-made |
+| 1-3 | Meadow | First Peak, Open Water, Mind the Village | built (`tutorial.ts`) |
+| 4 | Meadow | Two Wishes, rebuilt (S2): two goals where the obvious single move ticks one and breaks the other, so the player must pick the plate that does both | hand-made, solver-checked (current L4 is filler: no move ticks both) |
+| 5 | Meadow | two goats on two plates that need lifting in a set order (first real "order matters" with creatures in view) | hand-made, solver-checked (S2) |
+| 6 | Meadow | land remembers: a plate that moves away leaves water, and moving it back takes the cell again (raised, not restored); the goat ends on the new peak | hand-made, beat checked with the solver (S5) |
+| 7 | Coast | Dip and Return (moved from L5, S2): away and back changes the seam; first lighthouse | built (`tutorial.ts`), lighthouse added |
+| 8 | Coast | reclaim the sea: push a plate into the ocean ring to give a lighthouse a new coast while the buoy keeps open water (villages never drown, so the beat uses lighthouse and buoy, S5) | hand-made, solver-checked |
 | 9 | Coast | first 3-plate puzzle, par 4 | generator + curation |
 | 10 | Desert | lake vs sea: an oasis wants enclosed water, a buoy wants sea, same rift | needs the lake goal in the rules module + solver first |
 | 11 | Desert | close a rift to turn sea into a lake | hand-made |
 | 12 | Tundra | pinned plate (anchor rock): it can be pushed into, never moved | needs the pinned rule + solver first |
 | 13 | Tundra | ice melts when lifted to height 2+ | needs the ice rule + solver first |
-| 14-15 | Finale | larger island (8×8, 4 plates), everything above, par 5-6 | generator + hand edits; the hardest levels |
+| 14-15 | Finale | larger island (8×8, 4 plates), everything above, par 5-6 | hand-made from generator candidates (S9: the generator found no par-6 level in 200 seeds at depth 6, so par 5-6 is hand-built and solver-checked at depth 8) |
+
+Every beat in this table is written as a solver fixture before its level is built: the level's intended solution, the trap move and the "aha" move are asserted by `npm run levels:audit` (S5).
 
 Rules for the list: every level passes the quality bar from level 3 on (par ≥ 3 from level 5; the tutorial levels are exempt from "par ≥ 3"); a new biome's twist ships only once the rules module, solver and a unit test support it; if a twist misses its date, its levels fall back to Meadow/Coast rules and the twist is cut (12 good levels beat 15 average ones).
 
@@ -53,6 +57,8 @@ Rules for the list: every level passes the quality bar from level 3 on (par ≥ 
 - Divergent: cells the plate leaves become water.
 - Water joined to the ocean is **sea**; water enclosed by land is a **lake** (different colour; matters from the desert biome on).
 - A plate may move into ocean-ring cells (reclaiming sea); it may not leave the map.
+- No stacking (design audit S4): a push that would put two creatures on one cell is blocked; the plate shakes and the rail end flashes. Before this rule, 23 of 28 par solutions moved a creature across plates and 5 needed two creatures on one cell. Taking a cell with a creature on it is still allowed (the creature now rides the mover). Checked in `selfCheck()`.
+- The game never removes a creature (S6): a move that would melt ice under a creature is blocked too, so every level's goal list is fixed from start to finish.
 - Undo and restart are free and unlimited. Move count is shown against **par** (the solver's minimum); finishing at par earns a star. Stars are optional mastery, never a gate.
 
 ## Goal creatures
@@ -60,7 +66,7 @@ Rules for the list: every level passes the quality bar from level 3 on (par ≥ 
 | Creature | Wants | Happy | Unhappy |
 |---|---|---|---|
 | Goat | stand on height ≥ 2 | hops to the peak, bleats | looks up at the hills, sighs |
-| Village (3 houses) | land, height ≤ 1 (not crushed) | chimney smoke, warm windows | crushed (height ≥ 2): houses tilt and crack (fail state, undo glows). A village always rides its plate, so it is never under water; a "flood" twist would need its own rule, solver support and a test first |
+| Village (3 houses), goal label "not crushed" (S5) | land, height ≤ 1 (not crushed) | chimney smoke, warm windows | crushed (height ≥ 2): houses tilt and crack (fail state, undo glows). A village always rides its plate, so it is never under water; a "flood" twist would need its own rule, solver support and a test first |
 | Lighthouse | land next to sea | beam switches on and sweeps | dark, keeper waves a lantern |
 | Buoy (fixed in the world) | its cell is sea | fish jump around it | sits on dry land, flopping fish icon |
 | Palm oasis (desert) | next to a lake (not sea) | palms sway, a camel drinks | wilts |
@@ -84,18 +90,22 @@ Twist spike (`node spikes/plates/twists.ts 150`, 2026-11-03): each twist added t
 
 | Variant | Solvable ≤ 6 | Par 4-6 | Tight |
 |---|---|---|---|
-| No twist | 110 | 34 | 46 |
-| Pinned plate | 74 | 18 | 32 |
-| Tundra (pinned plate + 3 ice cells + penguin) | 61 | 26 | 35 |
-| Desert (oasis wants a lake) | 62 | 36 | 50 |
+| No twist | 98 | 32 | 43 |
+| Pinned plate | 64 | 16 | 26 |
+| Tundra (pinned plate + 3 ice cells + penguin) | 39 | 18 | 23 |
+| Desert (oasis wants a lake) | 43 | 23 | 35 |
 
-All three twists make puzzles; none is dead weight. The oasis pushes levels deeper (the lake/sea tension is the strongest twist), so Desert is the biome to keep if one is cut. Pinned plates remove options, so they suit early Tundra levels; ice adds unsolvable layouts, so ice levels need curation rather than raw generation. Rules as spiked: a pinned plate never moves but can be pushed into; ice melts to water when its cell is lifted to height ≥ 2 (taking anything on it); penguins want an ice cell that touches sea; an oasis wants an adjacent lake. `selfCheck()` covers melt, pinned and push-into-pinned.
+(Rerun after the S4 no-stacking and S6 no-melting-creatures rules; the first run, before them, had 110/74/61/62 solvable and 46/32/35/50 tight. Desert stays the strongest twist; Tundra is the thinnest and is first in the cut order.)
+
+All three twists make puzzles; none is dead weight. The oasis pushes levels deeper (the lake/sea tension is the strongest twist), so Desert is the biome to keep if one is cut. Pinned plates remove options, so they suit early Tundra levels; ice adds unsolvable layouts, so ice levels need curation rather than raw generation. Rules as spiked: a pinned plate never moves but can be pushed into; ice melts to water when its cell is lifted to height ≥ 2, and a move that would melt ice under a creature is blocked (S6: the first spike deleted the creature and its goal, so a level could be won by melting it); penguins want an ice cell that touches sea; an oasis wants an adjacent lake. `selfCheck()` covers melt, pinned, push-into-pinned and the blocked melt under a penguin; `goals()` throws if a goal ever disappears.
 
 ## Controls
 
 - Mouse: hover a plate to highlight it and show its rail; drag along the rail; while dragging, a **preview** shows the exact result (ghost columns rising, blue water fill including far-off flooding) before release. Release commits, Esc cancels.
 - Keyboard: Tab / 1-9 cycles plates, arrow keys move along the rail, Z undo, R restart, Enter next level.
 - Touch: tap a plate, then swipe along the rail; same preview while the finger is down.
+- The rail is a row of move steps, not a slider (S1): it looks reversible but is not, because moving back takes cells again and raises them. Each step shows the ghost of the land it will take, and level 6 teaches "land remembers" before any level relies on it.
+- Stuck states are never silent (S3): after every move the solver (depth ≤ par + 4, cached per level) checks whether the level can still be finished; if not, the goal bar says "no way back from here" and undo glows. The check runs in a worker so input never waits.
 
 ## Feedback and feel
 
@@ -107,7 +117,9 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 ## Look and sound
 
 - Look: `concepts/plates-key-v3.png` and the `shiftland-*.png` sheets: the island sits in an animated ocean (not over clouds), plate tints plus edge patterns (colour-blind safe), soft shadows, four biome palettes. All geometry and textures made in code.
-- Plate palette rule: plate tints never use blue, teal or cyan (hue ~170-250°): water owns those hues (sea turquoise, lake green-teal), so a plate must never read as water. Per biome the three plate tints come from ochre, sage/green, lavender, terracotta, sand, slate-grey, rose. (Found in the first biome sheet, where a pale-blue dotted plate read as water.)
+- Plate palette rule: plate tints never use blue, teal or cyan (hue ~170-250°): water owns those hues (sea turquoise, lake green-teal), so a plate must never read as water. (Found in the first biome sheet, where a pale-blue dotted plate read as water.)
+- Plate identity (taste critic T1/T3, 2026-11-03): each plate is a bold perimeter band plus a large surface pattern, the same in gameplay, title art and cover, and legible in greyscale at play size: plate 1 coral band + diagonal stripes, plate 2 golden band + round dots, plate 3 violet band + zigzag chevrons (plate 4 in the finale: rust band + checks). The biome changes only the ground cover inside the band (grass, sand, snow). Creature states each carry one status badge (green check / red cross) on top of a silhouette or pose change, so they read at 40 px (T4).
+- Uplift art follows the rules (S10): the mover's cell rises to max + 1 as one column; there is no buckling ridge across both plates, and the concept sheets' wider ridges are artistic licence the build does not copy.
 - Props follow the biome: no cacti in Meadow, no pines in Desert.
 - Sound: WebAudio synth only. A gentle marimba/pad loop per biome (pentatonic, so moves can add notes in key), SFX: rumble, crack, water pour, goat bleat (formant synth), chimes, UI clicks. Mute and volume in settings.
 
@@ -142,15 +154,32 @@ Title → level select (the 15 islands as an archipelago map) → level (HUD: le
 
 ## Grey-box (2026-11-03)
 
-`spikes/plates/play.html` (open from disk; rebuild with the command at the top of `play.ts`) is a top-down playable test of the rules with 10 generated levels (2 warm-ups, 8 audited puzzles at par 3-4). Click or Tab to select a plate, arrows to slide, Shift + arrow to preview, Z undo, R restart, H solver hint.
+`spikes/plates/play.html` (open from disk; rebuild with the command at the top of `play.ts`) is a top-down playable test of the rules with 13 levels (the 5 tutorial levels from `tutorial.ts`, then 8 audited generated puzzles at par 3-4, re-exported after the S4/S8 rule changes). Click or Tab to select a plate, arrows to slide, Shift + arrow to preview, Z undo, R restart, H solver hint.
 
 Checked headless (Playwright): every level solved at par through the real key handling, no console errors. Screens: `D:\Work\_local\evidence\2026-11-03-gameoff-plates\` (warm-up 1, puzzle 5 with preview, puzzle 5 solved).
 
 What it taught:
 - A full ghost overlay of the next state is hard to read (creatures appear twice, everything tints). The real preview should draw only the **difference**: rising columns, new water, creatures whose goal flips (with a tick or cross).
-- Generated solutions often let one plate eat most of another (puzzle 5: the orange plate shrinks to a third). It reads as conquest, not shaping; the level filter should also cap how much of any one plate is consumed, or hand-made levels should avoid it.
+- Generated solutions often let one plate eat most of another (puzzle 5: the orange plate shrinks to a third). It reads as conquest, not shaping; the level filter should also cap how much of any one plate is consumed, or hand-made levels should avoid it. (Done: the audit requires every plate to keep ≥ 50% of its cells, `minPlateKept`.)
 - Rails that run off the island into the ocean read well: the plate visibly has room to move.
 - Plate ids in hints ("P1E") are meaningless to players; the real hint highlights the plate and arrow.
+
+## Design audit 2026-11-03 (fresh-eyes reviewer, S1-S12)
+
+| Id | Finding | Answer |
+|---|---|---|
+| S1 major | The rail looks reversible but is not (moving back takes cells again) | Fixed in design: rail of move steps with the ghost of the taken land; L6 teaches "land remembers" (Controls, Level progression) |
+| S2 major | L4 is filler (no single move ticks both goals); L5 Dip and Return is the least readable "aha" | Fixed in design: L4 and L5 hand-made new, Dip and Return moves to L7 (Level progression). Built on Nov 5 with the rest of the tutorial port |
+| S3 major | Stuck states are silent | Fixed in design: per-move solver check in a worker, "no way back from here" + glowing undo (Controls). Built on Nov 6 with input |
+| S4 major | Creatures change plates and stack on one cell (23 of 28 par solutions moved a creature across plates, 5 stacked) | Fixed in the rules: stacking pushes are blocked (`plates.ts` `shift`, fixture in `selfCheck`); crossing plates by being taken stays, it is the "rides the mover" rule and is shown in the preview. Seed-191 regression replaced by seed 25 (191's trap was a stacking move). Level set re-exported: 13/13 solved at par in the grey-box |
+| S5 major | L6-L8 beats contradicted the rules | Fixed: beats rewritten against the rules (L8 uses lighthouse + buoy, villages never drown), village goal labelled "not crushed", and every beat becomes a solver fixture before its level is built. The suggested "pasture wants land" goal is not added: one more goal type costs art, sound and a tutorial beat for little new tension |
+| S6 major | Ice melting deleted creatures and their goals, so a level could be won by melting | Fixed in `twists.ts`: a melt under a creature is blocked, `goals()` throws if a goal disappears, `selfCheck` covers it; survey rerun |
+| S7 major | Scope | Cut order recorded: Tundra first, then the archipelago map (falls back to a numbered grid), then the synthesized bleat (falls back to a chime), then swipe (tap-tap stays). Each cut is decided at the Nov 21 playtest |
+| S8 minor | The lighthouse often starts already happy | Fixed: the audit rejects a level where a goat, lighthouse or buoy goal starts met (`plates.ts` `audit`, "a goal starts met"); villages start happy by design |
+| S9 minor | The generator cannot reach par 6 | Answered: finale levels are hand-built from generator candidates and checked at depth 8 (Level progression) |
+| S10 minor | Uplift art does not match the rules | Answered: the build draws one column per taken cell (Look and sound) |
+| S11 minor | `render` hid heights under creatures | Fixed: every land cell prints plate + height, then the creature letter |
+| S12 minor | The kill gate on plain boxes needs the preview and the crush reaction | Fixed in PLAN: Nov 6 includes the diff preview and a basic crush reaction (houses tilt) so G2 judges the "aha", not the boxes |
 
 ## Content budget
 

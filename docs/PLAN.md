@@ -19,7 +19,7 @@ Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for Gi
 | Gate | When | What Victor does |
 |---|---|---|
 | G1 pick | ~~Nov 4~~ done Nov 3 | Picked Plates; left the name and every other choice to the agent (name: Shiftland) |
-| G0 approvals | Nov 4-5 | Approves the public GitHub repo (`vsolano9/shiftland`, created private now, made public at or before submission) and an itch.io draft page for iframe testing (draft pages are not public) |
+| G0 approvals | Nov 4-5 | Approves the public GitHub repo (`vsolano9/shiftland`, created private on Nov 3, made public at or before submission) and an itch.io draft page for iframe testing (draft pages are not public) |
 | G2 kill gate | Nov 7 | Plays 6 grey-box levels (10 min); "aha" yes/no. No → switch to fallback |
 | G3 playtests | Nov 14, Nov 21, Nov 26 | 15-min play of the current build, notes in his words |
 | G4 release | Nov 28 | Approves the itch page text, AI disclosure, repo going public, and submitting |
@@ -43,10 +43,10 @@ Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for Gi
 
 | Day | Work | Check before the day ends |
 |---|---|---|
-| Nov 4 | Scaffold `Games/GameOff2026/game/` (Vite + TS + three.js, vitest, Playwright, `base: './'`); port `plates.ts` rules into `src/rules/` (grid, shift, seaMask, goals, rails, plate cap) with unit tests for every rule in the spike's `selfCheck` plus the Codex fixtures (edge lighthouse, seed 191 trap, crushed-not-drowned village); level JSON schema; ask Victor for G0 (repo + itch draft) | `npm test` green; `npm run build` makes a dist that opens from disk |
+| Nov 4 | Scaffold `Games/GameOff2026/game/` (Vite + TS + three.js, vitest, Playwright, `base: './'`); port `plates.ts` rules into `src/rules/` (grid, shift, seaMask, goals, rails, plate cap) with unit tests for every rule in the spike's `selfCheck` plus the Codex fixtures (edge lighthouse, seed 25 goal-swap trap, crushed-not-drowned village, no stacking, no melting creatures, no goal that starts met); level JSON schema; ask Victor for G0 (repo + itch draft) | `npm test` green; `npm run build` makes a dist that opens from disk |
 | Nov 4-5 | Concept sheets for the build (see Schedule), started in parallel in the background while the code is written | sheets critiqued, in `concepts/` |
 | Nov 5 | Solver + audit + generator as a Node CLI (`npm run levels`, `npm run levels:audit`); `tutorial.ts` levels 1-5 and 3 curated generated levels exported as JSON; plain-box three.js render of the grid (plates as tinted columns, water plane, sea vs lake colour), orbit-limited camera | audit passes on all 8 levels; screenshot of level 3 inspected |
-| Nov 6 | Input: hover/select a plate, rail drawn with stops, drag one stop (mouse + touch), keyboard; diff-only preview (rising columns, new water, goal ticks/crosses) per the grey-box lesson; undo/restart; move counter vs par; level complete → next | Playwright plays every level's solver solution through pointer events to "complete"; console clean |
+| Nov 6 | Input: hover/select a plate, rail drawn with stops, drag one stop (mouse + touch), keyboard; diff-only preview (rising columns, new water, goal ticks/crosses) per the grey-box lesson; undo/restart; move counter vs par; level complete → next; a basic crush reaction (houses tilt) and the "no way back" stuck warning (design audit S3, S12) so G2 judges the idea, not the boxes | Playwright plays every level's solver solution through pointer events to "complete"; console clean |
 | Nov 7 | itch draft upload (if G0 approved) and iframe test (WebGL2, audio unlock, sizing); **G2 kill gate**: Victor plays 6 levels for 10 minutes | draft loads in Chrome and Firefox (screenshot); Victor's "aha" yes/no recorded here |
 
 If G0 is not approved by Nov 7, the iframe test moves to the first day it is; nothing else waits on it.

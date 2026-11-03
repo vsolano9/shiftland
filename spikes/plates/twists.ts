@@ -18,10 +18,13 @@ function step(lv: TLevel, s: State, p: number, d: Dir): State | null {
   if (lv.pinned.includes(p)) return null;
   const t = shift(lv, s, p, d);
   if (!t) return null;
-  // ice melts where it was lifted to height >= 2: the cell turns to water and the marker (and anything on it) is gone
+  // ice melts where it was lifted to height >= 2: the cell turns to water and the ice marker is gone.
+  // Design audit S6: a creature is never melted away with it (that deleted its goal, so a level could be won by melting);
+  // a move that would melt ice under a creature is blocked, like a push that stacks creatures.
   const objs = t.objs as unknown as TObj[];
   const melt = new Set(objs.filter(o => o.kind === 'ice' && t.elev[o.cell] >= 2).map(o => o.cell));
   if (!melt.size) return t;
+  if (objs.some(o => o.kind !== 'ice' && melt.has(o.cell))) return null;
   const plate = t.plate.slice(), elev = t.elev.slice();
   for (const c of melt) { plate[c] = -1; elev[c] = 0; }
   return { ...t, plate, elev, objs: objs.filter(o => !melt.has(o.cell)) as unknown as State['objs'] };
@@ -41,9 +44,9 @@ function goals(lv: TLevel, s: State): boolean[] {
     if (o.kind === 'penguin') extra.push(s.plate[o.cell] >= 0 && objs.some(i => i.kind === 'ice' && i.cell === o.cell) && around(o.cell, j => sea[j] === 1 || (s.plate[j] < 0 && sea[j] === 1)));
     if (o.kind === 'oasis') extra.push(s.plate[o.cell] >= 0 && around(o.cell, j => s.plate[j] < 0 && sea[j] === 0));
   }
-  // a penguin or oasis that vanished (melted with its ice) can never be happy
-  const lost = (lv.start.objs as unknown as TObj[]).filter(o => o.kind === 'penguin' || o.kind === 'oasis').length - extra.length;
-  for (let k = 0; k < lost; k++) extra.push(false);
+  // goal count is fixed for the whole level: step() never removes a creature (design audit S6)
+  const want = lv.start.objs.length - (lv.start.objs as unknown as TObj[]).filter(o => o.kind === 'ice').length + lv.buoys.length;
+  if (base.length + extra.length !== want) throw new Error('a goal disappeared');
   return [...base, ...extra];
 }
 const done = (lv: TLevel, s: State) => goals(lv, s).every(Boolean);
@@ -108,6 +111,10 @@ function selfCheck() {
   if (t.plate[7] !== -1 || t.objs.length !== 0) throw new Error('lifted ice should melt into water');
   if (step({ ...lv, pinned: [0] }, lv.start, 0, 1) !== null) throw new Error('pinned plate must not move');
   if (!step({ ...lv, pinned: [1] }, lv.start, 0, 1)) throw new Error('a pinned plate can still be pushed into');
+  // S6: a penguin on that ice blocks the melt-push instead of vanishing with it
+  const pg = { ...lv, start: { ...lv.start, objs: [{ kind: 'ice', cell: 7 }, { kind: 'penguin', cell: 7 }] as unknown as State['objs'] } };
+  if (step(pg, pg.start, 0, 1) !== null) throw new Error('melting ice under a creature must be blocked');
+  if (!step(pg, pg.start, 1, 1)) throw new Error('penguin and its ice still ride their plate together');
   console.log('self-check ok');
 }
 

@@ -150,7 +150,7 @@ The bar is now implemented in the spike (`AUDIT=1 node spikes/plates/plates.ts 3
 
 Seam placement is now the default for the level pipeline (`export-levels.ts` sets it); the grey-box's 10 levels were regenerated with it and all solve at par through the real keys (`allplay` headless run, no console errors). Puzzle 8 still ends with a thin island (land kept passes at 60% but reads as barren), so hand-made levels should aim higher than the 60% floor.
 
-(Re-run after Codex review chain 2: "tempting" now means a move that turns any unmet goal true, even if it unticks another, as the bar says; before, the audit wanted the total count to rise, which rejected seed 191's trap. Regression check for seed 191 is in `auditMain`.)
+(Re-run after Codex review chain 2: "tempting" now means a move that turns any unmet goal true, even if it unticks another, as the bar says; before, the audit wanted the total count to rise, which rejected seed 191's trap. Regression check for seed 191 is in `auditMain`; after design audit S4 blocked creature stacking, 191's trap move became illegal and the fixture moved to seed 25, P1N.)
 
 So ~1 in 10 random layouts already passes every automatic check, before any hand design: 3,000 seeds give ~250 candidates to curate 12-15 levels from. The generator needs placement rules (goals near plate edges, a buoy where a rift can reach) to raise the pass rate, and the hardest levels (5-6 moves) will need hand design.
 

@@ -16,4 +16,4 @@ Status (2026-11-03): Victor picked **Plates**; the game is **Shiftland**, a tect
 | `spikes/plates/play.html` | Playable top-down grey-box (open from disk); levels from `export-levels.ts` |
 | `spikes/changeover/changeover.ts` | Changeover rules spike (fallback only) |
 
-Local git only for now; the public GitHub repo is created at gate G0 with Victor's approval.
+Repo: private `vsolano9/shiftland` (created 2026-11-03). The jam needs it public by submission; making it public is a public release and waits for Victor's approval (G0/G4).
