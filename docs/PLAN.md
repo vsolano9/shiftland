@@ -43,9 +43,9 @@ Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for Gi
 
 | Day | Work | Check before the day ends |
 |---|---|---|
-| Nov 4 | Scaffold `Games/GameOff2026/game/` (Vite + TS + three.js, vitest, Playwright, `base: './'`); port `plates.ts` rules into `src/rules/` (grid, shift, seaMask, goals, rails, plate cap) with unit tests for every rule in the spike's `selfCheck` plus the Codex fixtures (edge lighthouse, seed 25 goal-swap trap, crushed-not-drowned village, no stacking, no melting creatures, no goal that starts met); level JSON schema; ask Victor for G0 (repo + itch draft). **Started early on Nov 3:** `game/` scaffold (Vite 8, TS 7, vitest 5, three 0.186), `game/src/rules/rules.ts` ported with the S4 rule, 25 vitest tests (shift, uplift cap, rifts, rails, riding creatures, no stacking, crushed-not-drowned, sea vs lake, edge lighthouse, goals, and every `levels.json` level solving at its exported par); `npm run build` passes and the build loads in `vite preview` with no console errors. The audit is ported too (`game/src/solver/audit.ts`, 13 more tests: all 8 exported puzzles pass the bar at their par, the tutorial traps are pinned). Left for Nov 4: the generator port with the seed 25 fixture, level JSON schema, Playwright | `npm test` green; `npm run build` dist loads over HTTP (`npm run preview`; ES-module builds do not run from `file://`, itch serves over HTTP) |
+| Nov 4 | Scaffold `Games/GameOff2026/game/` (Vite + TS + three.js, vitest, Playwright, `base: './'`); port `plates.ts` rules into `src/rules/` (grid, shift, seaMask, goals, rails, plate cap) with unit tests for every rule in the spike's `selfCheck` plus the Codex fixtures (edge lighthouse, seed 25 goal-swap trap, crushed-not-drowned village, no stacking, no melting creatures, no goal that starts met); level JSON schema; ask Victor for G0 (repo + itch draft). **Started early on Nov 3:** `game/` scaffold (Vite 8, TS 7, vitest 5, three 0.186), `game/src/rules/rules.ts` ported with the S4 rule, 25 vitest tests (shift, uplift cap, rifts, rails, riding creatures, no stacking, crushed-not-drowned, sea vs lake, edge lighthouse, goals, and every `levels.json` level solving at its exported par); `npm run build` passes and the build loads in `vite preview` with no console errors. The audit is ported too (`game/src/solver/audit.ts`, 13 more tests: all 8 exported puzzles pass the bar at their par, the tutorial traps are pinned). The generator is ported too (`game/src/solver/generate.ts`: deterministic, regenerates Dip and Return (seed 56) and all 8 exported puzzle seeds, seed 25 P1N fixture), and the level CLI exists: `npm run levels:audit [file]` audits every level against the ship bar (`shipCheck`: full bar for puzzles, par-is-minimum for all; 14/14 pass, a wrong par exits 1) and `npm run levels -- <seed> <count>` lists passing seeds (14 of seeds 1-300). 46 tests. Left for Nov 4: level JSON schema with an explicit `role` (tutorial/puzzle) replacing the name rule, moving `levels.json` into `game/src/levels/`, Playwright | `npm test` green; `npm run build` dist loads over HTTP (`npm run preview`; ES-module builds do not run from `file://`, itch serves over HTTP) |
 | Nov 4-5 | Concept sheets for the build (see Schedule), started in parallel in the background while the code is written | sheets critiqued, in `concepts/` |
-| Nov 5 | Solver + audit + generator as a Node CLI (`npm run levels`, `npm run levels:audit`); `tutorial.ts` levels 1-6 (L4 and L5 rebuilt after design audit S2) and 3 curated generated levels exported as JSON; plain-box three.js render of the grid (plates as tinted columns, water plane, sea vs lake colour), orbit-limited camera | audit passes on all 8 levels; screenshot of level 3 inspected |
+| Nov 5 | Exporter in the game repo (the CLI already audits and lists seeds; it still has to write the curated set); `tutorial.ts` levels 1-6 (L4 and L5 rebuilt after design audit S2) and 3 curated generated levels exported as JSON; plain-box three.js render of the grid (plates as tinted columns, water plane, sea vs lake colour), orbit-limited camera | audit passes on all 8 levels; screenshot of level 3 inspected |
 | Nov 6 | Input: hover/select a plate, rail drawn with stops, drag one stop (mouse + touch), keyboard; diff-only preview (rising columns, new water, goal ticks/crosses) per the grey-box lesson; undo/restart; move counter vs par; level complete → next; a basic crush reaction (houses tilt) and the "no way back" stuck warning (design audit S3, S12) so G2 judges the idea, not the boxes | Playwright plays every level's solver solution through pointer events to "complete"; console clean |
 | Nov 7 | itch draft upload (if G0 approved) and iframe test (WebGL2, audio unlock, sizing); **G2 kill gate**: Victor plays 6 levels for 10 minutes; his notes answer open questions Q1, Q2 and Q6 (`design-plates.md`) | draft loads in Chrome and Firefox (screenshot); Victor's "aha" yes/no recorded here |
 
@@ -61,6 +61,29 @@ If G0 is not approved by Nov 7, the iframe test moves to the first day it is; no
 6. Sounds finished: music + every action has a sound; mute works. Check: audio event log in a Playwright run shows each SFX fires; Victor's G3 notes.
 7. Performance. Check: Playwright perf trace, 60 fps median on the dev PC with 4× CPU throttle ≥ 30 fps; zip size and load time measured.
 8. Submitted on time with honest disclosure. Check: entry page screenshot, form answers recorded in `docs/release.md`.
+
+## Release checklist (Nov 25-29; every line green before G4)
+
+Each line has its check; results with evidence paths go in `docs/release.md`.
+
+| # | Item | Check |
+|---|---|---|
+| R1 | Zip is valid for itch HTML5 | `index.html` at the zip root, < 1,000 files, every path < 240 chars, < 15 MB (`research.md`: limits 1,000 files, 500 MB, 200 MB per file); script lists count, size, longest path |
+| R2 | Relative paths only | `vite.config.ts` `base: './'`; grep of `dist/` finds no `"/assets` absolute URL; the zip plays from the itch draft page |
+| R3 | Plays end to end | Playwright autoplay of every level's solver solution from the title to the ending on the production build (`vite preview`), console clean |
+| R4 | Levels pass the bar | `npm run levels:audit` green on the shipped level set; level count matches the itch page line |
+| R5 | Rules and tests | `npm test` and `npm run typecheck` green on the release commit |
+| R6 | itch iframe | draft page loads and plays level 1 in Chrome and Firefox via browser_relay; fullscreen, audio after first click, sizing at 1280×720 and in fullscreen; screenshots inspected |
+| R7 | Touch | level 1 solved by touch drag in a Playwright mobile emulation (and on a real phone if Victor has one at hand) |
+| R8 | Save and settings | progress survives a reload; with storage blocked (private window) the game still starts; volume and reduced-motion persist |
+| R9 | Performance | done-criterion 7 numbers recorded (fps median, 4× throttle, load time, zip size) |
+| R10 | Audio | done-criterion 6 event log: every SFX fires once in the autoplay run; mute silences all |
+| R11 | Look | done-criterion 5: final screenshot set vs `concepts/shiftland-*.png`, critic findings answered, `Taste:` verdict |
+| R12 | No shipped AI media | `dist/` contains no image or audio files except ones generated by code at build time (list of non-JS/CSS/HTML files is empty or explained) |
+| R13 | Repo ready | README (what, how to play, how to build, AI disclosure), LICENSE (MIT for code), no secrets (`git log -p` grep for keys/tokens), no Grand Fantasia or other project IP |
+| R14 | itch page | `docs/itch-page.md` final text with the shipped level count; cover 630×500 and 4 screenshots rendered from the game; disclosure matches the submission form's AI question (answers recorded) |
+| R15 | Victor's approvals | G4 recorded in this file with his words: page text, disclosure, repo public, submit |
+| R16 | Submitted and verified | after submit: entry visible on the jam's entries page (screenshot), downloaded zip hash = built zip hash, repo public and its link on the entry page opens |
 
 ## Tech
 

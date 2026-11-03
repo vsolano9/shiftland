@@ -1,7 +1,7 @@
 // Level generator: Voronoi plates on an island inside an ocean ring, random creatures and an optional buoy.
 // Ported from spikes/plates/plates.ts with the same RNG call order, so a seed gives the same level as the spike
 // (spike env AXIS=<maxTravel> and PLACE=1 become the options below).
-import { DX, DY, type Level, type Obj } from '../rules/rules';
+import { DX, DY, type Level, type Obj } from '../rules/rules.ts';
 
 export function rng(seed: number) {
   let a = seed >>> 0;

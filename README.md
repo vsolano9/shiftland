@@ -14,6 +14,7 @@ Status (2026-11-03): Victor picked **Plates**; the game is **Shiftland**, a tect
 | `docs/design-plates.md` | Shiftland game design: rules, creatures, biomes, level progression, controls, feel |
 | `spikes/plates/plates.ts` | Throwaway rules + BFS solver spike: `node spikes/plates/plates.ts 300` (`AXIS=2` rails, `AUDIT=1` quality bar, `PLACE=1` seam placement) |
 | `spikes/plates/play.html` | Playable top-down grey-box (open from disk); levels from `export-levels.ts` |
+| `game/` | The real game (Vite + TS + three.js). In `game/`: `npm test` (rules, audit, generator), `npm run typecheck`, `npm run build`, `npm run preview` (port 4327), `npm run levels:audit [file]` (ship bar on every level, exit 1 on a failure), `npm run levels -- <seed> <count>` (generated seeds that pass) |
 | `spikes/changeover/changeover.ts` | Changeover rules spike (fallback only) |
 
 Repo: private `vsolano9/shiftland` (created 2026-11-03). The jam needs it public by submission; making it public is a public release and waits for Victor's approval (G0/G4).

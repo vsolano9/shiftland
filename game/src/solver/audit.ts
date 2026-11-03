@@ -1,13 +1,29 @@
 // Level quality bar (docs/concepts.md "Level quality bar" + design audit S8). Ported from spikes/plates/plates.ts.
 // Used by the level CLI (Nov 5) and the tests; the game itself never imports it.
-import { DIR_NAME, goalsMet, shift, solve, solved, type Dir, type Level, type State } from '../rules/rules';
+import { DIR_NAME, goalsMet, shift, solve, solved, type Dir, type Level, type State } from '../rules/rules.ts';
 
 export interface Audit {
   pass: boolean; min: number; temptingWrong: boolean; orderMatters: boolean; land: number; plateKept: number; why: string[];
   tempting?: { move: string; finish: number | null };
 }
 
-const parseMove = (m: string): [number, Dir] => [Number(m[1]), 'NESW'.indexOf(m[2]) as Dir];
+/**
+ * The bar a shipped level must meet (`npm run levels:audit`). Puzzles get the full audit plus "par is the true minimum".
+ * Tutorial levels teach one idea in 1-3 moves, so "order matters" and "has a tempting move" don't apply to them; they
+ * must still solve at par and keep land, plates and no-goal-starts-met. Their designed traps are pinned in audit.test.ts.
+ * Until the level schema gains a role field (Nov 4), names not starting with "Puzzle" are tutorials.
+ */
+export function shipCheck(lv: Level): { ok: boolean; why: string[]; audit: Audit | null } {
+  const tutorial = !lv.name?.startsWith('Puzzle');
+  const a = audit(lv, 6, tutorial ? 1 : 3);
+  if (!a) return { ok: false, why: ['unsolvable within 6 moves'], audit: null };
+  const why = tutorial ? a.why.filter(w => w !== 'order does not matter' && w !== 'no tempting wrong move') : [...a.why];
+  if (lv.par !== undefined && a.min !== lv.par) why.push(`par ${lv.par} but min ${a.min}`);
+  if (a.tempting && a.tempting.finish !== null && a.tempting.finish <= a.min) why.push('tempting move is not a trap');
+  return { ok: why.length === 0, why, audit: a };
+}
+
+const parseMove =(m: string): [number, Dir] => [Number(m[1]), 'NESW'.indexOf(m[2]) as Dir];
 
 export function applyAll(lv: Level, s: State, moves: string[]): State | null {
   for (const m of moves) { const [p, d] = parseMove(m); const t = shift(lv, s, p, d); if (!t) return null; s = t; }
