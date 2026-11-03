@@ -64,6 +64,20 @@ describe('Controller', () => {
     c.drag(0, 1.7, 0);                                                // First Peak P0E solves; the rest of the drag is ignored
     expect([c.session.solved, c.session.moves]).toEqual([true, 1]);
   });
+  it('stuck warning: on from the checker, off again on undo, one event per change', () => {
+    const c = new Controller(all, new Progress(all.map(l => l.name!), mem()));
+    const events: GameEvent[] = [];
+    // open Mind the Village (index 2) by solving the first two
+    playSolution(c); c.act({ kind: 'next' }); playSolution(c); c.act({ kind: 'next' });
+    expect(c.session.lv.name).toBe('Mind the Village');
+    (c as unknown as { emit: (e: GameEvent) => void }).emit = e => events.push(e);
+    c.act({ kind: 'move', plate: 0, dir: 1 });   // the crushing push
+    c.stuckAnswer(true); c.stuckAnswer(true);    // a repeat answer is not a change
+    c.act({ kind: 'undo' });
+    expect(events.filter(e => e.kind === 'stuck')).toEqual([{ kind: 'stuck', stuck: true }, { kind: 'stuck', stuck: false }]);
+    c.drag(0, 0.7, 0); c.stuckAnswer(true); c.drag(0, -0.7, 0); // the same through a drag: on, then off once
+    expect(events.filter(e => e.kind === 'stuck').map(e => e.kind === 'stuck' && e.stuck)).toEqual([true, false, true, false]);
+  });
   it('undo and restart', () => {
     const { c, events } = make();
     c.act({ kind: 'move', plate: 0, dir: 3 });

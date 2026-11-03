@@ -15,6 +15,7 @@ export type GameEvent =
   | { kind: 'wrong-axis'; plate: number }
   | { kind: 'undone' }
   | { kind: 'solved'; moves: number; par?: number; stars: number }
+  | { kind: 'stuck'; stuck: boolean }                      // "no way back from here" on/off (undo glows)
   | { kind: 'finished' };                                  // Enter on the last level
 
 export class Controller {
@@ -25,6 +26,16 @@ export class Controller {
   constructor(readonly levels: Level[], readonly progress: Progress, private stuck?: StuckPort,
               private emit: (e: GameEvent) => void = () => {}) {
     this.open(progress.next());
+  }
+
+  /**
+   * The stuck checker's callback (wire it as `new StuckChecker(createStuckWorker, s => controller.stuckAnswer(s))`).
+   * Every move, undo and restart clears the warning first, so the event fires only when the shown state changes.
+   */
+  stuckAnswer(stuck: boolean) {
+    const was = this.session.stuck;
+    this.session.setStuck(stuck);
+    if (this.session.stuck !== was) this.emit({ kind: 'stuck', stuck: this.session.stuck });
   }
 
   /** Open level i if it is unlocked; returns false for a locked level. */
@@ -38,13 +49,14 @@ export class Controller {
   }
 
   act(a: KeyAction) {
+    const was = this.session.stuck;
     switch (a.kind) {
       case 'select': this.selected = a.plate; this.emit({ kind: 'selected', plate: a.plate }); break;
       case 'cancel': this.selected = null; this.emit({ kind: 'selected', plate: null }); break;
       case 'wrong-axis': this.select(a.plate); this.emit({ kind: 'wrong-axis', plate: a.plate }); break;
       case 'move': this.select(a.plate); this.move(a.plate, a.dir); break;
-      case 'undo': if (this.session.undo()) this.emit({ kind: 'undone' }); break;
-      case 'restart': this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); break;
+      case 'undo': if (this.session.undo()) { this.emit({ kind: 'undone' }); this.unstuck(was); } break;
+      case 'restart': this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
       case 'next':
         if (!this.session.solved) break;
         if (this.index + 1 < this.levels.length) this.open(this.index + 1); else this.emit({ kind: 'finished' });
@@ -78,9 +90,11 @@ export class Controller {
 
   /** Commit one stop (keyboard arrow or a drag step); false when refused. */
   move(p: number, d: 0 | 1 | 2 | 3, feedback = true): boolean {
+    const was = this.session.stuck;
     const r = this.session.move(p, d);
     if (!r.ok) { if (r.reason === 'blocked' && feedback) this.emit({ kind: 'blocked', plate: p }); return false; }
     this.emit({ kind: 'moved', plate: p });
+    this.unstuck(was);
     if (r.solved) {
       const s = this.session;
       this.progress.complete(this.index, s.moves, s.stars);
@@ -89,6 +103,9 @@ export class Controller {
     }
     return true;
   }
+
+  /** A move, undo or restart clears the warning until the checker answers again: tell the render layer. */
+  private unstuck(was: boolean) { if (was && !this.session.stuck) this.emit({ kind: 'stuck', stuck: false }); }
 
   private select(p: number) {
     if (this.selected !== p) { this.selected = p; this.emit({ kind: 'selected', plate: p }); }
