@@ -60,7 +60,8 @@ export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
   return { plate, elev, objs, off };
 }
 
-function seaMask(lv: Level, s: State): Uint8Array {
+// Shared by the solver, goals and the renderer (one flood-fill implementation).
+export function seaMask(lv: Level, s: State): Uint8Array {
   const { w, h } = lv;
   const sea = new Uint8Array(w * h);
   const q: number[] = [];
@@ -221,14 +222,14 @@ export function audit(lv: Level, maxDepth = 6, minMoves = 3): Audit | null {
   // order matters: some reordering of the shortest solution is illegal or does not solve
   const perms = r.firstSolution.length <= 6 ? permutations(r.firstSolution) : [];
   const orderMatters = perms.some(p => { const s = applyAll(lv, lv.start, p); return !s || !solved(lv, s); });
-  // tempting wrong first move: raises the goals-met count, but is off every shortest path, so finishing
-  // after it costs more than par (or is impossible within maxDepth). With par stars, that is the trap.
-  const met0 = goalsMet(lv, lv.start).filter(Boolean).length;
+  // tempting wrong first move: makes some unmet goal true (a visible tick), but is off every shortest path, so
+  // finishing after it costs more than par (or is impossible within maxDepth). With par stars, that is the trap.
+  const met0 = goalsMet(lv, lv.start);
   let temptingWrong = false;
   let tempting: Audit['tempting'];
   for (let p = 0; p < lv.plates && !temptingWrong; p++) for (let d = 0 as Dir; d < 4; d = (d + 1) as Dir) {
     const t = shift(lv, lv.start, p, d);
-    if (!t || goalsMet(lv, t).filter(Boolean).length <= met0) continue;
+    if (!t || !goalsMet(lv, t).some((m, k) => m && !met0[k])) continue;
     const rest = solve({ ...lv, start: t }, maxDepth);
     if (!rest || rest.min > r.min - 1) { temptingWrong = true; tempting = { move: `P${p}${DIR_NAME[d]}`, finish: rest ? 1 + rest.min : null }; break; }
   }
@@ -264,6 +265,12 @@ function selfCheck() {
 function auditMain(count: number) {
   // Regression (Codex review 2026-11-03): a tempting move may still allow a finish, only above par.
   // Invariant checked on every passing level below: 1 + (moves to finish after it) > par, or no finish at all.
+  // Regression (Codex review chain 2): a move that ticks one goal while unticking another is still tempting.
+  // Seed 191 (rails): P0N turns [F,T,F] into [T,F,F] and leaves no finish within 6.
+  if (process.env.AXIS) {
+    const a191 = audit(generate(191));
+    if (!a191?.temptingWrong) throw new Error('seed 191: a goal flipping false->true must count as tempting');
+  }
   const fails = new Map<string, number>();
   const passed: { seed: number; a: Audit }[] = [];
   let solvable = 0;

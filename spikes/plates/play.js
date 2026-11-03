@@ -227,12 +227,12 @@
       const s = applyAll(lv, lv.start, p);
       return !s || !solved(lv, s);
     });
-    const met0 = goalsMet(lv, lv.start).filter(Boolean).length;
+    const met0 = goalsMet(lv, lv.start);
     let temptingWrong = false;
     let tempting;
     for (let p = 0; p < lv.plates && !temptingWrong; p++) for (let d = 0; d < 4; d = d + 1) {
       const t = shift(lv, lv.start, p, d);
-      if (!t || goalsMet(lv, t).filter(Boolean).length <= met0) continue;
+      if (!t || !goalsMet(lv, t).some((m, k) => m && !met0[k])) continue;
       const rest = solve({ ...lv, start: t }, maxDepth);
       if (!rest || rest.min > r.min - 1) {
         temptingWrong = true;
@@ -268,6 +268,10 @@
     console.log("self-check ok");
   }
   function auditMain(count) {
+    if (process.env.AXIS) {
+      const a191 = audit(generate(191));
+      if (!a191?.temptingWrong) throw new Error("seed 191: a goal flipping false->true must count as tempting");
+    }
     const fails = /* @__PURE__ */ new Map();
     const passed = [];
     let solvable = 0;
@@ -397,39 +401,14 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
     }
     return t;
   }
-  function seaMask2(lv, s) {
-    const sea = /* @__PURE__ */ new Set();
-    const q = [];
-    for (let i = 0; i < lv.w * lv.h; i++) {
-      const x = i % lv.w, y = i / lv.w | 0;
-      if (s.plate[i] < 0 && (x === 0 || y === 0 || x === lv.w - 1 || y === lv.h - 1)) {
-        sea.add(i);
-        q.push(i);
-      }
-    }
-    while (q.length) {
-      const i = q.pop();
-      const x = i % lv.w, y = i / lv.w | 0;
-      for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
-        const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= lv.w || ny >= lv.h) continue;
-        const j = nx + ny * lv.w;
-        if (!sea.has(j) && s.plate[j] < 0) {
-          sea.add(j);
-          q.push(j);
-        }
-      }
-    }
-    return sea;
-  }
   function drawState(s, ghost) {
     const lv = L();
-    const sea = seaMask2(lv, s);
+    const sea = seaMask(lv, s);
     for (let i = 0; i < lv.w * lv.h; i++) {
       const x = i % lv.w * CELL, y = (i / lv.w | 0) * CELL;
       ctx.globalAlpha = ghost ? 0.55 : 1;
       if (s.plate[i] < 0) {
-        ctx.fillStyle = sea.has(i) ? "#2bb3c0" : "#2f7d6a";
+        ctx.fillStyle = sea[i] ? "#2bb3c0" : "#2f7d6a";
         ctx.fillRect(x, y, CELL, CELL);
       } else {
         ctx.fillStyle = PLATE_COL[s.plate[i]];

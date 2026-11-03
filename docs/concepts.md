@@ -138,10 +138,27 @@ The bar is now implemented in the spike (`AUDIT=1 node spikes/plates/plates.ts 3
 
 | Variant | Solvable ≤ 6 | Pass the bar | By min moves | Main failure reasons |
 |---|---|---|---|---|
-| Rails (one axis, ±2) | 198 | **25 (8%)** | 3: 12, 4: 8, 5: 4, 6: 1 | no tempting wrong move 149, too short 73, order doesn't matter 55, land < 60% 35 |
-| Free movement | 297 | **40 (13%)** | | no tempting wrong move 189, too short 129, order doesn't matter 108 |
+| Rails (one axis, ±2) | 198 | **28 (9%)** | 3: 13, 4: 8, 5: 6, 6: 1 | no tempting wrong move 144, too short 73, order doesn't matter 55, land < 60% 35 |
+| Free movement | 297 | **44 (15%)** | 3: 29, 4: 10, 5: 4, 6: 1 | no tempting wrong move 182, too short 129, order doesn't matter 109, land < 60% 65 |
+
+(Re-run after Codex review chain 2: "tempting" now means a move that turns any unmet goal true, even if it unticks another, as the bar says; before, the audit wanted the total count to rise, which rejected seed 191's trap. Regression check for seed 191 is in `auditMain`.)
 
 So ~1 in 10 random layouts already passes every automatic check, before any hand design: 3,000 seeds give ~250 candidates to curate 12-15 levels from. The generator needs placement rules (goals near plate edges, a buoy where a rift can reach) to raise the pass rate, and the hardest levels (5-6 moves) will need hand design.
+
+## Changeover rules spike (evidence)
+
+`node spikes/changeover/changeover.ts 40` (BFS with a symmetry key, depth 9, 300k-state cap; `DEPTH=n` to change): random stages of 4-5 grooves × 4 rows, 3-5 flats, 1-2 fly lines, 2 wings, 2 target flats; every other flat must end hidden.
+
+| Run | Solvable ≤ 9 | Min moves | "Puzzle-grade" (min ≥ 5, ≤ 6 shortest solutions) |
+|---|---|---|---|
+| First generator (4-6 flats, hiding slots not checked) | 2 of 30 (depth 7) | 6, 7 | 1 |
+| Capacity-aware generator (flats to hide fit wings + lofts) | 35 of 40 | 4: 2, 5: 2, 6: 7, 7: 10, 8: 13, 9: 1 | 2 |
+
+What it says:
+- The rules make long solutions (most 6-8 moves), but nearly all have many shortest solutions: most moves commute (clearing two unrelated flats in either order), so length is busywork, not depth. Plates has the same failure ("order doesn't matter") but less of it.
+- Hiding capacity is the real constraint: with more flats to hide than wings + lofts, stages are impossible. Designed levels should use it on purpose (one loft, two flats to fly: which goes first?).
+- If Changeover becomes the game, its level filter needs Plates' bar (tempting wrong move, order matters), and the generator needs blocking chains (a flat that can only leave after another moves), not random placement. That is more design work than Plates needed, which supports keeping it as the fallback.
+- Wing moves were made symmetric after Codex review chain 2 (entering and leaving a wing both slide any distance); `selfCheck()` tests both directions.
 
 ## Prior-art check (web search, 2026-11-03)
 

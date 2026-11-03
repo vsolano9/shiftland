@@ -11,7 +11,7 @@ A small island in the ocean is cut into tectonic plates. Slide a plate along its
 1. Title: the island bobbing in the ocean, plates gently breathing; "Play" is the only button that matters.
 2. Level 1 (one plate, one goat, one move): the goat looks at the neighbouring plate; the plate's rail arrow pulses. One drag: columns rise with a rumble, the goat hops onto the peak and bleats. Done in 10 seconds; the verb is learned without text.
 3. Level 2: pulling a plate away opens a rift; the sea pours in and a buoy's fish jump. Water is learned.
-4. Level 3: a village next to the rift: the obvious move drowns it (sad villagers, undo glows). The first "think first" moment.
+4. Level 3: a goat wants a peak, and the obvious push raises it, but the same push lands on the neighbour's village and lifts it to height 2: houses tilt and crack, undo glows. The first "think first" moment. (Villages ride their plate, so the rules can crush a village but never drown one; Codex review, chain 2.)
 5. Levels 4-5: two plates, goals that need an order. The first real "aha".
 
 By minute 5 the rater has used every core rule, had one failure that was funny rather than punishing, and solved one real puzzle.
@@ -31,7 +31,7 @@ By minute 5 the rater has used every core rule, had one failure that was funny r
 | Creature | Wants | Happy | Unhappy |
 |---|---|---|---|
 | Goat | stand on height ≥ 2 | hops to the peak, bleats | looks up at the hills, sighs |
-| Village (3 houses) | dry land, height ≤ 1 | chimney smoke, warm windows | water next door: villagers on rooftops; crushed (height ≥ 2): houses tilt and crack (fail state, undo glows) |
+| Village (3 houses) | land, height ≤ 1 (not crushed) | chimney smoke, warm windows | crushed (height ≥ 2): houses tilt and crack (fail state, undo glows). A village always rides its plate, so it is never under water; a "flood" twist would need its own rule, solver support and a test first |
 | Lighthouse | land next to sea | beam switches on and sweeps | dark, keeper waves a lantern |
 | Buoy (fixed in the world) | its cell is sea | fish jump around it | sits on dry land, flopping fish icon |
 | Palm oasis (desert) | next to a lake (not sea) | palms sway, a camel drinks | wilts |
@@ -62,7 +62,7 @@ Each twist ships only if the solver and audit support it before levels are made 
 - Uplift: columns ease up over ~350 ms with a low rumble, small camera shake, dust puffs at the seam.
 - Rift: a crack sound, the seam splits, the water front pours in from the nearest sea edge over ~500 ms (flood fill animated by distance).
 - Goal ticks with a rising chime; the creature reacts; the last goal triggers the level-complete sequence (camera pull-back, all creatures celebrate, par star).
-- Fail states are funny and soft: a drowned village floats its roofs; undo is one key.
+- Fail states are funny and soft: a crushed village's houses tilt with a comic creak and the villagers hop onto the roofs; undo is one key.
 
 ## Look and sound
 

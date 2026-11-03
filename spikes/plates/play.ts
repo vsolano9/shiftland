@@ -1,7 +1,7 @@
 // Plates grey-box: a top-down, throwaway playable test of the rules (not the game's look).
 // Build: npx -y esbuild@0.25.0 spikes/plates/play.ts --bundle --format=iife --outfile=spikes/plates/play.js
 // (iife so play.html opens straight from disk; module scripts are blocked on file://)
-import { shift, goalsMet, solved, solve, type Level, type State, type Dir } from './plates.ts';
+import { shift, goalsMet, solved, solve, seaMask, type Level, type State, type Dir } from './plates.ts';
 import raw from './levels.json';
 
 type Raw = { name: string; w: number; h: number; plates: number; axis: number[]; maxTravel: number;
@@ -44,31 +44,14 @@ function tryMove(d: Dir, commit: boolean): State | null {
   return t;
 }
 
-function seaMask(lv: Level, s: State) {
-  const sea = new Set<number>();
-  const q: number[] = [];
-  for (let i = 0; i < lv.w * lv.h; i++) {
-    const x = i % lv.w, y = (i / lv.w) | 0;
-    if (s.plate[i] < 0 && (x === 0 || y === 0 || x === lv.w - 1 || y === lv.h - 1)) { sea.add(i); q.push(i); }
-  }
-  while (q.length) {
-    const i = q.pop()!; const x = i % lv.w, y = (i / lv.w) | 0;
-    for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
-      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= lv.w || ny >= lv.h) continue;
-      const j = nx + ny * lv.w; if (!sea.has(j) && s.plate[j] < 0) { sea.add(j); q.push(j); }
-    }
-  }
-  return sea;
-}
-
 function drawState(s: State, ghost: boolean) {
   const lv = L();
-  const sea = seaMask(lv, s);
+  const sea = seaMask(lv, s); // the rules module's flood fill, so render and goals never disagree
   for (let i = 0; i < lv.w * lv.h; i++) {
     const x = (i % lv.w) * CELL, y = ((i / lv.w) | 0) * CELL;
     ctx.globalAlpha = ghost ? 0.55 : 1;
     if (s.plate[i] < 0) {
-      ctx.fillStyle = sea.has(i) ? '#2bb3c0' : '#2f7d6a';
+      ctx.fillStyle = sea[i] ? '#2bb3c0' : '#2f7d6a';
       ctx.fillRect(x, y, CELL, CELL);
     } else {
       ctx.fillStyle = PLATE_COL[s.plate[i]];
