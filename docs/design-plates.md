@@ -106,8 +106,25 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 
 ## Look and sound
 
-- Look: the `concepts/plates-mock.png` direction, but the island sits in an animated ocean (not over clouds), plate tints plus edge patterns (colour-blind safe), soft shadows, four biome palettes. All geometry and textures made in code.
+- Look: `concepts/plates-key-v3.png` and the `shiftland-*.png` sheets: the island sits in an animated ocean (not over clouds), plate tints plus edge patterns (colour-blind safe), soft shadows, four biome palettes. All geometry and textures made in code.
+- Plate palette rule: plate tints never use blue, teal or cyan (hue ~170-250°): water owns those hues (sea turquoise, lake green-teal), so a plate must never read as water. Per biome the three plate tints come from ochre, sage/green, lavender, terracotta, sand, slate-grey, rose. (Found in the first biome sheet, where a pale-blue dotted plate read as water.)
+- Props follow the biome: no cacti in Meadow, no pines in Desert.
 - Sound: WebAudio synth only. A gentle marimba/pad loop per biome (pentatonic, so moves can add notes in key), SFX: rumble, crack, water pour, goat bleat (formant synth), chimes, UI clicks. Mute and volume in settings.
+
+### Sound recipes (WebAudio, all synthesized)
+
+| Event | Recipe | Notes |
+|---|---|---|
+| Plate select | short marimba tick (sine + 2nd partial, 60 ms decay), pitch = plate's note in the biome scale | each plate "owns" a note, so moves become melody |
+| Slide one stop | soft stone scrape: band-passed noise sweep 200→600 Hz, 180 ms | lower and longer for bigger plates |
+| Uplift | low rumble (brown noise through 80 Hz low-pass, 350 ms swell) + a rising note per height step (pentatonic) | camera shake synced to the swell |
+| Rift + flood | crack (white-noise click + 1.2 kHz ping, 40 ms) then a pour: filtered noise with LFO gurgle, length = flood-fill time | pour pans toward the ocean side |
+| Goal ticks | rising two-note chime (triangle waves, a fifth apart) | each creature its own interval |
+| Goal lost | falling minor third, softer than the tick | never harsh; failure stays light |
+| Goat bleat | formant synth: sawtooth through two band-passes (700 Hz, 1.2 kHz) with fast vibrato, 300 ms | 3 random variants by pitch |
+| Village crushed | wooden creak (resonant filter sweep on noise) + a small comic "boing" | the fail is a gag, not a punishment |
+| Level complete | 4-bar pentatonic fanfare on marimba + pad swell; par star adds a sparkle arpeggio | |
+| Music | per-biome loop, 70-90 bpm: marimba/kalimba pattern over a soft pad, pentatonic so move notes always fit | ZzFXM or hand-written sequencer; mute and volume in settings |
 
 ## Screens
 
