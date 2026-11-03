@@ -171,7 +171,8 @@ export function generate(seed: number, w = 7, h = 7, plates = 3): Level {
   const buoys = r() < 0.5 && interior.length ? [pick(interior)] : [];
   void water;
   const lv: Level = { w, h, plates, start: { plate, elev, objs }, buoys };
-  if (process.env.AXIS) { lv.axis = Array.from({ length: plates }, () => (r() < 0.5 ? 0 : 1)); lv.maxTravel = Number(process.env.AXIS); }
+  const axisEnv = typeof process !== 'undefined' ? process.env.AXIS : undefined;
+  if (axisEnv) { lv.axis = Array.from({ length: plates }, () => (r() < 0.5 ? 0 : 1)); lv.maxTravel = Number(axisEnv); }
   return lv;
 }
 
@@ -326,4 +327,4 @@ function main() {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('plates.ts')) main();
+if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('plates.ts')) main();

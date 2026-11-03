@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plates grey-box</title>
+<style>
+  body { margin: 0; background: #12333a; color: #eef; font: 15px/1.4 system-ui, sans-serif; display: flex; gap: 24px; padding: 20px; flex-wrap: wrap; }
+  #side { width: 340px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  #moves { font-size: 18px; margin: 6px 0 12px; }
+  ul { list-style: none; padding: 0; margin: 0 0 12px; }
+  li { padding: 4px 0; color: #f6b; }
+  li.ok { color: #7f7; }
+  #msg { background: #0c2328; padding: 10px; border-radius: 6px; min-height: 44px; }
+  canvas { border-radius: 8px; box-shadow: 0 6px 24px #0008; image-rendering: pixelated; }
+  select { margin-top: 12px; width: 100%; padding: 4px; }
+  .legend { margin-top: 12px; font-size: 13px; opacity: .8; }
+</style>
+</head>
+<body>
+  <canvas id="board"></canvas>
+  <div id="side">
+    <h1 id="title">Plates</h1>
+    <div id="moves"></div>
+    <ul id="goals"></ul>
+    <div id="msg"></div>
+    <select id="levels"></select>
+    <div class="legend">Grey-box rules test, not the game's look. Turquoise = sea (joined to the edge), dark green = lake.
+      Darker squares = higher ground (white = peak, height 3). White outline = selected plate; the white line with dots is its rail.
+      Pushing into another plate raises the land there; the gap a plate leaves becomes water. H = hint.</div>
+  </div>
+  <script src="./play.js"></script>
+</body>
+</html>
