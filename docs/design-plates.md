@@ -162,7 +162,7 @@ Title → level select (the 15 islands as an archipelago map) → level (HUD: le
 Checked headless (Playwright): every level solved at par through the real key handling, no console errors. Screens: `D:\Work\_local\evidence\2026-11-03-gameoff-plates\` (warm-up 1, puzzle 5 with preview, puzzle 5 solved).
 
 What it taught:
-- A full ghost overlay of the next state is hard to read (creatures appear twice, everything tints). The real preview should draw only the **difference**: rising columns, new water, creatures whose goal flips (with a tick or cross).
+- A full ghost overlay of the next state is hard to read (creatures appear twice, everything tints). The real preview should draw only the **difference**: rising columns, new water, creatures whose goal flips (with a tick or cross). (Done in the grey-box: Shift + arrow now marks rising cells with their new height, new water with a hatch, and goal flips with +/− badges; screens `greybox-diff-preview-l3.png` and `-l4.png` in the evidence folder.)
 - Generated solutions often let one plate eat most of another (puzzle 5: the orange plate shrinks to a third). It reads as conquest, not shaping; the level filter should also cap how much of any one plate is consumed, or hand-made levels should avoid it. (Done: the audit requires every plate to keep ≥ 50% of its cells, `minPlateKept`.)
 - Rails that run off the island into the ocean read well: the plate visibly has room to move.
 - Plate ids in hints ("P1E") are meaningless to players; the real hint highlights the plate and arrow.
