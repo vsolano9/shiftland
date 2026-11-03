@@ -156,6 +156,8 @@ Title → level select (the 15 islands as an archipelago map) → level (HUD: le
 | Rift and flooding | Water always enters from the visible ocean; lakes look different | Opening water can help one goal and hurt another: the core tension | Flood fill shared with the solver | Far-off flooding is shown in the preview | Lighthouses and buoys re-check after every move |
 | Par and stars | Par is shown from the start | Optional mastery for players who want it | Par = solver minimum; tested per level | | Never blocks progress |
 | Undo / restart | Buttons always visible | Removes fear of experimenting | Undo restores the exact state, including creatures | | Move counter goes back too |
+| Drag preview (Nov 3, `controller.ts`) | The drag shows the result of every stop it asks for; letting go commits, Esc drops it | Players can test a move with no cost, not even an undo | A cancelled drag stays dead until release; undo, restart and level change drop a pending preview; exact half cells ask for nothing | A drag past the last legal stop previews the legal stops and strains once per push | Each committed stop is one move against par, the same as an arrow key |
+| Unlocking and Enter (Nov 3, `progress.ts`) | Tutorials open in order; then two unsolved levels are open, and Enter goes to the next unsolved one | One hard puzzle never ends a run | Saved per level name; malformed saves are dropped per record; blocked storage keeps progress for the session | Every level is reachable with at most one puzzle skipped at a time | The ending fires once, when the last level is solved (also after undo and re-solve); replays go on in order |
 
 ## Grey-box (2026-11-03)
 
