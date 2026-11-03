@@ -1,7 +1,7 @@
 // Plates grey-box: a top-down, throwaway playable test of the rules (not the game's look).
 // Build: npx -y esbuild@0.25.0 spikes/plates/play.ts --bundle --format=iife --outfile=spikes/plates/play.js
 // (iife so play.html opens straight from disk; module scripts are blocked on file://)
-import { shift, goalsMet, solved, solve, seaMask, type Level, type State, type Dir } from './plates.ts';
+import { shift, goalsMet, solved, solve, seaMask, canFinish, type Level, type State, type Dir } from './plates.ts';
 import raw from './levels.json';
 
 type Raw = { name: string; w: number; h: number; plates: number; axis: number[]; maxTravel: number;
@@ -33,9 +33,8 @@ let stuck = false; // design audit S3: no silent dead ends
 const cur = () => history[history.length - 1];
 const L = () => LEVELS[li].lv;
 
-// Can the level still be finished from the current state? Depth 6 covers every grey-box level (par <= 4) with slack.
-// The real game runs this in a worker with depth par + 4 (docs/design-plates.md, Controls).
-function checkStuck() { stuck = !solved(L(), cur()) && !solve({ ...L(), start: cur() }, 6); }
+// Warn only on a proven dead end: canFinish searches every reachable state (false = proof; null = cap hit, no warning).
+function checkStuck() { stuck = canFinish(L(), cur()) === false; }
 
 function load(i: number) {
   li = i; history = [L().start]; sel = 0; preview = null; stuck = false;

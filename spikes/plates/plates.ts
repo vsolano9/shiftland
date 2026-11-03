@@ -21,6 +21,8 @@ const DY = [-1, 0, 1, 0];
 const DIR_NAME = ['N', 'E', 'S', 'W'];
 
 export interface Obj { kind: 'goat' | 'village' | 'light'; cell: number }
+// Object kinds that are terrain, not creatures (used by twists.ts): never count as occupying a cell.
+const TERRAIN = new Set<string>(['ice']);
 export interface State { plate: Int8Array; elev: Int8Array; objs: Obj[]; off?: Int8Array }
 // axis[p]: 0 = slides N/S only, 1 = slides E/W only (shown as rails in the game). maxTravel: |offset| cap.
 export interface Level { w: number; h: number; plates: number; start: State; buoys: number[]; name?: string; axis?: number[]; maxTravel?: number }
@@ -57,9 +59,10 @@ export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
     elev[j] = wasOther ? Math.min(3, Math.max(s.elev[i], s.elev[j]) + 1) : s.elev[i];
   }
   const objs = s.objs.map(o => remap.has(o.cell) ? { ...o, cell: remap.get(o.cell)! } : o);
-  // Design audit S4: a push may never stack two things on one cell; it is blocked (the plate shakes).
-  // Compared with the cells used before the move, so markers that share a cell by design (a twist's penguin on ice) still move.
-  if (new Set(objs.map(o => o.cell)).size < new Set(s.objs.map(o => o.cell)).size) return null;
+  // Design audit S4: a push may never stack two creatures on one cell; it is blocked (the plate shakes).
+  // Terrain markers (a twist's ice) are not creatures: they ride their cell and may share it with one creature.
+  const creatures = objs.filter(o => !TERRAIN.has(o.kind));
+  if (new Set(creatures.map(o => o.cell)).size < creatures.length) return null;
   return { plate, elev, objs, off };
 }
 
@@ -110,6 +113,25 @@ function key(s: State): string {
   let k = '';
   for (let i = 0; i < s.plate.length; i++) k += String.fromCharCode(66 + s.plate[i] * 5 + s.elev[i]);
   return k + '|' + s.objs.map(o => o.cell).join(',') + '|' + (s.off ? Array.from(s.off).join(',') : '');
+}
+
+// Can any solved state still be reached from s? Exhaustive search of the reachable states (no depth limit), so
+// `false` is a proof of a dead end; `null` means the cap was hit and nothing is proven (design audit S3, Codex chain 3:
+// a depth-6 search called solvable states "no way back").
+export function canFinish(lv: Level, s: State, cap = 200000): boolean | null {
+  if (solved(lv, s)) return true;
+  const seen = new Set([key(s)]); const q = [s];
+  while (q.length) {
+    const c = q.pop()!;
+    for (let p = 0; p < lv.plates; p++) for (let d = 0 as Dir; d < 4; d = (d + 1) as Dir) {
+      const t = shift(lv, c, p, d); if (!t) continue;
+      const k = key(t); if (seen.has(k)) continue;
+      if (solved(lv, t)) return true;
+      seen.add(k); if (seen.size > cap) return null;
+      q.push(t);
+    }
+  }
+  return false;
 }
 
 export interface Solve { min: number; solutionsAtMin: number; firstSolution: string[]; statesSeen: number; deadEnds: number }

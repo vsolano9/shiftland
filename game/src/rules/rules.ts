@@ -47,7 +47,7 @@ export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
     elev[j] = wasOther ? Math.min(3, Math.max(s.elev[i], s.elev[j]) + 1) : s.elev[i];
   }
   const objs = s.objs.map(ob => (remap.has(ob.cell) ? { ...ob, cell: remap.get(ob.cell)! } : ob));
-  if (new Set(objs.map(ob => ob.cell)).size < new Set(s.objs.map(ob => ob.cell)).size) return null;
+  if (new Set(objs.map(ob => ob.cell)).size < objs.length) return null; // every Obj here is a creature
   return { plate, elev, objs, off };
 }
 
@@ -98,6 +98,26 @@ export function stateKey(s: State): string {
   let k = '';
   for (let i = 0; i < s.plate.length; i++) k += String.fromCharCode(66 + s.plate[i] * 5 + s.elev[i]);
   return k + '|' + s.objs.map(o => o.cell).join(',') + '|' + (s.off ? Array.from(s.off).join(',') : '');
+}
+
+/**
+ * Can any solved state still be reached from s? Searches every reachable state (no depth limit): `false` proves a
+ * dead end, `null` means the cap was hit and nothing is proven. The "no way back" warning shows only on `false`.
+ */
+export function canFinish(lv: Level, s: State, cap = 200000): boolean | null {
+  if (solved(lv, s)) return true;
+  const seen = new Set([stateKey(s)]); const q = [s];
+  while (q.length) {
+    const c = q.pop()!;
+    for (let p = 0; p < lv.plates; p++) for (let d = 0 as Dir; d < 4; d = (d + 1) as Dir) {
+      const t = shift(lv, c, p, d); if (!t) continue;
+      const k = stateKey(t); if (seen.has(k)) continue;
+      if (solved(lv, t)) return true;
+      seen.add(k); if (seen.size > cap) return null;
+      q.push(t);
+    }
+  }
+  return false;
 }
 
 export interface Solve { min: number; solutionsAtMin: number; firstSolution: string[] }

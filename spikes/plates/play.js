@@ -3,6 +3,7 @@
   var DX = [0, 1, 0, -1];
   var DY = [-1, 0, 1, 0];
   var DIR_NAME = ["N", "E", "S", "W"];
+  var TERRAIN = /* @__PURE__ */ new Set(["ice"]);
   function shift(lv, s, p, d) {
     const { w, h } = lv;
     let off = s.off;
@@ -37,7 +38,8 @@
       elev[j] = wasOther ? Math.min(3, Math.max(s.elev[i], s.elev[j]) + 1) : s.elev[i];
     }
     const objs = s.objs.map((o) => remap.has(o.cell) ? { ...o, cell: remap.get(o.cell) } : o);
-    if (new Set(objs.map((o) => o.cell)).size < new Set(s.objs.map((o) => o.cell)).size) return null;
+    const creatures = objs.filter((o) => !TERRAIN.has(o.kind));
+    if (new Set(creatures.map((o) => o.cell)).size < creatures.length) return null;
     return { plate, elev, objs, off };
   }
   function seaMask(lv, s) {
@@ -88,6 +90,25 @@
     let k = "";
     for (let i = 0; i < s.plate.length; i++) k += String.fromCharCode(66 + s.plate[i] * 5 + s.elev[i]);
     return k + "|" + s.objs.map((o) => o.cell).join(",") + "|" + (s.off ? Array.from(s.off).join(",") : "");
+  }
+  function canFinish(lv, s, cap = 2e5) {
+    if (solved(lv, s)) return true;
+    const seen = /* @__PURE__ */ new Set([key(s)]);
+    const q = [s];
+    while (q.length) {
+      const c = q.pop();
+      for (let p = 0; p < lv.plates; p++) for (let d = 0; d < 4; d = d + 1) {
+        const t = shift(lv, c, p, d);
+        if (!t) continue;
+        const k = key(t);
+        if (seen.has(k)) continue;
+        if (solved(lv, t)) return true;
+        seen.add(k);
+        if (seen.size > cap) return null;
+        q.push(t);
+      }
+    }
+    return false;
   }
   function solve(lv, maxDepth) {
     if (solved(lv, lv.start)) return { min: 0, solutionsAtMin: 1, firstSolution: [], statesSeen: 1, deadEnds: 0 };
@@ -432,7 +453,7 @@ seed ${g.seed}: min ${g.r.min}, shortest solutions ${g.r.solutionsAtMin}, states
   var cur = () => history[history.length - 1];
   var L = () => LEVELS[li].lv;
   function checkStuck() {
-    stuck = !solved(L(), cur()) && !solve({ ...L(), start: cur() }, 6);
+    stuck = canFinish(L(), cur()) === false;
   }
   function load(i) {
     li = i;

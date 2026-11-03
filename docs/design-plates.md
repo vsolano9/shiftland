@@ -93,10 +93,10 @@ Twist spike (`node spikes/plates/twists.ts 150`, 2026-11-03): each twist added t
 |---|---|---|---|
 | No twist | 98 | 32 | 43 |
 | Pinned plate | 64 | 16 | 26 |
-| Tundra (pinned plate + 3 ice cells + penguin) | 39 | 18 | 23 |
+| Tundra (pinned plate + 3 ice cells + penguin) | 42 | 17 | 24 |
 | Desert (oasis wants a lake) | 43 | 23 | 35 |
 
-(Rerun after the S4 no-stacking and S6 no-melting-creatures rules; the first run, before them, had 110/74/61/62 solvable and 46/32/35/50 tight. Desert stays the strongest twist; Tundra is the thinnest and is first in the cut order.)
+(Rerun after the S4 no-stacking and S6 no-melting-creatures rules, with ice counted as terrain so creatures may stand on it (Codex chain 3); the first run, before them, had 110/74/61/62 solvable and 46/32/35/50 tight. Desert stays the strongest twist; Tundra is the thinnest and is first in the cut order.)
 
 All three twists make puzzles; none is dead weight. The oasis pushes levels deeper (the lake/sea tension is the strongest twist), so Desert is the biome to keep if one is cut. Pinned plates remove options, so they suit early Tundra levels; ice adds unsolvable layouts, so ice levels need curation rather than raw generation. Rules as spiked: a pinned plate never moves but can be pushed into; ice melts to water when its cell is lifted to height ≥ 2, and a move that would melt ice under a creature is blocked (S6: the first spike deleted the creature and its goal, so a level could be won by melting it); penguins want an ice cell that touches sea; an oasis wants an adjacent lake. `selfCheck()` covers melt, pinned, push-into-pinned and the blocked melt under a penguin; `goals()` throws if a goal ever disappears.
 
@@ -106,7 +106,7 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 - Keyboard: Tab / 1-9 cycles plates, arrow keys move along the rail, Z undo, R restart, Enter next level.
 - Touch: tap a plate, then swipe along the rail; same preview while the finger is down.
 - The rail is a row of move steps, not a slider (S1): it looks reversible but is not, because moving back takes cells again and raises them. Each step shows the ghost of the land it will take, and level 6 teaches "land remembers" before any level relies on it.
-- Stuck states are never silent (S3): after every move the solver (depth ≤ par + 4, cached per level) checks whether the level can still be finished; if not, the goal bar says "no way back from here" and undo glows. The check runs in a worker so input never waits.
+- Stuck states are never silent (S3): after every move `canFinish` searches every reachable state (no depth limit, capped at 200k states) for a solved one; only a proven dead end shows "no way back from here" and makes undo glow, and hitting the cap shows nothing. (A depth-limited search called far-but-solvable states dead ends: Codex chain 3, regression test in `game/src/rules/rules.test.ts`.) The check runs in a worker so input never waits. Prototyped in the grey-box.
 
 ## Feedback and feel
 
@@ -171,7 +171,7 @@ What it taught:
 |---|---|---|
 | S1 major | The rail looks reversible but is not (moving back takes cells again) | Fixed in design: rail of move steps with the ghost of the taken land; L6 teaches "land remembers" (Controls, Level progression) |
 | S2 major | L4 is filler (no single move ticks both goals); L5 Dip and Return is the least readable "aha" | Fixed: new L4 Two Wishes (par 1, one solution) and L5 Far One First (par 2, one solution) built in `tutorial.ts` (6/6 as designed); Dip and Return moves to L7. Grey-box re-exported: 14/14 levels solved at par through the real keys, no console errors |
-| S3 major | Stuck states are silent | Fixed in design: per-move solver check in a worker, "no way back from here" + glowing undo (Controls). Built on Nov 6 with input |
+| S3 major | Stuck states are silent | Fixed: exhaustive `canFinish` check after every move, "no way back from here" + glowing undo only on a proven dead end (Controls); in the grey-box and in `game/src/rules`, with tests for a real dead end and a far-but-solvable state |
 | S4 major | Creatures change plates and stack on one cell (23 of 28 par solutions moved a creature across plates, 5 stacked) | Fixed in the rules: stacking pushes are blocked (`plates.ts` `shift`, fixture in `selfCheck`); crossing plates by being taken stays, it is the "rides the mover" rule and is shown in the preview. Seed-191 regression replaced by seed 25 (191's trap was a stacking move). Level set re-exported: 13/13 solved at par in the grey-box |
 | S5 major | L6-L8 beats contradicted the rules | Fixed: beats rewritten against the rules (L8 uses lighthouse + buoy, villages never drown), village goal labelled "not crushed", and every beat becomes a solver fixture before its level is built. The suggested "pasture wants land" goal is not added: one more goal type costs art, sound and a tutorial beat for little new tension |
 | S6 major | Ice melting deleted creatures and their goals, so a level could be won by melting | Fixed in `twists.ts`: a melt under a creature is blocked, `goals()` throws if a goal disappears, `selfCheck` covers it; survey rerun |

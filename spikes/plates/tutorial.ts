@@ -124,4 +124,5 @@ function report(spec: Spec) {
 if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('tutorial.ts')) {
   const results = TUTORIAL.map(report);
   console.log(`${results.filter(Boolean).length}/${results.length} tutorial levels as designed`);
+  if (!results.every(Boolean)) process.exitCode = 1; // Codex chain 3: a failed level must fail the run
 }

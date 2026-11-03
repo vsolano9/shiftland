@@ -115,6 +115,10 @@ function selfCheck() {
   const pg = { ...lv, start: { ...lv.start, objs: [{ kind: 'ice', cell: 7 }, { kind: 'penguin', cell: 7 }] as unknown as State['objs'] } };
   if (step(pg, pg.start, 0, 1) !== null) throw new Error('melting ice under a creature must be blocked');
   if (!step(pg, pg.start, 1, 1)) throw new Error('penguin and its ice still ride their plate together');
+  // Codex chain 3: a creature may be pushed onto ice that stays below height 2 (ice is terrain, not a creature)
+  const flat = { ...lv, start: { ...lv.start, elev: new Int8Array(15), objs: [{ kind: 'goat', cell: 6 }, { kind: 'ice', cell: 7 }] as unknown as State['objs'] } };
+  const onIce = step(flat, flat.start, 0, 1);
+  if (!onIce || onIce.elev[7] !== 1 || !onIce.objs.some(o => o.kind === 'goat' && o.cell === 7)) throw new Error('a goat pushed onto low ice must be legal');
   console.log('self-check ok');
 }
 

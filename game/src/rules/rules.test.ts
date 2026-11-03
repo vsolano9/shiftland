@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromJson, goalsMet, seaMask, shift, solve, solved, type Level, type LevelJson, type Obj } from './rules';
+import { canFinish, fromJson, goalsMet, seaMask, shift, solve, solved, type Level, type LevelJson, type Obj } from './rules';
 import levels from '../../../spikes/plates/levels.json';
 
 // 1-row strip helper: plates/elevations per cell, '-1' = water. All plates slide E/W.
@@ -81,6 +81,22 @@ describe('water and goals', () => {
     const lv = strip(row([0, 0, 1]), row([2, 1, 0]), [{ kind: 'goat', cell: 6 }, { kind: 'village', cell: 7 }]);
     expect(goalsMet(lv, lv.start)).toEqual([true, true]);
     expect(solved(lv, lv.start)).toBe(true);
+  });
+});
+
+describe('canFinish (the "no way back" warning)', () => {
+  const all = (levels as LevelJson[]).map(fromJson);
+  const play = (name: string, moves: string) => {
+    const lv = all.find(l => l.name === name)!;
+    let s = lv.start;
+    for (const m of moves.split(' ')) { s = shift(lv, s, Number(m[1]), 'NESW'.indexOf(m[2]) as 0 | 1 | 2 | 3)!; expect(s).not.toBeNull(); }
+    return canFinish(lv, s);
+  };
+  it('proves a real dead end (Mind the Village after the crushing push)', () => {
+    expect(play('Mind the Village', 'P0E')).toBe(false);
+  });
+  it('does not call a far-but-solvable state a dead end (Codex chain 3 regression)', () => {
+    expect(play('Far One First', 'P0S P1W P2E P2W P1W P2E P1E P1W')).toBe(true);
   });
 });
 
