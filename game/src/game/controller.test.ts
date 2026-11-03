@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { fromJson, solve, type Dir, type LevelJson } from '../rules/rules';
 import { Controller, type GameEvent } from './controller';
-import { Progress, type StorageLike } from './progress';
+import { Progress, tutorialCount, type StorageLike } from './progress';
 import levels from '../levels/levels.json';
 
 const all = (levels as LevelJson[]).map(fromJson);
 const mem = (): StorageLike => { const m = new Map<string, string>(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => void m.set(k, v) }; };
 const make = (storage = mem()) => {
   const events: GameEvent[] = [];
-  const c = new Controller(all, new Progress(all.map(l => l.name!), storage), undefined, e => events.push(e));
+  const c = new Controller(all, new Progress(all.map(l => l.name!), storage, tutorialCount(all)), undefined, e => events.push(e));
   return { c, events, storage };
 };
 const DIRS: Record<string, Dir> = { N: 0, E: 1, S: 2, W: 3 };
@@ -19,6 +19,7 @@ const playSolution = (c: Controller) => {
 describe('Controller', () => {
   it('opens the first level and refuses locked ones', () => {
     const { c, events } = make();
+    expect(tutorialCount(all)).toBeGreaterThan(1); // the shipped tutorials unlock in order
     expect([c.index, events[0]]).toEqual([0, { kind: 'level', index: 0 }]);
     expect(c.open(1)).toBe(false);
   });

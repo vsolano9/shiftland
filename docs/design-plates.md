@@ -33,6 +33,8 @@ Dip and Return sits sixth in the grey-box until L6 ("land remembers") is built. 
 
 Ship target: levels 1-11 plus level 14 as the one Finale level. Tundra (12-13) and the second Finale level (15) are the stretch (see "Scope decision").
 
+Unlocking (decided Nov 3, `game/src/game/progress.ts`): the tutorials (`role: tutorial`, the leading run) open strictly in order, because each teaches what the next relies on. From the first puzzle on, two unsolved levels are always open, so a player stuck on one puzzle can play the next and come back (Play reopens the first unsolved one). Why: jam raters who hit a wall stop playing and never see the later biomes they would rate; a strict chain makes the hardest puzzle a quit point. Cost: a player can reach the Finale with one puzzle skipped, which is fine because no puzzle teaches a rule.
+
 | # | Biome | Beat | Source |
 |---|---|---|---|
 | 1-3 | Meadow | First Peak, Open Water, Mind the Village | built (`tutorial.ts`) |
