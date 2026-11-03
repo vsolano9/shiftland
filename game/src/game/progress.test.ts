@@ -65,9 +65,14 @@ describe('Progress', () => {
     expect([none.persistent, none.next()]).toEqual([false, 0]);
   });
   it('corrupt or foreign data starts fresh', () => {
-    for (const bad of ['{', '"x"', '{"v":2,"levels":{}}', 'null']) {
+    for (const bad of ['{', '"x"', '{"v":2,"levels":{}}', 'null', '{"v":1,"levels":[]}',
+      '{"v":1,"levels":{"First Peak":null}}', '{"v":1,"levels":{"First Peak":{"solved":"yes","best":1,"stars":1}}}',
+      '{"v":1,"levels":{"First Peak":{"solved":true,"best":"1","stars":1}}}']) {
       const s = new Mem(); s.setItem(KEY, bad);
-      expect(new Progress(names, s).next()).toBe(0);
+      const p = new Progress(names, s);
+      expect(p.next()).toBe(0);
+      p.complete(0, 1, 1);                                           // and a save after it survives a reload
+      expect(new Progress(names, s).solved(0)).toBe(true);
     }
   });
   it('all solved: Play opens the last level', () => {

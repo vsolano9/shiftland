@@ -16,6 +16,12 @@ const playSolution = (c: Controller) => {
   for (const m of solve(c.session.lv, 6)!.firstSolution) c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
 };
 
+/** Redo the last move of the solution from the current state (after one undo). */
+const playSolution2 = (c: Controller) => {
+  const m = solve(c.session.lv, 6)!.firstSolution.at(-1)!;
+  c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
+};
+
 describe('Controller', () => {
   it('opens the first level and refuses locked ones', () => {
     const { c, events } = make();
@@ -35,6 +41,35 @@ describe('Controller', () => {
     expect(events.at(-1)).toEqual({ kind: 'finished' });
     expect(c.progress.totalStars()).toBe(all.length);
   });
+  it('a skipped puzzle: Enter on the last level returns to it instead of finishing', () => {
+    const { c, events } = make();
+    const first = tutorialCount(all);
+    for (let i = 0; i < all.length; i++) {
+      if (i !== first) playSolution(c);
+      if (i === first) c.open(first + 1); else c.act({ kind: 'next' }); // skip the first puzzle
+    }
+    expect(c.index).toBe(first);
+    expect(events.some(e => e.kind === 'finished')).toBe(false);
+    playSolution(c); c.act({ kind: 'next' });
+    expect(events.at(-1)).toEqual({ kind: 'finished' });
+  });
+  it('replaying a solved level for its star: Enter goes on in order', () => {
+    const { c } = make();
+    playSolution(c); c.act({ kind: 'next' }); playSolution(c); // levels 0 and 1 solved, on level 1
+    c.open(0); playSolution(c); c.act({ kind: 'next' });
+    expect(c.index).toBe(2);                                   // the next unsolved, not the solved level 1
+  });
+  it('after the ending, a replayed level goes on in order instead of finishing again', () => {
+    const { c, events } = make();
+    for (let i = 0; i < all.length; i++) {
+      playSolution(c);
+      if (i === all.length - 1) { c.act({ kind: 'undo' }); expect(c.session.solved).toBe(false); playSolution2(c); }
+      c.act({ kind: 'next' });
+    }
+    expect(events.at(-1)).toEqual({ kind: 'finished' }); // undo + re-solve of the final level keeps the ending
+    c.open(3); playSolution(c); c.act({ kind: 'next' });
+    expect(c.index).toBe(4);
+  });
   it('progress survives a reload: a new controller resumes at the first unsolved level', () => {
     const a = make(); playSolution(a.c); a.c.act({ kind: 'next' }); playSolution(a.c);
     const b = make(a.storage);
@@ -48,21 +83,50 @@ describe('Controller', () => {
     expect(events.map(e => e.kind)).toEqual(['selected', 'wrong-axis', 'moved', 'blocked', 'blocked']); // one stop W, then refused
     expect([c.index, c.session.moves]).toEqual([0, 1]);
   });
-  it('drag: commits stops as the pointer crosses them, strains at a refused stop, stops at solve', () => {
+  it('drag previews without committing; release commits; Esc cancels (Codex chain 6 Major 2)', () => {
     const { c, events } = make(); events.length = 0;
-    expect(c.drag(0, -0.3, 0.4)).toEqual([-0.3, 0.4]);              // under the snap: nothing yet
-    const left = c.drag(0, -2.4, 0);                                  // one stop W, then refused (see above)
+    c.drag(0, -0.3, 0.4);                                             // under the snap: no preview
+    c.drag(0, -0.7, 0);                                               // one stop W previewed
+    expect(c.session.moves).toBe(0);
+    c.drag(0, -0.8, 0); c.drag(0, -0.9, 0);                          // same stop: no repeated preview event
+    expect(events.map(e => e.kind)).toEqual(['selected', 'preview']);
+    c.act({ kind: 'cancel' });                                       // Esc: preview dropped, nothing committed, plate kept
+    expect([c.session.moves, c.selected, events.at(-1)]).toEqual([0, 0, { kind: 'preview', plate: 0, steps: 0, diff: null }]);
+    c.release();                                                      // nothing pending: no-op
+    expect(c.session.moves).toBe(0);
+    c.drag(0, 0.7, 0); c.act({ kind: 'cancel' });                    // First Peak P0E would solve: cancelled, not saved
+    expect([c.session.solved, c.progress.solved(0)]).toEqual([false, false]);
+    c.drag(0, -0.7, 0); c.release();
     expect(c.session.moves).toBe(1);
-    expect(left[0]).toBeCloseTo(-0.99);
-    expect(events.map(e => e.kind)).toEqual(['selected', 'moved', 'blocked']);
-    for (let i = 0; i < 10; i++) c.drag(0, -0.99 - i * 0.01, 0);    // held against the rail end: no shake per frame
+  });
+  it('drag: exact half cells ask for nothing (Codex chain 6 Major 1: W/E oscillation)', () => {
+    const { c } = make();
+    for (const [dx, dy] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) { c.drag(0, dx, dy); c.release(); }
+    expect(c.session.moves).toBe(0);
+  });
+  it('drag past the last legal stop strains: one shake per push, preview stays at the legal stops', () => {
+    const { c, events } = make(); events.length = 0;
+    c.drag(0, -2.4, 0);                                               // asks two stops W; only one is legal
+    const prev = events.find(e => e.kind === 'preview');
+    expect(prev && prev.kind === 'preview' && prev.steps).toBe(1);
+    for (let i = 0; i < 10; i++) c.drag(0, -2.4 - i * 0.01, 0);     // held against the rail end: no shake per frame
     expect(events.filter(e => e.kind === 'blocked').length).toBe(1);
-    c.drag(0, -0.2, 0); c.drag(0, -0.8, 0);                          // eased off, pushed again: one more shake
+    c.drag(0, -0.8, 0); c.drag(0, -1.8, 0);                          // eased off, pushed again: one more shake
     expect(events.filter(e => e.kind === 'blocked').length).toBe(2);
-    c.dragEnd(); c.drag(0, -0.8, 0);                                 // a new drag strains anew
-    expect(events.filter(e => e.kind === 'blocked').length).toBe(3);
-    c.act({ kind: 'restart' });
-    c.drag(0, 1.7, 0);                                                // First Peak P0E solves; the rest of the drag is ignored
+    c.release();
+    expect(c.session.moves).toBe(1);
+  });
+  it('undo or restart during a drag drops the preview, so release commits nothing stale', () => {
+    const { c } = make();
+    c.act({ kind: 'move', plate: 0, dir: 3 });
+    c.drag(0, 0.7, 0); c.act({ kind: 'undo' }); c.release();
+    expect(c.session.moves).toBe(0);
+    c.drag(0, -0.7, 0); c.act({ kind: 'restart' }); c.release();
+    expect(c.session.moves).toBe(0);
+  });
+  it('drag preview stops at a solving stop', () => {
+    const { c } = make();
+    c.drag(0, 1.7, 0); c.release();                                   // First Peak P0E solves at the first stop
     expect([c.session.solved, c.session.moves]).toEqual([true, 1]);
   });
   it('stuck warning: on from the checker, off again on undo, one event per change', () => {
@@ -76,7 +140,7 @@ describe('Controller', () => {
     c.stuckAnswer(true); c.stuckAnswer(true);    // a repeat answer is not a change
     c.act({ kind: 'undo' });
     expect(events.filter(e => e.kind === 'stuck')).toEqual([{ kind: 'stuck', stuck: true }, { kind: 'stuck', stuck: false }]);
-    c.drag(0, 0.7, 0); c.stuckAnswer(true); c.drag(0, -0.7, 0); // the same through a drag: on, then off once
+    c.drag(0, 0.7, 0); c.release(); c.stuckAnswer(true); c.drag(0, -0.7, 0); c.release(); // via drag: on, then off once
     expect(events.filter(e => e.kind === 'stuck').map(e => e.kind === 'stuck' && e.stuck)).toEqual([true, false, true, false]);
   });
   it('undo and restart', () => {

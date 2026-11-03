@@ -23,7 +23,14 @@ export class Progress {
     try {
       const raw = storage?.getItem(KEY);
       const parsed = raw ? JSON.parse(raw) : null;
-      if (parsed?.v === 1 && parsed.levels && typeof parsed.levels === 'object') this.data = parsed;
+      // only well-formed records are kept: an array or a malformed record would lose progress on the next save
+      // (Codex chain 6 Minor 3: `"levels": []` passed and JSON.stringify then dropped the named entries)
+      if (parsed?.v === 1 && parsed.levels && typeof parsed.levels === 'object' && !Array.isArray(parsed.levels)) {
+        for (const [name, r] of Object.entries(parsed.levels as Record<string, Partial<LevelRecord>>)) {
+          if (r && typeof r === 'object' && r.solved === true && Number.isInteger(r.best) && (r.stars === 0 || r.stars === 1))
+            this.data.levels[name] = { solved: true, best: r.best!, stars: r.stars };
+        }
+      }
     } catch { /* unreadable or corrupt: start fresh */ }
     if (!storage) this.persistent = false;
   }

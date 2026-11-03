@@ -2,7 +2,9 @@
 // plate, and turns input actions (keys.ts, drag.ts) into state changes plus events for the render/audio layers.
 // Pure: no DOM, no three.js. The render layer reads `session`, `selected` and `progress` and reacts to the events.
 import type { Level } from '../rules/rules.ts';
-import { consumeStep, dragStep } from './drag.ts';
+import { previewDiff, type MoveDiff } from '../rules/diff.ts';
+import { shift, solved, type Dir } from '../rules/rules.ts';
+import { dragStops } from './drag.ts';
 import type { KeyAction } from './keys.ts';
 import type { Progress } from './progress.ts';
 import { Session, type StuckPort } from './session.ts';
@@ -12,6 +14,8 @@ export type GameEvent =
   | { kind: 'selected'; plate: number | null }
   | { kind: 'moved'; plate: number }
   | { kind: 'blocked'; plate: number }                     // rail end or a rule refused the move (shake the plate)
+  /** Drag preview of `steps` stops (diff from the current state); steps 0 / diff null clears it. */
+  | { kind: 'preview'; plate: number; steps: number; diff: MoveDiff | null }
   | { kind: 'wrong-axis'; plate: number }
   | { kind: 'undone' }
   | { kind: 'solved'; moves: number; par?: number; stars: number }
@@ -41,7 +45,9 @@ export class Controller {
   /** Open level i if it is unlocked; returns false for a locked level. */
   open(i: number): boolean {
     if (i < 0 || i >= this.levels.length || !this.progress.unlocked(i)) return false;
+    this.cancelDrag();
     this.index = i;
+    this.completedNow = false;
     this.session = new Session(this.levels[i], this.stuck);
     this.selected = null;
     this.emit({ kind: 'level', index: i });
@@ -52,52 +58,88 @@ export class Controller {
     const was = this.session.stuck;
     switch (a.kind) {
       case 'select': this.selected = a.plate; this.emit({ kind: 'selected', plate: a.plate }); break;
-      case 'cancel': this.selected = null; this.emit({ kind: 'selected', plate: null }); break;
+      case 'cancel': // Esc: first drops a drag in progress, then the selection
+        if (!this.cancelDrag()) { this.selected = null; this.emit({ kind: 'selected', plate: null }); }
+        break;
       case 'wrong-axis': this.select(a.plate); this.emit({ kind: 'wrong-axis', plate: a.plate }); break;
       case 'move': this.select(a.plate); this.move(a.plate, a.dir); break;
-      case 'undo': if (this.session.undo()) { this.emit({ kind: 'undone' }); this.unstuck(was); } break;
-      case 'restart': this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
+      case 'undo': this.cancelDrag(); if (this.session.undo()) { this.emit({ kind: 'undone' }); this.unstuck(was); } break;
+      case 'restart': this.cancelDrag(); this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
       case 'next':
         if (!this.session.solved) break;
-        if (this.index + 1 < this.levels.length) this.open(this.index + 1); else this.emit({ kind: 'finished' });
+      {
+        // the next unsolved level after this one, else a skipped one before it (progress.ts window); with everything
+        // solved (a replay for stars) simply the next level; finished after the last
+        const unsolved = (i: number) => !this.progress.solved(i);
+        const ahead = this.levels.findIndex((_, i) => i > this.index && unsolved(i));
+        const behind = this.levels.findIndex((_, i) => unsolved(i));
+        const to = this.completedNow ? -1
+          : ahead >= 0 ? ahead : behind >= 0 ? behind : this.index + 1 < this.levels.length ? this.index + 1 : -1;
+        if (to >= 0) this.open(to); else this.emit({ kind: 'finished' });
         break;
+      }
     }
   }
 
   /**
-   * Pointer drag on plate p, in cells since the last committed stop (drag.ts). Commits one stop per SNAP crossed until
-   * the rail refuses or the level is solved, and returns the leftover drag for the input layer to keep. A refused stop
-   * keeps its drag (clamped to just under a cell), so the plate strains at the rail end instead of racing ahead.
+   * Pointer drag on plate p, in cells since the drag started (drag.ts). Nothing is committed while dragging (design
+   * Controls: preview while dragging, release commits, Esc cancels; Codex chain 6 Major 2): the drag asks for n stops,
+   * the controller walks as many as the rail allows and emits a `preview` of the resulting state. Asking past the last
+   * legal stop strains the plate: one `blocked` per push, not one per pointermove frame.
    */
-  drag(p: number, dx: number, dy: number): [number, number] {
+  drag(p: number, dx: number, dy: number) {
+    if (this.session.solved) return;
     this.select(p);
-    for (let d = dragStep(this.levels[this.index].axis[p], dx, dy); d !== null && !this.session.solved;
-         d = dragStep(this.levels[this.index].axis[p], dx, dy)) {
-      // pointermove fires every frame: a held strain emits `blocked` once, not a shake per frame
-      if (!this.move(p, d, this.straining !== d)) {
-        this.straining = d;
-        return [Math.max(-0.99, Math.min(0.99, dx)), Math.max(-0.99, Math.min(0.99, dy))];
-      }
-      this.straining = null;
-      [dx, dy] = consumeStep(d, dx, dy);
+    const ask = dragStops(this.levels[this.index].axis[p], dx, dy);
+    const steps: Dir[] = [];
+    let s = this.session.state, strained = false;
+    for (let k = 0; ask && k < ask.n; k++) {
+      const next = shift(this.levels[this.index], s, p, ask.dir);
+      if (!next) { strained = true; break; }
+      steps.push(ask.dir); s = next;
+      if (solved(this.levels[this.index], s)) break; // the level ends at this stop; the rest of the drag is moot
     }
-    if (dragStep(this.levels[this.index].axis[p], dx, dy) === null) this.straining = null;
-    return [dx, dy];
+    if (strained && !this.straining) this.emit({ kind: 'blocked', plate: p });
+    this.straining = strained;
+    const key = steps.length ? `${p}:${steps[0]}:${steps.length}` : '';
+    if (key === this.pending?.key || (!key && !this.pending)) return;
+    this.pending = key ? { key, plate: p, steps } : null;
+    this.emit({ kind: 'preview', plate: p, steps: steps.length,
+      diff: key ? previewDiff(this.levels[this.index], this.session.state, s) : null });
   }
-  /** Pointer released or cancelled. */
-  dragEnd() { this.straining = null; }
-  private straining: number | null = null;
+  /** Pointer released: commit the previewed stops (one move each). */
+  release() {
+    const pend = this.pending;
+    this.pending = null; this.straining = false;
+    if (!pend) return;
+    this.emit({ kind: 'preview', plate: pend.plate, steps: 0, diff: null });
+    for (const d of pend.steps) if (!this.move(pend.plate, d)) break;
+  }
+  /** Esc or pointercancel during a drag: drop the preview, commit nothing. Returns true if a drag was cancelled. */
+  cancelDrag(): boolean {
+    const pend = this.pending;
+    this.pending = null; this.straining = false;
+    if (pend) this.emit({ kind: 'preview', plate: pend.plate, steps: 0, diff: null });
+    return !!pend;
+  }
+  private pending: { key: string; plate: number; steps: Dir[] } | null = null;
+  private straining = false;
+  private completedNow = false;
 
   /** Commit one stop (keyboard arrow or a drag step); false when refused. */
-  move(p: number, d: 0 | 1 | 2 | 3, feedback = true): boolean {
+  move(p: number, d: Dir): boolean {
     const was = this.session.stuck;
     const r = this.session.move(p, d);
-    if (!r.ok) { if (r.reason === 'blocked' && feedback) this.emit({ kind: 'blocked', plate: p }); return false; }
+    if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p }); return false; }
     this.emit({ kind: 'moved', plate: p });
     this.unstuck(was);
     if (r.solved) {
       const s = this.session;
+      const allSolved = () => this.levels.every((_, i) => this.progress.solved(i));
+      const before = allSolved();
       this.progress.complete(this.index, s.moves, s.stars);
+      // this solve finished the game: Enter shows the ending (kept through undo and re-solve on the same level)
+      this.completedNow ||= !before && allSolved();
       this.selected = null;
       this.emit({ kind: 'solved', moves: s.moves, par: s.par, stars: s.stars });
     }
