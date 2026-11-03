@@ -66,6 +66,8 @@ If G0 is not approved by Nov 7, the iframe test moves to the first day it is; no
 
 - Vite + TypeScript + three.js, vitest, Playwright (the stack proven on Skyway Rally and Aether Relay). `vite.config.ts` uses `base: './'` for itch's relative paths.
 - Modules: `rules/` (pure, deterministic: grid, shift, flood, goals), `solver/` (BFS, audit, generator; Node CLI), `levels/*.json`, `render/` (terrain, water, creatures, fx), `ui/`, `audio/` (WebAudio synth), `input/` (mouse + touch, rail drag).
+- Data shapes (from the spikes, kept): `Level { id, name, biome, w, h, plates, axis[], maxTravel, pinned[], start: { plate: Int8Array, elev: Int8Array, objs: {kind, cell}[], off? }, buoys[], par }`; level files are JSON with plain arrays; `State` is immutable per move (undo = a stack of States). `rules/` exports `shift`, `seaMask`, `goalsMet`, `solved` and is the single source for the game, the solver CLI and the tests (Codex chain 2: no duplicate flood fills).
+- Render data flow: `State` → `render/diff(prev, next)` → animations (rising columns, flood front by BFS distance from the ocean, creature reactions); the preview uses the same diff on a hypothetical next State, drawn as ghosts.
 - Reuse, not rebuild: three.js for rendering, ZzFX/ZzFXM or hand WebAudio for sound (licence checked before use), @fontsource for fonts; no physics engine needed (grid rules).
 
 ## Name
