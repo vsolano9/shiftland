@@ -62,7 +62,8 @@ export class Controller {
         if (!this.cancelDrag()) { this.selected = null; this.emit({ kind: 'selected', plate: null }); }
         break;
       case 'wrong-axis': this.select(a.plate); this.emit({ kind: 'wrong-axis', plate: a.plate }); break;
-      case 'move': this.select(a.plate); this.move(a.plate, a.dir); break;
+      // a key move during a drag drops the drag's preview: it was computed for the old board (Codex chain 6 round 2)
+      case 'move': this.cancelDrag(); this.select(a.plate); this.move(a.plate, a.dir); break;
       case 'undo': this.cancelDrag(); if (this.session.undo()) { this.emit({ kind: 'undone' }); this.unstuck(was); } break;
       case 'restart': this.cancelDrag(); this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
       case 'next':

@@ -126,6 +126,13 @@ describe('Controller', () => {
     c.drag(0, -0.7, 0); c.act({ kind: 'restart' }); c.release();
     expect(c.session.moves).toBe(0);
   });
+  it('a key move during a drag drops the stale preview (First Peak: preview E, press W, release)', () => {
+    const { c } = make();
+    c.drag(0, 0.7, 0);                                                // E would solve
+    c.act({ kind: 'move', plate: 0, dir: 3 });                        // W by keyboard
+    c.drag(0, 0.8, 0); c.release();                                   // pointer keeps moving, then lets go
+    expect([c.session.moves, c.session.solved]).toEqual([1, false]); // only the key move happened
+  });
   it('drag preview stops at a solving stop', () => {
     const { c } = make();
     c.drag(0, 1.7, 0); c.release();                                   // First Peak P0E solves at the first stop
