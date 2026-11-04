@@ -93,14 +93,14 @@ const DESERT: Spec[] = [
     blurb: 'One pond, one open sea. They may touch only at a corner.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  b0 b0 ~  a0 ~  ~
-      ~  b0 b0 b0 a0O a0 a0 ~
-      ~  b0 b0 c0 c0* a0 a0 ~
-      ~  ~  b0 ~  c0 a0 ~  ~
       ~  ~  b0 ~  c0 ~  ~  ~
+      ~  ~  b0 ~  c0 a0 ~  ~
+      ~  b0 b0 c0 c0* a0 a0 ~
+      ~  b0 b0 b0 a0O a0 a0 ~
+      ~  ~  b0 b0 ~  a0 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P1E P2E P0N', trap: { move: 'P0N', finish: 4, why: "the pond comes at once, right above the buoy: open the buoy's water now and the two holes share an edge and join into sea" },
-      aha: { move: 'P0N', says: 'last of all, a backs off and leaves a pocket walled on all four sides beside the oasis, its corner touching the open sea', shows: ['lake'] } },
+    fixture: { intended: 'P1E P2E P0S', trap: { move: 'P0S', finish: 4, why: "the pond comes at once, right next to the buoy: open the buoy's water now and the two holes share an edge and join into sea" },
+      aha: { move: 'P0S', says: 'last of all, a backs off and leaves a pocket walled on all four sides beside the oasis, its corner touching the open sea', shows: ['lake'] } },
   },
   {
     name: 'Mirage', biome: 'desert', role: 'puzzle', teaches: 'a lake needs a lid: land slid over the end of a rift seals it, and if that land covers the buoy, a bite carries it off', axis: '---', expectPar: 4,
@@ -163,15 +163,15 @@ const TUNDRA: Spec[] = [
     blurb: 'A penguin wants the sea. A pond will not do.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 a0 a0 ~  b0* b0 ~
-      ~  a0 a0 ~  ~  a1i b0 ~  ~
-      ~  a0 a0 a0iP a0 a0 b0 b0 ~
-      ~  a0 a0 a0 a0 a0V b1 ~  ~
-      ~  ~  ~  a0 c0 c0 c0 c0 ~
       ~  ~  ~  ~  c0 c0 ~  ~  ~
+      ~  c0 c0 c0 c0 a0 ~  ~  ~
+      ~  ~  b1 a0V a0 a0 a0 a0 ~
+      ~  b0 b0 a0 a0 a0iP a0 a0 ~
+      ~  ~  b0 a1i ~  ~  a0 a0 ~
+      ~  b0 b0* ~  a0 a0 a0 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P2N P1W P1W', trap: { move: 'P1W', finish: 'dead', why: 'the dam cracks and the penguin sees the sea, but the same push slams the high ground into the village on the rock' },
-      aha: { move: 'P2N', says: 'c comes up under the rock and takes the village aboard: the push from the east now finds no one standing in its row', shows: ['quiet', 'hitsrock'] } },
+    fixture: { intended: 'P2S P1E P1E', trap: { move: 'P1E', finish: 'dead', why: 'the dam cracks and the penguin sees the sea, but the same push slams the high ground into the village on the rock' },
+      aha: { move: 'P2S', says: 'c comes down onto the rock and takes the village aboard: the push from the west now finds no one standing in its row', shows: ['quiet', 'hitsrock'] } },
   },
 ];
 
@@ -196,15 +196,15 @@ const FINALE: Spec[] = [
     blurb: 'Six wishes. Five is the easy part.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  ~  d0 ~  a0* a0 ~
-      ~  ~  d0 d0 a0 a0 ~  ~
-      ~  b0 b1iP d0 a1i a0 a0 ~
-      ~  ~  b0 b0O c0 c0L a0 ~
-      ~  b0 b0 c0V c0 c0 c0 ~
-      ~  ~  b0G c1 c0 c0 ~  ~
+      ~  ~  c0 c0 c1 b0G ~  ~
+      ~  c0 c0 c0 c0V b0 b0 ~
+      ~  a0 c0L c0 b0O b0 ~  ~
+      ~  a0 a0 a1i d0 b1iP b0 ~
+      ~  ~  a0 a0 d0 d0 ~  ~
+      ~  a0 a0* ~  d0 ~  ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P0S P2W P0S P2E P2E P1S', trap: { move: 'P2E', finish: 7, why: 'two goals tick at once, but the goat is left behind on b: c has to come all the way back for it' },
-      aha: { move: 'P2E', says: 'five of six are met and the slide for the last would break the village: give them up, and c carries the goat and the village home out of its path', shows: ['unticks', 'returns'] } },
+    fixture: { intended: 'P0N P2E P0N P2W P2W P1N', trap: { move: 'P2W', finish: 7, why: 'two goals tick at once, but the goat is left behind on b: c has to come all the way back for it' },
+      aha: { move: 'P2W', says: 'five of six are met and the slide for the last would break the village: give them up, and c carries the goat and the village home out of its path', shows: ['unticks', 'returns'] } },
   },
 ];
 
