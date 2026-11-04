@@ -487,6 +487,7 @@ class App {
       return x > r.left - 50 && x < r.right + 50 && y > r.top - 50 && y < r.bottom + 50;
     });
     h.classList.toggle('up', under);
+    h.style.top = under ? `${Math.round($('blurb').getBoundingClientRect().bottom + 8)}px` : ''; // under the note, however many lines it wrapped to
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);
@@ -653,7 +654,7 @@ class App {
   }
   private noteT = 0;
   private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
-    const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up');
+    const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up'); h.style.top = '';
     clearTimeout(this.flashT);
     sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
     this.flashT = window.setTimeout(() => {
