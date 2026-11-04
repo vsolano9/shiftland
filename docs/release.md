@@ -10,13 +10,13 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 |---|---|---|---|
 | R1 | Zip valid for itch HTML5 | see "Build" | `npm run pack:check` |
 | R2 | Relative paths | pass locally; the itch draft half waits on G0 | `npm run pack:check` |
-| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build | `p11\a24.log` |
+| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build | `p12\a24.log` |
 | R4 | Levels pass the bar | pass, 24 of 24; count matches `itch-page.md` | `npm run levels:audit` |
 | R5 | Rules and tests | see "Build" | `npm test`, `npm run typecheck` |
 | R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real draft page **waits on G0** | `if\` |
-| R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `p11\a24p.log`, `p11\a24l.log` |
+| R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `p12\a24p.log`, `p12\a24l.log` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
-| R9 | Performance | pass on the dev PC, see below; no mid laptop tried | `perf2.log` |
+| R9 | Performance | pass on the dev PC except the map under 4x throttle, see below; no mid laptop tried | `p12\perf.log` |
 | R10 | Audio | event log and metrics pass; **nobody has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
 | R11 | Look | critic rounds run; the open majors are answered in the session's `Taste:` line | `D:\Work\_local\taste-critic\` |
 | R12 | No shipped AI media | pass: no image or audio file in `dist/` | `npm run pack:check` |
@@ -31,11 +31,12 @@ Chromium with hardware GPU at 1280x720. Target from `PLAN.md`: 60 fps median, at
 
 | Scene | No throttle | 4x CPU throttle |
 |---|---|---|
-| Title | 59.9 fps | 53.8 fps |
-| The Summit, idle | 59.9 fps | 59.5 fps, adaptive quality step 2 |
-| The Summit, moves | 59.9 fps | 33.1 fps |
+| Title | 58.8 fps | 59.2 fps |
+| The Summit, idle | 59.9 fps | 61.3 fps |
+| The Summit, moves | 60.2 fps | 42 fps |
+| Map | 60.2 fps | 25.3 fps, adaptive quality step 3, **under the 30 target** (17.9 before the shadow rest); worst frame 1.6 s when quality steps down |
 
-Load about 3 s from a local server. A mid laptop and a real phone have not been tried.
+Measured with a playtest running on the same PC (`p12\perf.log`). Load about 3 s from a local server. A mid laptop and a real phone have not been tried.
 
 ## What only Victor can do
 
@@ -48,4 +49,4 @@ Load about 3 s from a local server. A mid laptop and a real phone have not been 
 
 - Real Safari and iOS are untested. WebKit in Playwright solved the first island; WebKit on Windows goes blank after a resize, which looks like a Playwright bug and not ours.
 - "About an hour" on the itch page is an estimate from agent play: playtest 6 finished everything in 51 minutes, reading a text dump of the board, so a person is likely slower. Par is the solver's true minimum.
-- The hard end isn't proven fair for a cold player. Playtest 7 got stuck on Two Waters without hints and ran out of time before Frost Line and The Summit; the bite-and-carry trick is the wall. See `qa.md`.
+- The hard end isn't proven fair for a cold player. Playtest 7 got stuck on Two Waters without hints; playtest 8 solved it at par but needed hints after 7 minutes; playtest 9 failed Frost Line and The Summit in 13 minutes without hints, reaching 3 of 4 and 5 of 6 wants. The bite-and-carry trick is the wall. See `qa.md`.

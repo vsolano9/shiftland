@@ -49,7 +49,7 @@ const GOAL_TEXT: Record<CreatureKind, [string, string]> = {
 /** The full rule, shown when a goal chip is tapped. */
 const GOAL_RULE: Record<CreatureKind, string> = {
   goat: 'The goat wants a peak: bare rock, two dots or more on the corner. Pushing two plates together lifts the seam one higher.',
-  village: 'The village wants ground below the rock: one dot at most. If the land rises to rock under it, it crumbles.',
+  village: 'The village wants ground below the rock: one dot at most. If the land rises to rock under it, it crumbles. A plate that slides over land takes it, and what stands on it.',
   light: 'The lighthouse wants open sea on a side next to it. Pull plates apart, or sail its plate to the shore.',
   buoy: 'A buoy is chained to the sea floor: it stays where it is while the plates move. Land slid under it beaches it. It wants open sea.',
   oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it. Sea on another side does no harm.',

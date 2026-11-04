@@ -20,14 +20,14 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 
 | Build | Input | Shape | Result | Evidence |
 |---|---|---|---|---|
-| 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p11\a24.log` |
-| 24 islands | Real touch | 390x844 | Reached the ending | `p11\a24p.log` |
-| 24 islands | Real touch | 844x390 | Reached the ending, 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p11\a24l.log`, `p8\a24l-r1.log` to `r3` |
+| 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p12\a24.log` |
+| 24 islands | Real touch | 390x844 | Reached the ending | `p12\a24p.log` |
+| 24 islands | Real touch | 844x390 | Reached the ending, 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p12\a24l.log`, `p8\a24l-r1.log` to `r3` |
 | Plate cells and buttons under the HUD | Probe, every island along its par line, frozen build | 844x390, 390x844, 360x640, 1280x720, 1024x768 | No plate cell or action button is covered by a chip, note or button. A phone with 4 chips used to push a third row over Hint: found by the critic, fixed with icon-only chips from 4 up | session scratch `overlay.mjs` (run it on a frozen build: a dev-server hot reload mid-scan reports false misses) |
 | Rail handle on its plate | Probe, every plate of every island along its par line | 1280x720 | The handle projects onto its own plate, near its slider | session scratch `anchor.mjs` |
 | 28 islands (older build), random walk | Controller | 1280x720 | 14 random moves on each island: 27 px past the screen edge on Still Water, none on the rest | `wander.mjs`, design row "Camera holds par moves' reach" |
 | Scenario run | Real mouse | 1280x720 | Pinned, ice, penguins, undo, restart, cancel: 11 checks, 0 fails, 0 errors | `q7.log` |
-| Random input | Real mouse | 1280x720 | 500 steps with reloads on the 24-island build, 0 errors | `p8\mk.log` |
+| Random input | Real mouse | 1280x720 | 500 steps with reloads, then 200 on the last snapshot, 0 errors | `p11\mk.log`, `p12\mk.log` |
 | Long session | Controller | 1280x720 | 27 islands opened, solved and restarted: geometries steady at 243, heap 47 to 55 MB, 0 errors | session scratch `mem.mjs` |
 | Cross-origin iframe | Real mouse | 1024x640, 640x480 | Solved island 1, audio runs, save works, fullscreen works, 0 errors | `p6\if` |
 | Firefox, WebKit | Real mouse | 1280x720 | First island solved, 0 errors | `p6\br` |
@@ -91,6 +91,18 @@ Solved at par in 3 moves after 9.5 minutes: 8 failed lines, the first hint at 7.
 | P8-2 | Oasis passes with sea beside it if a lake also touches it; only learned by inference, and "that water reaches the sea" misled | Fixed: the oasis explanation ends "Sea on another side does no harm." Fits on 390x844, 844x390, 360x640 (`p11\note\`) |
 | P8-3 | Biting the buoy's cell with red is a tempting false lead | Kept: it answers "that water is a lake", which is true and teaches |
 | P8-4 | The finished buoy stands half behind raised violet | Accepted: the level comment records the trade. Turning the island hides it more; the chip confirms it, and the buoy's top still shows (`playtest8\j-13.png`) |
+
+### Playtest 9 findings (Frost Line and The Summit cold, 13 minutes, no hints)
+
+Neither solved. Frost Line: about 8 minutes, best 6 moves with 3 of 4 wants. The Summit: about 5 minutes, 5 of 6 wants in 3 moves, only the oasis left. "Solvable by thinking" is not proven either way; 13 minutes is little for the two hardest islands. "No way back" helped, and was used as an oracle. Shots: `playtest9\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P9-1 | Nothing said that a plate sliding over land takes that land: a village and penguins changed plate | Fixed in the village's explanation: "A plate that slides over land takes it, and what stands on it." Two Waters' note says it from the other side |
+| P9-2 | "Rose too high" doesn't say what raised the village | Partly: the explanation names the rule; the chip doesn't name the cause. Open |
+| P9-3 | The oasis chip doesn't point at the gap | Open, a tapped chip already marks the wrong water on the board (e2e "a chip about the wrong water") |
+| P9-4 | The Summit's tip names no plate | Open: naming it spends the puzzle's last idea; left as a taste call |
+| P9-5 | Lighthouse and palm overlap in one Summit state (`playtest9\sG-05`) | Open, off-par state |
 
 ### Phone board blurred for the whole session (Nov 4, critic T20)
 
