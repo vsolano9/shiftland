@@ -477,7 +477,7 @@ class App {
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
-    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}. No star this run: Restart to win it back`}`.trim(), 6);
+    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}. The star is spent: Restart with no hint to win it back`}`.trim(), 6);
     this.hintOffPlate(m.plate, m.dir);
   }
   /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */
@@ -488,7 +488,7 @@ class App {
       return x > r.left - 50 && x < r.right + 50 && y > r.top - 50 && y < r.bottom + 50;
     });
     h.classList.toggle('up', under);
-    h.style.top = under ? `${Math.round($('blurb').getBoundingClientRect().bottom + 8)}px` : ''; // under the note, however many lines it wrapped to
+    h.style.top = under ? `${Math.round(Math.max($('blurb').getBoundingClientRect().bottom, $('hud-tr').getBoundingClientRect().bottom) + 8)}px` : ''; // under the note, however many lines it wrapped to, and under the buttons (playtest 7 P7-5: it clipped Undo)
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);

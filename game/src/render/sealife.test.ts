@@ -15,7 +15,7 @@ describe('sea life stays on open water', () => {
       const [u, v] = toUV(x, z, bounds.az);
       expect(Math.abs(u)).toBeLessThan(20.6); expect(Math.abs(v)).toBeLessThan(20.6);
     }
-  });
+  }, 60_000); // deterministic, but 40000 steps of expects outran the default 5 s while a browser suite held the CPU
   it('open water is in view, keeps its clearance, and gives up on a sea with none', () => {
     let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 200; i++) {

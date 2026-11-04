@@ -121,7 +121,7 @@ const DESERT: Spec[] = [
   },
   {
     name: 'Two Waters', biome: 'desert', role: 'puzzle', teaches: 'lake or sea is decided by what walls it: make one hole of each, side by side', axis: '|--', expectPar: 3,
-    blurb: 'A bitten palm stays put when its old plate slides away.',
+    blurb: 'What a plate bites, it can carry off.', // playtest 7 P7-1: this is the island that needs it, and the note used to come one island too late
     // Mirrored north to south (phone playtest): the finished buoy stood half behind the ridge. Pond and buoy now sit side by side
     // on the screen. The corner they share lies behind the tip of c, a trade: the two waters still read apart by colour, and the
     // way round that shows the corner leaves the buoy nearly half hidden.
@@ -154,7 +154,7 @@ const DESERT: Spec[] = [
   // after Two Waters, not before: playtest 5 hit a wall at this island when it came straight after Oxbow (P5-4)
   {
     name: 'Twin Palms', biome: 'desert', role: 'puzzle', teaches: 'give up a tick to get two: the plate that spoils the first pond also carries both oases off, and each leaves a pond of its own in the wake', axis: '|-|', expectPar: 3,
-    blurb: 'What a plate bites, it can carry off.',
+    blurb: 'Sometimes one tick has to go before two can come.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
       ~  a0 a0 a0 a0 a0 a0 ~

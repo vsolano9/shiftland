@@ -66,6 +66,25 @@ Times from an agent reading a board dump: lower limits. Report: `playtest6\`. Ve
 | P6-10 | "This plate has to be here" unclear | "Nothing shows yet: this slide sets up the next move" |
 | P6-11 | Small things | Village Green's door now says a creature can be asked; the button sliver beside the phone's results card is gone. Accepted: chip rows change shape as reasons change length, a rail stays lit while its plate is selected, objects over a rail tip, Next goes on in order after a replay, phone map pins over small thumbnails |
 
+### Playtest 7 findings (hard islands cold, stopped at its 25 minutes)
+
+Verdict from the tester: not proven. Three real solves, Frost Line and The Summit not attempted, Give and Take only a wrong line. It never found bite-and-carry by thinking. Shots: `playtest7\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P7-1 | Two Waters needs a rule whose note came one island later; stuck for 7 min with 6 hint presses | Fixed: the carry note moved to Two Waters, Twin Palms got its own. Whether the note is enough is unproven: no one has played it since |
+| P7-2 | Give and Take can die at move 2 of 6 with a board that looks fine | Open as a design risk, kept: it is the second-to-last island, the warning and "Restart is shorter" both say so, and Undo gets out. The six-creature start is daunting |
+| P7-3 | Thin Ice's melt rule seemed to sit behind a tap | Not reproduced: the note says it and shows for 11 s after the chapter card (`p7.mjs`). The tester's flow skipped past it; tapping the name card repeats it |
+| P7-4 | Chip badges don't preview water | By design: from island 4 the player judges moves unless Settings brings the + and − back. Hatching reads alike over sea and land: accepted, the dots answer after the move |
+| P7-5 | "No star this run: Restart to win it back" repeated at Moves 0, and the raised panel clipped Undo | Fixed: it now says "Restart with no hint"; a raised panel sits below the buttons too (`p7.mjs`: top 76, buttons end 68) |
+| P7-6 | A rail drew on and the drag answered "No room that way" | Accepted: the far end's stop is the red one in `i13-s3.png`; a long drag counts one step by design |
+| P7-7 | An oasis bubble slid under Undo on Two Waters after 5 moves | Accepted: off-par state only, tapping the chip or creature still answers |
+| P7-8 | The phone reason line overlaps the note during its crossfade | Accepted, brief |
+
+### Phone board blurred for the whole session (Nov 4, critic T20)
+
+The critic kept calling the phone board soft, and it was right. The first seconds of boot (shader compile, fonts) read as slow, so adaptive quality stepped down at once and only ever steps down: a phone that ran 60 fps from then on stayed at pixel ratio 1 of 2 (`q.mjs`: quality 1 at the title). Nothing failed, because no check looked at the ratio. Now the first 5 s don't count, a merely slow window has to repeat, a crawl under 18 fps still acts at once, and pixel ratio steps through 1.5 first. After: quality 0, ratio 2, 60 fps from title through Mirage, shot `p9\q.png`. Every phone shot before this was taken blurred.
+
 ### Landscape touch miss on Good Neighbours (Nov 4)
 
 `allplay.mjs` at 844x390 stopped at Good Neighbours' second move in about 1 of 10 runs, never elsewhere. The touch landed at the very top edge of plate 0 (cell 9's centre at plate height projects onto the silhouette, see `p9` scratch `ll4.png`), and `pick` said null there on `pointerdown`, a tick after saying plate 0. The exact flip was not caught: a logged `pick` ran 40 clean runs. The player-facing fix is thumb reach: a touch within 14 px of a plate grabs it (`e2e/phone.spec.ts`). The hint text in that failure was the first move's, not the touch's.
