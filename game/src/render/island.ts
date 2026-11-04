@@ -105,7 +105,7 @@ export class IslandView {
   /** Wish bubbles step to a side of their creature where they cover nobody else, judged in screen space (the camera angle is fixed). */
   private bubbleKey = '';
   private placeBubbles() {
-    const key = this.creatures.map(c => `${Math.round(c.root.position.x * 4)},${Math.round(c.root.position.z * 4)},${Math.round(c.root.position.y * 4)},${c.met ? 1 : 0}`).join(';') + `|${this.marks.map(k => k.m.visible ? `${Math.round(k.m.position.x * 4)},${Math.round(k.m.position.y * 4)},${Math.round(k.m.position.z * 4)}` : '').join(';')}`;
+    const key = this.creatures.map(c => `${Math.round(c.root.position.x * 4)},${Math.round(c.root.position.z * 4)},${Math.round(c.root.position.y * 4)},${c.met ? 1 : 0}`).join(';') + `|${this.marks.map(k => `${this.state.off?.[k.plate] ?? 0},${this.plateTop(k.plate)}`).join(';')}`;
     if (key === this.bubbleKey) return;
     this.bubbleKey = key;
     const CA = Math.cos(.72), SA = Math.sin(.72), CE = Math.cos(.82), SE = Math.sin(.82);
@@ -114,8 +114,10 @@ export class IslandView {
     const blobs: Blob[] = [];
     for (const a of this.anchors) { const [u, v] = screen(a.position.x, a.position.y, a.position.z); blobs.push({ u, v, r: .22, owner: null }); } // handles stay uncovered
     // and so does each plate's slider, end to end (critic T12): it is how a player plans without touching anything
-    for (const k of this.marks) if (k.m.visible) for (const o of [-.42, 0, .42]) {
-      const ax = this.lv.axis[k.plate] === 1, [u, v] = screen(k.m.position.x + (ax ? o : 0), k.m.position.y, k.m.position.z + (ax ? 0 : o));
+    // (from the rules' state and not the mark's mesh: this also runs before a board's first frame, to frame it)
+    for (const k of this.marks) for (const o of [-.42, 0, .42]) {
+      const ax = this.lv.axis[k.plate] === 1, [x0, z0] = this.plateAnchor(k.plate), off = this.state.off?.[k.plate] ?? 0;
+      const [u, v] = screen(x0 + (ax ? off + o : 0), this.plateTop(k.plate), z0 + (ax ? 0 : off + o));
       blobs.push({ u, v, r: .2, owner: null });
     }
     const blob = (c: Creature, y: number, r: number) => { const p = c.root.position, [u, v] = screen(p.x, p.y + y, p.z); blobs.push({ u, v, r, owner: c }); };
@@ -672,6 +674,13 @@ export class IslandView {
     if (current) return this.statePoints(this.state, 1.25, true);
     const pts = this.statePoints(this.lv.start, .72, false);
     if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .72, false));
+    // a wish is half the puzzle: its bubble must clear the top bar, wherever it had to sit
+    this.placeBubbles();
+    for (const c of this.creatures) {
+      if (!c.bubble) continue;
+      const S = KIND_SCALE[c.kind], h = c.bubbleHome, y0 = HEAD_Y[c.kind] * S, p = c.root.position;
+      pts.push(new Vector3(p.x + h[0] * S, p.y + y0 + h[1] * S + .34, p.z + h[2] * S));
+    }
     return pts;
   }
   private statePoints(s: State, head: number, buoys: boolean) {

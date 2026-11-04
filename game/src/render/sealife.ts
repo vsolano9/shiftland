@@ -32,6 +32,7 @@ export class SeaLife {
   /** `calm` is 1 where the sea is in view (the map, a flight), 0 on a board: no whale surfaces behind a puzzle. */
   update(dt: number, t: number, calm: boolean) {
     for (const b of this.boats) {
+      b.g.visible = calm; // a toy from afar, but as big as a lighthouse beside a board
       b.a = steer(b.g.position.x, b.g.position.z, b.a, this.reefs, this.bounds, dt * 1.3);
       b.g.position.x += Math.sin(b.a) * b.v * dt; b.g.position.z += Math.cos(b.a) * b.v * dt;
       b.g.rotation.set(Math.sin(t * .9 + b.bob) * .05, b.a, Math.sin(t * 1.3 + b.bob) * .07);

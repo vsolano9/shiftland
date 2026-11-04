@@ -533,7 +533,7 @@ export class World {
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
     this.easeDay(dt);
-    this.seaLife.update(dt, t, this.map);
+    this.seaLife.update(dt, t, this.map || !!this.fly);
     // clouds pass by on a flight, then clear: nothing may hide an island on the map
     const cm = this.clouds[0].o.material as MeshLambertMaterial;
     cm.opacity += ((this.fly ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5);
