@@ -541,7 +541,8 @@ export class World {
 
   /** A neighbour reaching into the active mask must be in it too, or its shore stops dead at the mask's straight edge. */
   private neighbourLand: LandRect[] = [];
-  private writeActive(v: IslandView) { this.activeMask.write(this.neighbourLand.length ? v.landRects([...this.neighbourLand]) : v.landRects(), v.waterRects()); }
+  private alone = false;
+  private writeActive(v: IslandView) { this.activeMask.write(!this.alone && this.neighbourLand.length ? v.landRects([...this.neighbourLand]) : v.landRects(), v.waterRects()); }
   writeStatic() {
     // the static mask is written once and stays: a flood still under way must not freeze here as dry ground
     const land = this.views.flatMap(v => v.landRects()); if (this.fillShown) land.push(...this.fillRects);
@@ -639,6 +640,8 @@ export class World {
     if (this.fillK !== this.fillGoal) { this.fillK = this.fillGoal > this.fillK ? Math.min(1, this.fillK + raw / 1.2) : Math.max(0, this.fillK - raw / .5); this.placeFill(); }
     // settled on a board, the neighbours go: all a player ever saw of them was a dark corner under the HUD's shade (critic T16). A long flight shows them again
     const alone = !this.map && !this.homes && !this.drive && !this.peekAt && !!this.active && this.active !== this.hero && (!this.fly || this.fly.arc < 6);
+    if (alone !== this.alone) { this.alone = alone; if (this.active) this.writeActive(this.active); }
+    const lone = this.ocean.uniforms.uAlone as { value: number }; lone.value = alone ? Math.min(1, lone.value + raw / .4) : 0;
     for (const v of this.views) { v.group.visible = !alone || v === this.active; v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
     this.heroBeat(dt);
     if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }

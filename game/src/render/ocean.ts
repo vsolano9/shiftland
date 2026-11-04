@@ -109,7 +109,7 @@ const FRAG = /* glsl */`
   precision highp float;
   varying vec3 vW;
   uniform float uTime; uniform sampler2D uStatic; uniform vec4 uStaticB; uniform sampler2D uActive; uniform vec4 uActiveB;
-  uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uLake; uniform vec3 uFloor; uniform float uRange; uniform float uMotion;
+  uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uLake; uniform vec3 uFloor; uniform float uRange; uniform float uMotion; uniform float uAlone;
   float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
   float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
     return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
@@ -133,6 +133,7 @@ const FRAG = /* glsl */`
     vec2 p = vW.xz;
     vec2 us = (p-uStaticB.xy)/uStaticB.zw;
     vec4 m = (us.x>0. && us.y>0. && us.x<1. && us.y<1.) ? texture2D(uStatic, us) : vec4(1.,0.,0.,1.);
+    m = mix(m, vec4(1.,0.,0.,1.), uAlone); // settled on one board there is only its own shore: the others' shallows go with them
     vec2 ua = (p-uActiveB.xy)/uActiveB.zw;
     // the two masks are drawn at different sharpness: the fine one fades in over its border, or a neighbour's shallows show a straight seam
     if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = mix(m, texture2D(uActive, ua), smoothstep(0.,.1,min(min(ua.x,ua.y),min(1.-ua.x,1.-ua.y))));
@@ -184,7 +185,7 @@ export class Ocean {
   uniforms: Record<string, { value: unknown }>;
   constructor(public staticMask: Mask, public activeMask: Mask, time: { value: number }) {
     this.uniforms = {
-      uTime: time, uStatic: { value: staticMask.tex }, uStaticB: { value: staticMask.bounds },
+      uTime: time, uAlone: { value: 0 }, uStatic: { value: staticMask.tex }, uStaticB: { value: staticMask.bounds },
       uActive: { value: activeMask.tex }, uActiveB: { value: activeMask.bounds },
       uDeep: { value: new Color('#0e7fae') }, uShallow: { value: new Color('#1fcdcf') },
       uLake: { value: new Color('#0b6f3f') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
