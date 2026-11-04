@@ -72,9 +72,12 @@ export class Creature {
     this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT) parts.push(m); });
     for (const m of parts) {
       const s = new Mesh(m.geometry, XRAY), r = new Mesh(m.geometry, XRAY_RIM);
-      s.renderOrder = -2.5; r.renderOrder = -2; m.add(s, r);
+      s.renderOrder = -2.5; r.renderOrder = -2; m.add(s, r); this.xray.push(s, r);
     }
   }
+  private xray: Mesh[] = [];
+  /** Only for one mostly out of sight: on a creature that is plainly there, the rim round its hidden corner read as scribbles on the land. */
+  setXray(on: boolean) { for (const m of this.xray) m.visible = on; }
 
   private build() {
     const b = this.body;
@@ -100,13 +103,14 @@ export class Creature {
       // Brightest at the lamp and along its middle, gone at the far end and both sides
       const U = 8, V = 8, pos: number[] = [], col: number[] = [], idx: number[] = [];
       for (let u = 0; u <= U; u++) for (let v = 0; v <= V; v++) {
-        const a = u / U, s = v / V * 2 - 1, f = (1 - a) ** 1.4 * (1 - s * s) ** 1.5;
+        // eases in over the first stretch: at full strength from the lamp it bleached the tower's own wall
+        const a = u / U, s = v / V * 2 - 1, f = (1 - a) ** 1.4 * (1 - s * s) ** 1.5 * Math.min(1, a * 3.2);
         pos.push(a * 2.1, -a * .16, s * (.03 + a * .52)); col.push(f, f, f);
         if (u < U && v < V) { const i = u * (V + 1) + v; idx.push(i, i + 1, i + V + 1, i + 1, i + V + 2, i + V + 1); }
       }
       const fan = new BufferGeometry();
       fan.setAttribute('position', new Float32BufferAttribute(pos, 3)); fan.setAttribute('color', new Float32BufferAttribute(col, 3)); fan.setIndex(idx);
-      const beamMat = new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, depthTest: false, vertexColors: true, blending: AdditiveBlending });
+      const beamMat = new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, vertexColors: true, blending: AdditiveBlending });
       this.beam = new Mesh(fan, beamMat);
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {

@@ -56,9 +56,14 @@ describe('moveWhy and stackReason', () => {
   });
   it('names what a refused move runs into', () => {
     const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }]);
-    expect(stackReason(lv, s, 0)).toBe('The oasis is in the way of the goat');
+    expect(stackReason(lv, s, 0, 1)).toBe('The oasis is in the way of the goat');
     const free = pair([{ kind: 'goat', cell: 1 }]);
-    expect(stackReason(free.lv, free.s, 0)).toBe('Something already stands there');
+    expect(stackReason(free.lv, free.s, 0, 1)).toBe('Something already stands there');
+  });
+  it('names the blocker the way the plate was pushed, not the other way', () => {
+    const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }, { kind: 'penguin', cell: 1 + 12 }, { kind: 'village', cell: 0 + 12 }]);
+    expect(stackReason(lv, s, 0, 1)).toBe('The oasis is in the way of the goat');
+    expect(stackReason(lv, s, 0, 3)).toBe('The village is in the way of the penguin');
   });
 });
 

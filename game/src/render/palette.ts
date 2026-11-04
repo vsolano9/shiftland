@@ -6,6 +6,7 @@ export type BiomeName = 'meadow' | 'coast' | 'desert' | 'tundra' | 'finale';
 
 /** World height of a cell's top surface for a rules height. */
 export const topY = (h: number) => 0.42 + h * 0.5;
+export const CAM_AZ = 0.72, CAM_EL = 0.82; // camera azimuth and elevation, radians
 
 export interface PlateLook { band: string; hue: string; pattern: number; name: string }
 export const PLATES: PlateLook[] = [

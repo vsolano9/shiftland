@@ -181,7 +181,7 @@ class App {
         <div class="set-row"><label for="s-reduced">Reduced motion</label><input type="checkbox" id="s-reduced"></div>
         <div class="set-row"><label for="s-assist">Show who a drag pleases</label><input type="checkbox" id="s-assist"></div>
         <div class="set-foot"><button class="btn" id="s-reset">Reset progress</button><button class="btn" id="s-full">Fullscreen</button><button class="btn primary" id="s-close">Close</button></div>
-        <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next. Tap a creature to ask what it wants; tap the name card for the island's note.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
+        <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next. Click or tap a creature to ask what it wants, and the name card for the island's note.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
       </div></div>`;
     const click = (id: string, fn: () => void) => $(id).addEventListener('click', () => { this.audio.unlock(); this.audio.play('ui'); fn(); });
     click('btn-play', () => this.toMap(true));
@@ -291,7 +291,8 @@ class App {
         el.className = `pin${unlocked ? '' : ' locked'}${unlocked && !solved && i === next ? ' next' : ''}`;
         el.innerHTML = unlocked ? `${i + 1}${solved ? icon.flag : ''}${rec?.stars ? icon.star.replace('<svg', '<svg class="st"') : ''}` : icon.lock;
         el.setAttribute('aria-label', `Island ${i + 1}, ${this.levels[i].name}${unlocked ? '' : ', locked'}`);
-        el.title = unlocked ? this.levels[i].name! : 'Locked';
+        // on hover (style.css): names are half the charm, and the numbers say which stars are still out there
+        el.dataset.name = !unlocked ? 'Locked' : rec?.solved ? `${this.levels[i].name} · best ${rec.best} / par ${this.levels[i].par}` : this.levels[i].name!;
       }
       v.setDim(unlocked ? 0 : 1);
       if (v !== this.world.active) {
@@ -367,7 +368,7 @@ class App {
       if (this.view !== v) return;
       this.showBlurb(11); // long enough to read it twice: it is the level's one clue (playtest 3 P6)
       // once, on the first island without a guiding hand: nothing on screen says creatures can be asked
-      if (this.controller.index === 2) window.setTimeout(() => { if (this.view === v && this.screen === 'level' && !this.controller.session.solved && $('hint').classList.contains('off')) this.flashHint('Not sure what someone wants? Tap them and ask', 5); }, 12000);
+      if (this.controller.index === 2) window.setTimeout(() => { if (this.view === v && this.screen === 'level' && !this.controller.session.solved && $('hint').classList.contains('off')) this.flashHint(`Not sure what someone wants? ${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} them and ask`, 5); }, 12000);
     });
     if (fly) this.audio.play('whoosh');
   }
@@ -540,7 +541,7 @@ class App {
       case 'blocked': {
         this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
         const say = { rail: 'End of the rail', stack: '', melt: 'That would melt the ice under them', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
-        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, this.controller.session.state, e.plate), 2.5);
+        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, e.at, e.plate, e.dir), 2.5);
         else if (e.why) this.flashHint(say[e.why]);
         break;
       }

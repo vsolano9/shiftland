@@ -110,6 +110,10 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .pin { position: absolute; left: 0; top: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--cream); box-shadow: 0 2px 0 rgba(120, 85, 40, .3), 0 4px 10px rgba(4, 45, 70, .25); display: grid; place-items: center; font-weight: 700; font-size: 17px; cursor: pointer; transition: background .15s, box-shadow .15s; will-change: transform; }
 .pin::after { content: ''; position: absolute; inset: -9px; border-radius: 50%; } /* a finger-sized target around a small pin */
 .pin:hover { background: #fff; box-shadow: 0 0 0 5px rgba(255, 255, 255, .5), var(--sh); }
+@media (hover: hover) {
+  .pin:hover { z-index: 5; }
+  .pin:hover::before { content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%); width: max-content; padding: 5px 12px; border-radius: 12px; background: var(--ink); color: var(--cream); font-size: 15px; font-weight: 600; box-shadow: var(--sh); pointer-events: none; }
+}
 .pin.locked { background: #d6d3cc; color: #6f6c66; cursor: not-allowed; }
 .pin.next { background: #ffe58a; animation: pinglow 1.3s ease-in-out infinite; }
 @keyframes pinglow { 50% { box-shadow: 0 0 0 9px rgba(255, 215, 80, .55), var(--sh); } }

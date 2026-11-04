@@ -8,7 +8,7 @@ import { beamRun } from '../game/reasons.ts';
 import { Creature, MAT, HEAD_Y, KIND_SCALE, type CreatureKind } from './creatures.ts';
 import * as M from './models.ts';
 import type { LandRect, WaterRect } from './ocean.ts';
-import { BIOMES, plateBand, plateTint, topY, type BiomeName } from './palette.ts';
+import { BIOMES, CAM_AZ, CAM_EL, plateBand, plateTint, topY, type BiomeName } from './palette.ts';
 import type { Particles } from './particles.ts';
 import { makeSprite, sprites } from './sprites.ts';
 import { makeColumnMesh, writeAttrs, writeHi, type ColumnAttrs } from './terrain.ts';
@@ -347,7 +347,25 @@ export class IslandView {
         const { dir, run } = beamRun(this.lv, next, cell);
         if (dir) c.aimBeam(dir[0], dir[1], run);
       }
+      c.setXray(this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]) >= .5);
     }
+  }
+  /** How much of a creature standing here the land hides from the fixed camera: sample points walked along the view ray over the columns. */
+  private hiddenShare(s: State, x: number, y: number, z: number, h: number) {
+    const [ax, az] = this.xz(0);
+    const dx = Math.sin(CAM_AZ) * Math.cos(CAM_EL), dy = Math.sin(CAM_EL), dz = Math.cos(CAM_AZ) * Math.cos(CAM_EL);
+    let hidden = 0, all = 0;
+    for (const f of [.15, .5, .9]) for (const side of [-.2, 0, .2]) {
+      all++;
+      const sx = x + side * dz, sz = z - side * dx, sy = y + f * h;
+      for (let t = .3; t < 9; t += .12) {
+        const cx = Math.round(sx + dx * t - ax), cz = Math.round(sz + dz * t - az);
+        if (cx < 0 || cz < 0 || cx >= this.lv.w || cz >= this.lv.h) continue;
+        const i = cx + cz * this.lv.w;
+        if (s.plate[i] >= 0 && sy + dy * t < topY(s.elev[i])) { hidden++; break; }
+      }
+    }
+    return hidden / all;
   }
 
   applyGoals(g: boolean[], animate: boolean, react = true) { this.creatures.forEach(c => c.setMet(g[c.goalIndex], animate, react)); }
@@ -638,7 +656,8 @@ export class IslandView {
     const k = this.marks.find(m => m.plate === p), c = k && this.markCol(k);
     if (!c) return this.plateAnchor(p);
     const off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p] === 1;
-    return [c.x - (ax ? off : 0), c.z - (ax ? 0 : off)];
+    // where it is going, not where it is mid-slide: the rail is refreshed once, at the start of the move
+    return [c.tx - (ax ? off : 0), c.tz - (ax ? 0 : off)];
   }
 
   private writeMatrices() {

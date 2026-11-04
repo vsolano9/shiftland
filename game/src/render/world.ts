@@ -7,14 +7,14 @@ import { heroLevel, heroPushed } from './hero.ts';
 import { IslandView, MOVE_TIME } from './island.ts';
 import * as M from './models.ts';
 import { Mask, MASK_RANGE, Ocean, type LandRect } from './ocean.ts';
-import { BIOMES, DAYLIGHT, type DayLight, MORNING, topY } from './palette.ts';
+import { BIOMES, CAM_AZ, CAM_EL, DAYLIGHT, type DayLight, MORNING, topY } from './palette.ts';
 import { SeaLife } from './sealife.ts';
 import { toUV } from './seaway.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
 import { MAT, Creature, type CreatureKind } from './creatures.ts';
 
-const AZ = 0.72, EL = 0.82; // camera azimuth and elevation, radians
+const AZ = CAM_AZ, EL = CAM_EL;
 const CAM_DIR = new Vector3(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(AZ) * Math.cos(EL));
 
 const smooth = (a: number, b: number, k: number, dt: number) => a + (b - a) * (1 - Math.exp(-k * dt));

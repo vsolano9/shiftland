@@ -31,16 +31,14 @@ const NAME: Record<Kind, string> = { goat: 'goat', village: 'village', light: 'l
 
 /**
  * What a move refused as 'stack' runs into, in words that fit the thing: "Two creatures can't share a cell" read oddly for a
- * palm or a lighthouse (playtest 3 P7). Looks along the plate's rail both ways; `shift` allows one object per cell, so the hit
+ * palm or a lighthouse (playtest 3 P7). Looks the way the plate was pushed; `shift` allows one object per cell, so the hit
  * is a stationary object just ahead of one that rides the plate.
  */
-export function stackReason(lv: Level, s: State, p: number): string {
-  for (const d of (lv.axis[p] === 1 ? [1, 3] : [0, 2]) as Dir[]) {
-    const step = DX[d] + DY[d] * lv.w;
-    for (const a of s.objs) if (s.plate[a.cell] === p) {
-      const hit = s.objs.find(b => b.cell === a.cell + step && s.plate[b.cell] !== p);
-      if (hit) return `The ${NAME[hit.kind]} is in the way of the ${NAME[a.kind]}`;
-    }
+export function stackReason(lv: Level, s: State, p: number, d: Dir): string {
+  const step = DX[d] + DY[d] * lv.w;
+  for (const a of s.objs) if (s.plate[a.cell] === p) {
+    const hit = s.objs.find(b => b.cell === a.cell + step && s.plate[b.cell] !== p);
+    if (hit) return `The ${NAME[hit.kind]} is in the way of the ${NAME[a.kind]}`;
   }
   return 'Something already stands there';
 }
