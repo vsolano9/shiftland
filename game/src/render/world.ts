@@ -87,6 +87,7 @@ export class World {
     this.hero.goalsFn = goalsMet;
     this.heroUp = heroPushed(this.hero.lv);
     this.hero.alsoFrame = this.heroUp;
+    this.hero.showMarks = false; // never played, so it needs no handles
     this.hero.reconcile(this.heroUp, false);
     this.hero.applyGoals(goalsMet(this.hero.lv, this.heroUp), false);
     this.hero.group.visible = false;
