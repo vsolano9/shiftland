@@ -730,6 +730,9 @@ export class World {
     if (fps >= 18 && ++s.low < 2) return;
     s.low = 0;
     this.quality++;
+    // a pixel ratio cap the screen already meets buys nothing: go straight to the step that does
+    if (this.quality === 1 && devicePixelRatio <= 1.5) this.quality = 2;
+    if (this.quality === 2 && devicePixelRatio <= 1) this.quality = 3;
     if (this.quality === 1) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     if (this.quality === 2) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
     if (this.quality === 3) { this.renderer.shadowMap.enabled = false; this.sun.castShadow = false; this.scene.traverse(o => { const m = (o as Mesh).material as MeshLambertMaterial | undefined; if (m) m.needsUpdate = true; }); }
