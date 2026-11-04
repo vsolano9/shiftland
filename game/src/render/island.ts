@@ -135,7 +135,10 @@ export class IslandView {
   /** On the map a lighthouse beam would be a stray fan across the neighbours. */
   setFar(f: boolean) { for (const c of this.creatures) c.far = f; }
 
-  constructor(readonly lv: Level, readonly index: number, readonly ox: number, readonly oz: number, private host: IslandHost) {
+  /** Only the ending's last shift moves an island. Everything that reads ox and oz follows. */
+  moveTo(x: number, z: number) { this.ox = x; this.oz = z; this.group.position.set(x, 0, z); }
+
+  constructor(readonly lv: Level, readonly index: number, public ox: number, public oz: number, private host: IslandHost) {
     this.biome = ((lv as Level & { biome?: BiomeName }).biome ?? 'meadow') as BiomeName;
     this.group.position.set(ox, 0, oz);
     const cap = lv.w * lv.h * 3;

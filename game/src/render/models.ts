@@ -114,14 +114,14 @@ export const fish = merge([
 // PALM OASIS
 const seg = (x: number, y: number, tilt: number, top: number, bottom: number, len: number, c: string): P => ({ g: cyl(top, bottom, len, 6), c, p: [x, y, 0], r: [0, 0, -tilt] });
 // Two segments per frond, so each one arcs out and droops like a palm leaf and not a propeller blade.
-const fronds = (ox: number, oy: number, up: number, cA: string, cB: string) => {
+const fronds = (ox: number, oy: number, up: number, cA: string, cB: string, n = 9, w = 1, bend = 0.72, len = 1) => {
   const out: P[] = [];
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
-    const t1 = up, t2 = up + 0.72, ca = Math.cos(a), sa = Math.sin(a);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
+    const t1 = up, t2 = up + bend, ca = Math.cos(a), sa = Math.sin(a), L = 0.15 * len;
     const d1 = [Math.cos(t1) * ca, -Math.sin(t1), Math.cos(t1) * sa], d2 = [Math.cos(t2) * ca, -Math.sin(t2), Math.cos(t2) * sa];
-    out.push({ g: box(0.15, 0.018, 0.09), c, p: [ox + d1[0] * 0.075, oy + d1[1] * 0.075, d1[2] * 0.075], r: [0, -a, -t1] });
-    out.push({ g: box(0.14, 0.014, 0.06), c, p: [ox + d1[0] * 0.15 + d2[0] * 0.06, oy + d1[1] * 0.15 + d2[1] * 0.06, d1[2] * 0.15 + d2[2] * 0.06], r: [0, -a, -t2] });
+    out.push({ g: box(L, 0.018, 0.09 * w), c, p: [ox + d1[0] * L / 2, oy + d1[1] * L / 2, d1[2] * L / 2], r: [0, -a, -t1] });
+    out.push({ g: box(0.14 * len, 0.014, 0.06 * w), c, p: [ox + d1[0] * L + d2[0] * 0.06 * len, oy + d1[1] * L + d2[1] * 0.06 * len, d1[2] * L + d2[2] * 0.06 * len], r: [0, -a, -t2] });
   }
   return out;
 };
@@ -132,7 +132,8 @@ export const palm = merge([
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
   seg(0.02, 0.06, 0.35, 0.036, 0.052, 0.13, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.03, 0.037, 0.13, '#7d5431'), seg(0.214, 0.198, 1.6, 0.027, 0.031, 0.13, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.022, 0.028, 0.1, '#7d5431'),
-  ...fronds(0.355, 0.135, 0.55, '#7f9a3f', '#94a64a'),
+  // limp, straw-coloured leaves splayed on the sand: thin enough that it reads as a dead palm, not a green umbrella
+  ...fronds(0.36, 0.15, 0.1, '#a7a044', '#8f8f3c', 7, 0.5, 0.95, 1.2),
 ]);
 
 // PENGUIN
@@ -200,7 +201,19 @@ export const axisMark = (() => {
   s.lineTo(L - N, -H); s.lineTo(L - N, -W); s.lineTo(-L + N, -W); s.lineTo(-L + N, -H); s.closePath();
   return new ExtrudeGeometry(s, { depth: .004, bevelEnabled: false }).rotateX(-Math.PI / 2);
 })();
-export const gull = merge([
-  { g: box(0.34, 0.012, 0.075), c: '#ffffff', p: [-0.16, 0.02, 0], r: [0, 0, 0.32] }, { g: box(0.34, 0.012, 0.075), c: '#ffffff', p: [0.16, 0.02, 0], r: [0, 0, -0.32] },
-  { g: box(0.05, 0.05, 0.2), c: '#f2f4f6', p: [0, 0, 0] },
+// GULL: a spindle body, and wings hinged at the shoulder so they flap (world.ts). Faces +z.
+export const gullBody = merge([
+  { g: sph(0.045, 7, 5), c: '#ffffff', s: [0.85, 0.8, 2.3] },
+  { g: sph(0.03, 6, 4), c: '#ffffff', p: [0, 0.018, 0.1] },
+  { g: cone(0.012, 0.045, 4), c: '#f0a02c', p: [0, 0.014, 0.145], r: [Math.PI / 2, 0, 0] },
+  { g: box(0.05, 0.01, 0.07), c: '#dfe5ea', p: [0, 0, -0.125] },
 ]);
+const wing = (() => {
+  const inner = new Shape(), tip = new Shape();
+  inner.moveTo(0, -0.05); inner.lineTo(0.17, -0.045); inner.lineTo(0.17, 0.055); inner.lineTo(0, 0.05); inner.closePath();
+  tip.moveTo(0.17, -0.045); tip.lineTo(0.36, -0.012); tip.lineTo(0.17, 0.055); tip.closePath();
+  const flat = (s: Shape) => new ExtrudeGeometry(s, { depth: 0.008, bevelEnabled: false }).rotateX(-Math.PI / 2);
+  return merge([{ g: flat(inner), c: '#fbfdff' }, { g: flat(tip), c: '#5f6b76' }]);
+})();
+export const gullWingR = wing;
+export const gullWingL = wing.clone().applyMatrix4(new Matrix4().makeRotationY(Math.PI));

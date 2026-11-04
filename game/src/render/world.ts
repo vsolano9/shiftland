@@ -1,12 +1,13 @@
 // The whole game world: one continuous ocean with an island per level. The camera flies between islands: the level
 // select is simply the camera pulled back over the real archipelago, and each island shows its real level.
-import { AmbientLight, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+import { AmbientLight, BoxGeometry, BufferAttribute, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import { goalsMet, type Level } from '../rules/rules.ts';
+import { fillGaps, packContinent } from './continent.ts';
 import { heroLevel } from './hero.ts';
 import { IslandView } from './island.ts';
 import * as M from './models.ts';
-import { Mask, Ocean } from './ocean.ts';
-import { BIOMES } from './palette.ts';
+import { Mask, Ocean, type LandRect } from './ocean.ts';
+import { BIOMES, topY } from './palette.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
 import { MAT, Creature, type CreatureKind } from './creatures.ts';
@@ -37,7 +38,7 @@ export class World {
   private drift = 0;
   private map = true;
   private clouds: { o: Mesh; v: number }[] = [];
-  private gulls: { g: Group; a: number; r: number; c: Vector3; s: number }[] = [];
+  private gulls: { g: Group; a: number; r: number; c: Vector3; s: number; flap: number }[] = [];
   private frameHook: ((dt: number, t: number) => void) | null = null;
   private timers: { at: number; fn: () => void }[] = [];
   private aabb = { x0: 0, x1: 0, z0: 0, z1: 0 };
@@ -97,8 +98,9 @@ export class World {
       this.scene.add(o); this.clouds.push({ o, v: .25 + Math.random() * .3 });
     }
     for (let i = 0; i < 6; i++) {
-      const g = new Group(); const l = new Mesh(M.gull, MAT); g.add(l);
-      this.scene.add(g); this.gulls.push({ g, a: Math.random() * 6.28, r: 3 + Math.random() * 5, c: new Vector3(x0 + Math.random() * sw, 3 + Math.random() * 2.5, z0 + Math.random() * sh), s: .25 + Math.random() * .2 });
+      const g = new Group(); g.scale.setScalar(.8);
+      g.add(new Mesh(M.gullBody, MAT), new Mesh(M.gullWingR, MAT), new Mesh(M.gullWingL, MAT));
+      this.scene.add(g); this.gulls.push({ g, a: Math.random() * 6.28, r: 3 + Math.random() * 5, c: new Vector3(x0 + Math.random() * sw, 3 + Math.random() * 2.5, z0 + Math.random() * sh), s: .25 + Math.random() * .2, flap: 0 });
     }
     this.buildPath(positions);
     this.resize();
@@ -261,6 +263,129 @@ export class World {
     this.flyTo(this.focusOf(v), this.fitDistance(v) * 1.15, dur, done);
   }
   private peekAt: Vector3 | null = null;
+
+  // ---- the last shift: the ending slides every island into one continent, and back
+  private homes: [number, number][] | null = null;
+  private drive: { from: [number, number][]; to: [number, number][]; t: number; delay: number[]; each: number; landed: boolean[]; onLand?: (i: number) => void; done?: () => void } | null = null;
+  get merged() { return !!this.homes; }
+  get shifting() { return !!this.drive || this.rising; }
+  private driveTo(to: [number, number][], delay: number[], each: number, onLand?: (i: number) => void, done?: () => void) {
+    const from = this.views.map(v => [v.ox, v.oz] as [number, number]);
+    // the frozen high-res mask of the last island played would hide the islands sailing through it
+    this.activeMask.moveTo(-1000, -1000); this.ocean.syncBounds();
+    if (this.reducedMotion) { this.views.forEach((v, i) => { v.moveTo(to[i][0], to[i][1]); onLand?.(i); }); this.writeStatic(); done?.(); return; }
+    this.drive = { from, to, t: 0, delay, each, landed: to.map(() => false), onLand, done };
+  }
+  /** The camera for a given placing of the islands, without moving them. */
+  private mapFrameFor(to: [number, number][], bottom: number) {
+    const was = this.views.map(v => [v.ox, v.oz] as const), oldBottom = this.mapBottom;
+    this.views.forEach((v, i) => v.moveTo(to[i][0], to[i][1]));
+    this.mapBottom = bottom;
+    const f = this.mapFrame();
+    this.views.forEach((v, i) => v.moveTo(was[i][0], was[i][1]));
+    this.mapBottom = oldBottom;
+    return f;
+  }
+  /** Slide every island home into one land; farthest first, so the middle is still open water as they come in. */
+  lastShift(onLand: (i: number) => void, done: () => void) {
+    if (this.homes || this.drive) return;
+    this.setActive(null);
+    const homes = this.homes = this.views.map(v => [v.ox, v.oz] as [number, number]);
+    const to = packContinent(this.views.map((v, i) => ({ x: homes[i][0], z: homes[i][1], cells: v.landRects().map(r => [(r.x0 + r.x1) / 2 - v.ox, (r.z0 + r.z1) / 2 - v.oz] as [number, number]) })));
+    const far = this.views.map((_, i) => Math.hypot(homes[i][0] - to[i][0], homes[i][1] - to[i][1])), most = Math.max(1, ...far);
+    const delay = far.map(d => (1 - d / most) * 2.6);
+    const f = this.mapFrameFor(to, .3);
+    this.map = true; this.peekAt = null; this.mapBottom = .3;
+    this.setShadowSpan(70);
+    this.flyTo(f.focus, f.dist, 5.2);
+    if (this.fly) this.fly.arc = 0;
+    this.rising = true;
+    this.driveTo(to, delay, 3, onLand, () => {
+      this.buildFill();
+      this.fillGoal = 1;
+      if (this.reducedMotion) { this.fillK = 1; this.placeFill(); this.rising = false; done(); return; }
+      this.after(1.3, () => { this.rising = false; done(); });
+    });
+  }
+  // the land that rises in the straits once the islands have locked together
+  private rising = false;
+  private fill: Group | null = null;
+  private fillRects: LandRect[] = [];
+  private fillShown = false;
+  private fillK = 0; private fillGoal = 0;
+  private buildFill() {
+    if (this.fill) { this.scene.remove(this.fill); this.fill.traverse(o => { if (o instanceof InstancedMesh) o.dispose(); }); this.fill = null; }
+    const land: { x: number; z: number; g: string }[] = [], clear: [number, number][] = [];
+    for (const v of this.views) {
+      for (const r of v.landRects()) land.push({ x: Math.round((r.x0 + r.x1) / 2), z: Math.round((r.z0 + r.z1) / 2), g: BIOMES[v.biome].ground });
+      const keep = (x: number, z: number) => { for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) clear.push([Math.round(v.ox + x) + a, Math.round(v.oz + z) + b]); };
+      for (const r of v.waterRects([], true)) if (r.lake) keep((r.x0 + r.x1) / 2 - v.ox, (r.z0 + r.z1) / 2 - v.oz);
+      for (const c of v.lv.buoys) { const [x, z] = v.xz(c); keep(x, z); }
+      for (const o of v.state.objs) if (o.kind === 'light' || o.kind === 'penguin') { const [x, z] = v.xz(o.cell); keep(x, z); }
+    }
+    const gaps = fillGaps(land.map(l => [l.x, l.z]), clear);
+    this.fillRects = gaps.map(([x, z]) => ({ x0: x - .5, z0: z - .5, x1: x + .5, z1: z + .5 }));
+    const g = this.fill = new Group();
+    if (gaps.length) {
+      // a grassy top on an earth side; each cell takes the ground of the nearest island, so the biomes melt into each other
+      const box = new BoxGeometry(1, 1.4, 1), n = box.getAttribute('normal'), col = new Float32Array(n.count * 3), top = new Color('#ffffff'), side = new Color('#9a7448');
+      for (let i = 0; i < n.count; i++) (n.getY(i) > .5 ? top : side).toArray(col, i * 3);
+      box.setAttribute('color', new BufferAttribute(col, 3));
+      const ground = new InstancedMesh(box, new MeshLambertMaterial({ vertexColors: true }), gaps.length);
+      ground.castShadow = ground.receiveShadow = true; ground.frustumCulled = false;
+      const m = new Matrix4(), c = new Color(), decor: Matrix4[] = [];
+      gaps.forEach(([x, z], i) => {
+        let best = land[0], bd = Infinity;
+        for (const l of land) { const d = Math.abs(l.x - x) + Math.abs(l.z - z); if (d < bd) { bd = d; best = l; } }
+        const h = ((x * 73856093) ^ (z * 19349663)) >>> 0;
+        ground.setMatrixAt(i, m.makeTranslation(x, topY(0) - .7, z));
+        ground.setColorAt(i, c.set(best.g).multiplyScalar(.94 + (h % 10) * .012));
+        if (h % 7 === 0) decor.push(new Matrix4().makeScale(1.5, 1.5, 1.5).setPosition(x + (h % 5 - 2) * .1, topY(0), z + (h % 3 - 1) * .15));
+      });
+      g.add(ground);
+      if (decor.length) {
+        const trees = new InstancedMesh(M.tree, MAT, decor.length);
+        decor.forEach((d, i) => trees.setMatrixAt(i, d));
+        trees.castShadow = true; trees.frustumCulled = false;
+        g.add(trees);
+      }
+    }
+    this.scene.add(g);
+    this.fillK = 0; this.placeFill();
+  }
+  private placeFill() {
+    if (!this.fill) return;
+    const e = this.fillK * this.fillK * (3 - 2 * this.fillK);
+    this.fill.position.y = (e - 1) * 1.1;
+    this.fill.visible = this.fillK > .001;
+    // the coast moves out when the new land breaks the surface
+    const shown = this.fillK > .4;
+    if (shown !== this.fillShown) { this.fillShown = shown; this.writeStatic(); }
+  }
+  /** Back to the archipelago the map and the levels know. */
+  undoLastShift(done: () => void) {
+    if (this.drive) return;
+    const homes = this.homes; if (!homes) { done(); return; }
+    this.homes = null;
+    this.fillGoal = 0;
+    if (this.reducedMotion) { this.fillK = 0; this.placeFill(); }
+    const d = this.views.map((_, i) => .5 + i / this.views.length * .5);
+    this.driveTo(homes, d, 1.6, undefined, done);
+  }
+  private driveFrame(raw: number) {
+    const d = this.drive; if (!d) return;
+    d.t += Math.min(raw, .1);
+    let open = false;
+    this.views.forEach((v, i) => {
+      const u = Math.min(1, Math.max(0, (d.t - d.delay[i]) / d.each));
+      if (u < 1) open = true;
+      const e = u * u * u * (u * (6 * u - 15) + 10);
+      v.moveTo(d.from[i][0] + (d.to[i][0] - d.from[i][0]) * e, d.from[i][1] + (d.to[i][1] - d.from[i][1]) * e);
+      if (u >= 1 && !d.landed[i]) { d.landed[i] = true; d.onLand?.(i); }
+    });
+    this.writeStatic();
+    if (!open) { this.drive = null; d.done?.(); }
+  }
   zoomBump(k: number, dur: number) { this.pull = k; this.pullDur = dur; this.pullT = 0; }
   private pull = 0; private pullDur = 1; private pullT = 0;
 
@@ -283,7 +408,8 @@ export class World {
   private writeActive(v: IslandView) { this.activeMask.write(v.landRects(), v.waterRects()); }
   writeStatic() {
     // the static mask is written once and stays: a flood still under way must not freeze here as dry ground
-    const land = this.views.flatMap(v => v.landRects()), water = this.views.flatMap(v => v.waterRects([], true));
+    const land = this.views.flatMap(v => v.landRects()); if (this.fillShown) land.push(...this.fillRects);
+    const water =this.views.flatMap(v => v.waterRects([], true));
     this.staticMask.write(land, water);
     this.ocean.syncBounds();
   }
@@ -364,6 +490,8 @@ export class World {
     const t = (this.time.value += dt);
     for (let i = this.timers.length - 1; i >= 0; i--) if (this.timers[i].at <= t) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     this.frameHook?.(dt, t);
+    this.driveFrame(raw);
+    if (this.fillK !== this.fillGoal) { this.fillK = this.fillGoal > this.fillK ? Math.min(1, this.fillK + raw / 1.2) : Math.max(0, this.fillK - raw / .5); this.placeFill(); }
     for (const v of this.views) { v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
     if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
@@ -375,7 +503,11 @@ export class World {
     for (const c of this.clouds) { c.o.position.x += c.v * dt; if (c.o.position.x > this.aabb.x1 + 8) c.o.position.x = this.aabb.x0 - 8; c.o.visible = cm.opacity > .01; }
     for (const g of this.gulls) {
       g.a += g.s * dt; g.g.position.set(g.c.x + Math.cos(g.a) * g.r, g.c.y + Math.sin(g.a * 2.3) * .3, g.c.z + Math.sin(g.a) * g.r);
-      g.g.rotation.y = -g.a; g.g.children[0].rotation.z = Math.sin(t * 6 + g.a) * .22;
+      g.g.rotation.y = -g.a;
+      // a few beats, then a long glide
+      const beat = Math.sin(t * 1.1 + g.a * 5) > .35 ? Math.sin(t * 9 + g.a) * .42 : .1;
+      g.flap += (beat - g.flap) * Math.min(1, raw * 8);
+      g.g.children[1].rotation.z = g.flap; g.g.children[2].rotation.z = -g.flap;
     }
     // camera
     let focus = this.focus, dist = this.dist;
@@ -406,7 +538,7 @@ export class World {
       const [x, y] = this.project(p.pos);
       p.el.style.display = ''; p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     }
-    if (this.path) this.path.visible = this.map;
+    if (this.path) this.path.visible = this.map && !this.homes && !this.drive;
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }

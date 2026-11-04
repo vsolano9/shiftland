@@ -161,7 +161,7 @@ class App {
       </div>
       <div id="done" class="screen hidden"><div class="panel"><h2 id="d-title"></h2><div id="d-star"></div><div class="score" id="d-score"></div><div class="sub" id="d-sub"></div>
         <div class="row"><button class="btn" id="d-replay">Replay</button><button class="btn" id="d-map">Map</button><button class="btn primary" id="d-next">Next</button></div></div></div>
-      <div id="ending" class="screen hidden"><div class="panel"><h2>Every creature is happy.</h2><p id="e-sub"></p><div class="row" style="display:flex;gap:10px;justify-content:center"><button class="btn primary" id="e-map">Back to the islands</button></div><div id="e-thanks">Thanks for playing Shiftland. Made for GitHub Game Off 2026, theme: Shift.</div></div></div>
+      <div id="ending" class="screen hidden"><div class="panel"><h2 id="e-title">Every creature is happy.</h2><p id="e-sub"></p><div class="row" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn" id="e-map">Back to the islands</button><button class="btn primary" id="e-shift">One last shift</button></div><div id="e-thanks">Thanks for playing Shiftland. Made for GitHub Game Off 2026, theme: Shift.</div></div></div>
       <div id="settings" class="screen hidden"><div class="panel"><h2>Settings</h2>
         <div class="set-row"><label for="s-music">Music</label><input type="range" id="s-music" min="0" max="1" step=".01"></div>
         <div class="set-row"><label for="s-sfx">Sounds</label><input type="range" id="s-sfx" min="0" max="1" step=".01"></div>
@@ -183,7 +183,8 @@ class App {
     click('d-replay', () => this.controller.act({ kind: 'restart' }));
     click('d-map', () => this.toMap());
     click('d-next', () => this.next());
-    click('e-map', () => this.toMap());
+    click('e-map', () => this.leaveEnding());
+    click('e-shift', () => this.lastShift());
     click('s-close', () => $('settings').classList.add('hidden'));
     click('s-full', () => { const d = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void }; const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void }; if (document.fullscreenElement || d.webkitFullscreenElement) (document.exitFullscreen ?? d.webkitExitFullscreen)?.call(document); else (el.requestFullscreen ?? el.webkitRequestFullscreen)?.call(el); });
     let confirmReset = false;
@@ -600,6 +601,8 @@ class App {
     try { browserStorage()?.setItem(ENDING_KEY, String(stars)); } catch { /* memory only */ }
     this.show('ending');
     $('ending').classList.add('touring');
+    $('e-title').textContent = 'Every creature is happy.';
+    $('e-shift').classList.add('hidden-el');
     this.world.setActive(null);
     this.refreshIslands();
     this.world.writeStatic();
@@ -632,6 +635,39 @@ class App {
     $('ending').classList.remove('touring');
     $('card').classList.remove('show');
     this.world.showMap(1.8, .3);
+    $('e-shift').classList.remove('hidden-el');
+    $('e-map').classList.remove('primary');
+  }
+  /** One last shift, and it is the player's: every island slides in and locks into one continent. */
+  private lastShift() {
+    if (this.world.merged) return;
+    $('ending').classList.add('shifting');
+    this.audio.play('uplift'); this.audio.play('whoosh');
+    let landed = 0;
+    this.world.lastShift(i => {
+      const v = this.world.views[i];
+      this.world.fx.dust(v.ox, .2, v.oz, 3);
+      this.world.shakeCam(.5);
+      // every island's arrival is a soft thud; a whole continent of cracks would be noise
+      if (landed++ % 3 === 0) this.audio.play('crack');
+    }, () => {
+      this.world.shakeCam(1.2);
+      this.audio.play('complete');
+      this.world.views.forEach(v => this.world.fx.confetti(v.ox, 0, v.oz, 16, 4));
+      $('e-title').textContent = 'One land.';
+      $('e-sub').textContent = 'No more shifting. Everyone is home.';
+      $('e-shift').classList.add('hidden-el');
+      $('e-map').classList.add('primary');
+      $('ending').classList.remove('shifting');
+    });
+  }
+  /** Leaving the ending: a continent breaks up again, because the map and its levels live on the archipelago. */
+  private leaveEnding() {
+    if (this.world.shifting) return;
+    if (!this.world.merged) { this.toMap(); return; }
+    $('ending').classList.add('shifting');
+    this.audio.play('whoosh');
+    this.world.undoLastShift(() => { $('ending').classList.remove('shifting'); this.toMap(); });
   }
   private endingFire = 0;
 
@@ -754,7 +790,7 @@ class App {
       return;
     }
     if (this.touring() && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { this.endTour(); return; }
-    if (this.screen === 'ending' && e.key === 'Enter') { this.toMap(); return; }
+    if (this.screen === 'ending' && e.key === 'Enter') { if (this.world.merged) this.leaveEnding(); else this.lastShift(); return; }
     if (this.screen !== 'level' || this.busyUntil !== 0) return;
     if (e.key === 'm' || e.key === 'M') { this.toMap(); return; }
     if (e.key === 'h' || e.key === 'H') { this.showHint(); return; }

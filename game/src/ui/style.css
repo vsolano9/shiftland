@@ -12,7 +12,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0e7fae; ove
 #ui { position: fixed; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; }
 #ui button, #ui input, #ui .pin, #ui .chip, #ui #hud-tl { pointer-events: auto; }
 #ui .chip, #ui #hud-tl { cursor: pointer; }
-#ending.touring .panel { display: none; }
+#ending.touring .panel, #ending.shifting .panel { display: none; }
 #e-thanks { margin-top: 12px; font-size: 14px; color: var(--ink2); }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
 .screen { position: absolute; inset: 0; transition: opacity .28s ease; }
