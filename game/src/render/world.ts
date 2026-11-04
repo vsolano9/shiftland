@@ -6,7 +6,7 @@ import { fillGaps, packContinent } from './continent.ts';
 import { heroLevel } from './hero.ts';
 import { IslandView } from './island.ts';
 import * as M from './models.ts';
-import { Mask, Ocean, type LandRect } from './ocean.ts';
+import { Mask, MASK_RANGE, Ocean, type LandRect } from './ocean.ts';
 import { BIOMES, topY } from './palette.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
@@ -150,19 +150,23 @@ export class World {
   private fit(v: IslandView) {
     const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(), up = new Vector3().crossVectors(CAM_DIR, right).normalize();
     const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
-    const usableV = 1 - this.hudPad.top - this.hudPad.bottom, usableH = 1 - this.hudPad.left - this.hudPad.right;
+    const P = this.hudPad, M = .015, xHi = 1 - 2 * (P.right + M), xLo = -1 + 2 * (P.left + M), yHi = 1 - 2 * (P.top + M), yLo = -1 + 2 * (P.bottom + M);
     const pts = v.framePoints(this.padKind === 'solved');
-    let u0 = 1e9, u1 = -1e9, w0 = 1e9, w1 = -1e9;
-    for (const p of pts) { const u = p.dot(right), w = p.dot(up); u0 = Math.min(u0, u); u1 = Math.max(u1, u); w0 = Math.min(w0, w); w1 = Math.max(w1, w); }
-    const cu = (u0 + u1) / 2, cw = (w0 + w1) / 2;
-    let dist = 7;
-    for (const p of pts) {
-      const z = p.dot(CAM_DIR) - cu * right.dot(CAM_DIR) - cw * up.dot(CAM_DIR);
-      dist = Math.max(dist, Math.abs(p.dot(right) - cu) / (tanH * .97 * usableH) + z, Math.abs(p.dot(up) - cw) / (tanV * .97 * usableV) + z);
+    const focus = new Vector3(); let dist = 20;
+    // near points project larger than far ones, so a symmetric guess leaves the board low with room above it.
+    // A few rounds of projecting and correcting settle it, as in mapFrame.
+    for (let k = 0; k < 8; k++) {
+      let xa = 1e9, xb = -1e9, ya = 1e9, yb = -1e9;
+      for (const q of pts) {
+        const d = q.clone().sub(focus), depth = dist - d.dot(CAM_DIR);
+        const nx = d.dot(right) / (depth * tanH), ny = d.dot(up) / (depth * tanV);
+        xa = Math.min(xa, nx); xb = Math.max(xb, nx); ya = Math.min(ya, ny); yb = Math.max(yb, ny);
+      }
+      dist = Math.max(7, dist * Math.max((xb - xa) / (xHi - xLo), (yb - ya) / (yHi - yLo)));
+      focus.addScaledVector(right, ((xa + xb) - (xHi + xLo)) / 2 * tanH * dist).addScaledVector(up, ((ya + yb) - (yHi + yLo)) / 2 * tanV * dist);
+      focus.addScaledVector(CAM_DIR, -focus.y / CAM_DIR.y); // on the ground plane along the view direction
     }
-    // shift the look-at so the island sits in the part of the screen the UI leaves free
-    const focus = new Vector3(v.ox, 0, v.oz).addScaledVector(right, cu + (this.hudPad.right - this.hudPad.left) * tanH * dist).addScaledVector(up, cw - (this.hudPad.bottom - this.hudPad.top) * tanV * dist);
-    return { dist, focus };
+    return { dist, focus: focus.add(new Vector3(v.ox, 0, v.oz)) };
   }
   /** The screen fractions the UI takes in each framing. Short landscape screens move the UI to the sides. */
   private pads(kind: PadKind): Pad {
@@ -193,7 +197,9 @@ export class World {
     }
     const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
     // screen limits in NDC: room for the title bar on top, a pin's half size all round, and whatever fills the bottom
-    const yHi = 1 - 2 * (66 + 26) / innerHeight, yLo = -1 + 2 * (this.mapBottom + 28 / innerHeight), xHi = 1 - 2 * 30 / innerWidth;
+    // (the ending's panel: a short landscape screen has no bottom to give, so the panel stands at the right)
+    const short = innerHeight <= 560 && innerWidth > innerHeight, side = short && this.mapBottom > 0 ? .46 : 0;
+    const yHi = 1 - 2 * ((side ? 12 : 66) + 26) / innerHeight, yLo = -1 + 2 * ((side ? 0 : this.mapBottom) + 28 / innerHeight), xHi = 1 - 2 * 30 / innerWidth - 2 * side, xLo = -1 + 2 * 30 / innerWidth;
     const focus = new Vector3(); for (const v of this.views) focus.add(new Vector3(v.ox, 0, v.oz)); focus.divideScalar(this.views.length);
     let dist = 60;
     // perspective makes the fit depend on itself; a few rounds of projecting and correcting settle it
@@ -204,8 +210,8 @@ export class World {
         const nx = d.dot(right) / (depth * tanH), ny = d.dot(up) / (depth * tanV);
         xa = Math.min(xa, nx); xb = Math.max(xb, nx); ya = Math.min(ya, ny); yb = Math.max(yb, ny);
       }
-      dist *= Math.max((xb - xa) / (2 * xHi), (yb - ya) / (yHi - yLo));
-      focus.addScaledVector(right, (xa + xb) / 2 * tanH * dist).addScaledVector(up, ((ya + yb) - (yHi + yLo)) / 2 * tanV * dist);
+      dist *= Math.max((xb - xa) / (xHi - xLo), (yb - ya) / (yHi - yLo));
+      focus.addScaledVector(right, ((xa + xb) - (xHi + xLo)) / 2 * tanH * dist).addScaledVector(up, ((ya + yb) - (yHi + yLo)) / 2 * tanV * dist);
       focus.addScaledVector(CAM_DIR, -focus.y / CAM_DIR.y); // keep it on the ground plane along the view direction
     }
     return { focus, dist: Math.max(20, dist) };
@@ -397,6 +403,8 @@ export class World {
       const span = v.span + 7;
       const am = this.activeMask; am.size = [span, span]; am.moveTo(v.ox - span / 2, v.oz - span / 2);
       this.ocean.syncBounds();
+      const ax = v.ox - span / 2 - MASK_RANGE, az = v.oz - span / 2 - MASK_RANGE, bx = v.ox + span / 2 + MASK_RANGE, bz = v.oz + span / 2 + MASK_RANGE;
+      this.neighbourLand = this.views.filter(o => o !== v).flatMap(o => o.landRects()).filter(r => r.x1 > ax && r.x0 < bx && r.z1 > az && r.z0 < bz);
       this.writeActive(v);
       const look = BIOMES[v.biome];
       this.seaTarget = look.sea;
@@ -405,7 +413,9 @@ export class World {
   }
   seaTarget: [string, string] | null = null;
 
-  private writeActive(v: IslandView) { this.activeMask.write(v.landRects(), v.waterRects()); }
+  /** A neighbour reaching into the active mask must be in it too, or its shore stops dead at the mask's straight edge. */
+  private neighbourLand: LandRect[] = [];
+  private writeActive(v: IslandView) { this.activeMask.write(this.neighbourLand.length ? v.landRects([...this.neighbourLand]) : v.landRects(), v.waterRects()); }
   writeStatic() {
     // the static mask is written once and stays: a flood still under way must not freeze here as dry ground
     const land = this.views.flatMap(v => v.landRects()); if (this.fillShown) land.push(...this.fillRects);

@@ -596,7 +596,9 @@ export class IslandView {
       mat4.makeTranslation(x, y, z);
       this.mesh.setMatrixAt(c.idx, mat4);
       for (const m of c.decor) {
-        const showing = c.level < 2 && !c.removing && !this.occupied(c) && this.dim < .5 && (!m.userData.bloom || this.bloomed);
+        // nothing grows on the cell that carries a plate's slider while it shows
+        const onMark = this.showMarks && this.marks.some(k => k.plate === c.plate && k.patX === c.patX && k.patZ === c.patZ);
+        const showing = !onMark && c.level < 2 && !c.removing && !this.occupied(c) && this.dim < .5 && (!m.userData.bloom || this.bloomed);
         const s = (m.userData.k ?? 1) + ((showing ? 1 : 0) - (m.userData.k ?? 1)) * (m.userData.bloom ? .09 : .25);
         m.userData.k = s; m.visible = s > .02;
         m.position.set(x + m.userData.dx, y, z + m.userData.dz);

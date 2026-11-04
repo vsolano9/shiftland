@@ -131,9 +131,9 @@ export const palm = merge([
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
-  seg(0.02, 0.06, 0.35, 0.036, 0.052, 0.13, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.03, 0.037, 0.13, '#7d5431'), seg(0.214, 0.198, 1.6, 0.027, 0.031, 0.13, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.022, 0.028, 0.1, '#7d5431'),
+  seg(0.02, 0.06, 0.35, 0.05, 0.07, 0.14, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.044, 0.052, 0.14, '#7d5431'), seg(0.214, 0.198, 1.6, 0.038, 0.046, 0.14, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.03, 0.04, 0.11, '#7d5431'),
   // limp, straw-coloured leaves splayed on the sand: thin enough that it reads as a dead palm, not a green umbrella
-  ...fronds(0.36, 0.15, 0.1, '#a7a044', '#8f8f3c', 7, 0.5, 0.95, 1.2),
+  ...fronds(0.36, 0.15, 0.1, '#a7a044', '#8f8f3c', 8, 0.72, 0.95, 1.2),
 ]);
 
 // PENGUIN
