@@ -1,10 +1,10 @@
 // The whole game world: one continuous ocean with an island per level. The camera flies between islands: the level
 // select is simply the camera pulled back over the real archipelago, and each island shows its real level.
 import { AmbientLight, BoxGeometry, BufferAttribute, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
-import { goalsMet, type Level } from '../rules/rules.ts';
+import { goalsMet, type Level, type State } from '../rules/rules.ts';
 import { fillGaps, packContinent } from './continent.ts';
-import { heroLevel } from './hero.ts';
-import { IslandView } from './island.ts';
+import { heroLevel, heroPushed } from './hero.ts';
+import { IslandView, MOVE_TIME } from './island.ts';
 import * as M from './models.ts';
 import { Mask, MASK_RANGE, Ocean, type LandRect } from './ocean.ts';
 import { BIOMES, DAYLIGHT, type DayLight, MORNING, topY } from './palette.ts';
@@ -50,8 +50,10 @@ export class World {
   private path: Mesh | InstancedMesh | null = null;
   pins: { el: HTMLElement; pos: Vector3; hide?: () => boolean }[] = [];
 
+  /** The title loop's sounds; silent until the audio is unlocked by a first touch. */
+  heroSfx?: (s: 'slide' | 'uplift', o: { plate?: number; intensity?: number }) => void;
   constructor(canvas: HTMLCanvasElement, levels: Level[], sfx: WorldSfx, positions: [number, number][]) {
-    const renderer = this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+    const renderer = this.renderer = new WebGLRenderer({ canvas, antialias: true, stencil: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFShadowMap;
     this.camera = new PerspectiveCamera(20, 1, 2, 3000);
@@ -72,7 +74,10 @@ export class World {
     // the title's island sits out at sea off the map's far corner: only the title ever sees it
     this.hero = new IslandView(heroLevel(), -1, x1 + 34, z0 - 34, host);
     this.hero.goalsFn = goalsMet;
-    this.hero.applyGoals(goalsMet(this.hero.lv, this.hero.lv.start), false);
+    this.heroUp = heroPushed(this.hero.lv);
+    this.hero.alsoFrame = this.heroUp;
+    this.hero.reconcile(this.heroUp, false);
+    this.hero.applyGoals(goalsMet(this.hero.lv, this.heroUp), false);
     this.hero.group.visible = false;
     this.scene.add(this.hero.group);
     const pad = 12; x0 -= pad; x1 += pad; z0 -= pad; z1 += pad;
@@ -158,18 +163,35 @@ export class World {
     const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
     const P = this.hudPad, M = .015, xHi = 1 - 2 * (P.right + M), xLo = -1 + 2 * (P.left + M), yHi = 1 - 2 * (P.top + M), yLo = -1 + 2 * (P.bottom + M);
     const pts = v.framePoints(this.padKind === 'solved');
+    // The board as it starts stays clear of the HUD; while playing, what it can become only has to stay on the screen.
+    const soft = this.padKind === 'level' ? v.reachPoints() : [];
+    const X = { hi: xHi, lo: xLo, sHi: 1 - 2 * M, sLo: -1 + 2 * M }, Y = { hi: yHi, lo: yLo, sHi: 1 - 2 * M, sLo: -1 + 2 * M };
     const focus = new Vector3(); let dist = 20;
-    // near points project larger than far ones, so a symmetric guess leaves the board low with room above it.
-    // A few rounds of projecting and correcting settle it, as in mapFrame.
-    for (let k = 0; k < 8; k++) {
+    const box = (list: Vector3[]) => {
       let xa = 1e9, xb = -1e9, ya = 1e9, yb = -1e9;
-      for (const q of pts) {
+      for (const q of list) {
         const d = q.clone().sub(focus), depth = dist - d.dot(CAM_DIR);
         const nx = d.dot(right) / (depth * tanH), ny = d.dot(up) / (depth * tanV);
         xa = Math.min(xa, nx); xb = Math.max(xb, nx); ya = Math.min(ya, ny); yb = Math.max(yb, ny);
       }
-      dist = Math.max(7, dist * Math.max((xb - xa) / (xHi - xLo), (yb - ya) / (yHi - yLo)));
-      focus.addScaledVector(right, ((xa + xb) - (xHi + xLo)) / 2 * tanH * dist).addScaledVector(up, ((ya + yb) - (yHi + yLo)) / 2 * tanV * dist);
+      return { xa, xb, ya, yb };
+    };
+    // how much bigger the view must get so both sets fit their limits at once
+    const need = (a: number, b: number, sa: number, sb: number, L: typeof X) => soft.length
+      ? Math.max((b - a) / (L.hi - L.lo), (sb - sa) / (L.sHi - L.sLo), (sb - a) / (L.sHi - L.lo), (b - sa) / (L.hi - L.sLo))
+      : (b - a) / (L.hi - L.lo);
+    // and the shift that sits them in the middle of what is allowed
+    const mid = (a: number, b: number, sa: number, sb: number, L: typeof X) => soft.length
+      ? (Math.max(L.lo - a, L.sLo - sa) + Math.min(L.hi - b, L.sHi - sb)) / 2
+      : (L.lo - a + L.hi - b) / 2;
+    // near points project larger than far ones, so a symmetric guess leaves the board low with room above it.
+    // A few rounds of projecting and correcting settle it, as in mapFrame.
+    for (let k = 0; k < 10; k++) {
+      const h = box(pts), s = soft.length ? box(soft) : h;
+      const scale = Math.max(need(h.xa, h.xb, s.xa, s.xb, X), need(h.ya, h.yb, s.ya, s.yb, Y));
+      dist = Math.max(7, dist * scale);
+      const sx = mid(h.xa / scale, h.xb / scale, s.xa / scale, s.xb / scale, X), sy = mid(h.ya / scale, h.yb / scale, s.ya / scale, s.yb / scale, Y);
+      focus.addScaledVector(right, -sx * tanH * dist).addScaledVector(up, -sy * tanV * dist);
       focus.addScaledVector(CAM_DIR, -focus.y / CAM_DIR.y); // on the ground plane along the view direction
     }
     return { dist, focus: focus.add(new Vector3(v.ox, 0, v.oz)) };
@@ -232,12 +254,6 @@ export class World {
     this.padKind = kind; this.hudPad = this.pads(kind);
     this.flyTo(this.focusOf(v), this.fitDistance(v), dur);
   }
-  /** After a move: step back only if the land rose out of frame. The camera never creeps in, so the board doesn't breathe from move to move. */
-  keepInFrame(dur = .45) {
-    const v = this.active; if (!v || this.map || this.fly) return;
-    const f = this.fit(v);
-    if (f.dist > this.dist + .02) this.flyTo(f.focus, f.dist, dur);
-  }
   flyTo(target: Vector3, dist: number, dur: number, done?: () => void) {
     if (dur <= 0 || this.reducedMotion) { this.focus.copy(target); this.dist = dist; this.fly = null; done?.(); return; }
     const hop = this.focus.distanceTo(target);
@@ -259,10 +275,37 @@ export class World {
     this.flyTo(this.mapCenter(), this.mapDistance(), dur, done);
   }
   hero: IslandView;
+  private heroUp!: State;
+  private heroOut = false;
+  private heroT = 0;
+  /** The title's loop: rest on the pushed island, slide the plate back, push it in again. The first thing a player sees is the whole game. */
+  private heroBeat(dt: number) {
+    const v = this.hero, lv = v.lv;
+    if (this.active !== v || this.fly || this.reducedMotion) return;
+    this.heroT += dt;
+    if (!this.heroOut && this.heroT > 5) {
+      this.heroOut = true; this.heroT = 0;
+      v.reconcile(lv.start, true, { fromRestart: true });
+      this.after(MOVE_TIME + .05, () => { if (this.heroOut) v.applyGoals(goalsMet(lv, lv.start), true, false); });
+    } else if (this.heroOut && this.heroT > 2.4) {
+      this.heroOut = false; this.heroT = 0;
+      const r = v.reconcile(this.heroUp, true);
+      this.heroSfx?.('slide', { plate: 2 });
+      this.after(MOVE_TIME * .45, () => {
+        if (this.active !== v) return;
+        this.shakeCam(.5);
+        this.heroSfx?.('uplift', { intensity: .5 });
+        for (const cell of r.rose) { const p = v.worldPos(cell); this.fx.dust(p.x, p.y - .1, p.z, 7); this.fx.rubble(p.x, p.y, p.z, 2); }
+      });
+      this.after(MOVE_TIME + .05, () => { if (!this.heroOut) v.applyGoals(goalsMet(lv, this.heroUp), true); });
+    }
+  }
   /** The title framing: the hero island large in the frame, offset to leave room for the logo. */
   focusTitle(dur = 0) {
     const v = this.hero;
     v.group.visible = true;
+    this.heroT = 0;
+    if (this.heroOut) { this.heroOut = false; v.reconcile(this.heroUp, false); v.applyGoals(goalsMet(v.lv, this.heroUp), false); }
     this.map = false;
     this.setActive(v);
     this.padKind = 'title'; this.hudPad = this.pads('title');
@@ -460,6 +503,15 @@ export class World {
   private ndc = new Vector2();
   pick(px: number, py: number): number | null {
     const v = this.active; if (!v) return null;
+    // a slider draws over everything, so what it covers can't be what the player means
+    let near = 16, slid: number | null = null;
+    for (const m of v.markSegments()) {
+      const [ax, ay] = this.project(m.a), [bx, by] = this.project(m.b), dx = bx - ax, dy = by - ay;
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+      const d = Math.hypot(px - ax - t * dx, py - ay - t * dy);
+      if (d < near) { near = d; slid = m.plate; }
+    }
+    if (slid !== null) return slid;
     this.ndc.set(px / innerWidth * 2 - 1, -(py / innerHeight) * 2 + 1);
     this.ray.setFromCamera(this.ndc, this.camera);
     const hit = this.ray.intersectObject(v.mesh as InstancedMesh, false)[0];
@@ -535,12 +587,13 @@ export class World {
     this.driveFrame(raw);
     if (this.fillK !== this.fillGoal) { this.fillK = this.fillGoal > this.fillK ? Math.min(1, this.fillK + raw / 1.2) : Math.max(0, this.fillK - raw / .5); this.placeFill(); }
     for (const v of this.views) { v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
+    this.heroBeat(dt);
     if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
     this.easeDay(dt);
-    this.seaLife.update(dt, t, this.camera.position.y > 26); // from high up only: beside a board a boat is as big as a lighthouse
+    this.seaLife.update(dt, t, this.map && this.camera.position.y > 26); // over the map only: beside a board a boat is as big as a lighthouse (a phone's level camera is high up too)
     // clouds pass by on a flight, then clear: nothing may hide an island on the map
     const cm = this.clouds[0].o.material as MeshLambertMaterial;
     cm.opacity += ((this.fly && !this.homes ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5); // nor the last shift: it is the picture the game ends on

@@ -30,7 +30,19 @@ async function drag(page: Page, m: string) {
   await page.waitForTimeout(650);
 }
 
-test('a hint from a dead end never freezes the game, and a move cancels it', async ({ page }) => {
+test('the camera stays put while playing: a real move and an undo leave the framing alone', async ({ page }) => {
+  await openLevelAt(page, '');
+  const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
+  const cam = () => page.evaluate(() => { const w = window.__shiftland.world as unknown as { dist: number; focus: { x: number; z: number } }; return [w.dist, w.focus.x, w.focus.z]; });
+  const before = await cam();
+  await drag(page, sol[0]);
+  expect(await cam()).toEqual(before);
+  await page.click('#b-undo');
+  await page.waitForTimeout(500);
+  expect(await cam()).toEqual(before);
+});
+
+test('a hint from a dead end never freezes the game', async ({ page }) => {
   const errors = errorsOf(page);
   await page.goto('./');
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5);

@@ -140,7 +140,7 @@ const FRAG = /* glsl */`
     float breathe = .025+.02*sin(t*.9+n1*11.);
     float foam = smoothstep(breathe+.05, breathe, d + (fbm(p*5.+t*.14)-.5)*.1);
     // broken surf, not a sticker outline: fine gaps in it and water between the patches (critic T6)
-    foam *= mix(.08, 1., smoothstep(.44,.58,fbm(p*2.4+vec2(t*.05,-t*.03))))*mix(.45, .86, smoothstep(.38,.62,fbm(p*9.-t*.1)));
+    foam *= mix(.08, 1., smoothstep(.44,.58,fbm(p*2.4+vec2(t*.05,-t*.03))))*mix(.3, .72, smoothstep(.38,.62,fbm(p*9.-t*.1)));
     // a broken lace of foam just off the shore
     float ring = smoothstep(.055,.0,abs(d-(.33+.06*sin(t*.7+p.x*.35)))) * smoothstep(.42,.6,fbm(p*3.6-t*.08));
     // from the map the near waves would alias away, so a coarser set takes over and the sea stays alive and clean
@@ -149,10 +149,10 @@ const FRAG = /* glsl */`
     col += vec3(.62)*wl;
     // lake: still, green-teal water, its own colour
     // a sandy rim and a green unlike any sea, so a lake can't be taken for the shallows
-    vec3 lake = uLake*(.92+.2*n2) + .1*smoothstep(.74,.98,sin(d*9.-t*.8+n2*3.));
+    vec3 lake = uLake*(.92+.2*n2) + vec3(.03,.09,.06)*smoothstep(.74,.98,sin(d*9.-t*.8+n2*3.));
     vec2 lp = p*2.2; vec2 li = floor(lp); float lr = h21(li+5.);
-    lake = mix(lake, vec3(.42,.78,.36), step(.8,lr)*(1.-smoothstep(.13,.17,length(fract(lp)-.5-(vec2(h21(li+9.),h21(li+2.))-.5)*.5))));
-    lake = mix(lake, vec3(.93,.84,.6), smoothstep(.2,.07,d));
+    lake = mix(lake, vec3(.5,.86,.36), step(.62,lr)*(1.-smoothstep(.19,.22,length(fract(lp)-.5-(vec2(h21(li+9.),h21(li+2.))-.5)*.4))));
+    lake = mix(lake, vec3(.8,.66,.4), smoothstep(.2,.13,d));
     col = mix(col, lake, m.g);
     // rift floor before the sea reaches it
     // wet and dark, half sea already: bright sand laid on the water looks like a sheet of cardboard
@@ -173,7 +173,7 @@ export class Ocean {
       uTime: time, uStatic: { value: staticMask.tex }, uStaticB: { value: staticMask.bounds },
       uActive: { value: activeMask.tex }, uActiveB: { value: activeMask.bounds },
       uDeep: { value: new Color('#0e7fae') }, uShallow: { value: new Color('#1fcdcf') },
-      uLake: { value: new Color('#1f9a62') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
+      uLake: { value: new Color('#0b6f3f') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
     };
     const g = new PlaneGeometry(6000, 6000); g.rotateX(-Math.PI / 2);
     this.mesh = new Mesh(g, new ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.uniforms }));

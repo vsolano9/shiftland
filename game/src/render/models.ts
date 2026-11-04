@@ -152,7 +152,7 @@ const fronds = (ox: number, oy: number, cA: string, cB: string, n = 8, w = 1, dr
 };
 export const palm = merge([
   seg(0.004, 0.07, 0.08, 0.036, 0.052, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.03, 0.037, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.026, 0.031, 0.13, '#8c5f39'),
-  ...fronds(0.085, 0.385, '#58b04a', '#3f923c'),
+  ...fronds(0.085, 0.385, '#58b04a', '#3f923c', 11, 1.4, .9, 1, 5),
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([

@@ -1,6 +1,6 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { AdditiveBlending, BoxGeometry, BufferGeometry, Color, CustomBlending, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, OneMinusSrcAlphaFactor, SphereGeometry, SrcAlphaFactor, type Sprite } from 'three';
+import { AlwaysStencilFunc, KeepStencilOp, NotEqualStencilFunc, ReplaceStencilOp, AdditiveBlending, BoxGeometry, BufferGeometry, Color, CustomBlending, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, OneMinusSrcAlphaFactor, SphereGeometry, SrcAlphaFactor, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
@@ -9,14 +9,18 @@ import { makeSprite, sprites, type WishIcon } from './sprites.ts';
 export const MAT = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
 // A see-through tint and not a flat colour: a solid navy shape over the land read as a hole in the picture (critic T11).
 // CustomBlending with transparent off keeps it in the opaque pass, before the creature's own colours; alpha still counts.
-const XRAY = new MeshBasicMaterial({ color: '#163a63', opacity: .46, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor });
+// Over a faint fill goes a crisp outline: a tinted block read as a blue blob (second playtest P4). The fill marks the stencil;
+// the same shape pushed out along its normals draws only outside that mark, so only the rim shows.
+const XRAY = new MeshBasicMaterial({ color: '#163a63', opacity: .2, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor, stencilWrite: true, stencilRef: 1, stencilFunc: AlwaysStencilFunc, stencilZPass: ReplaceStencilOp });
+const XRAY_RIM = new MeshBasicMaterial({ color: '#fff7e6', depthFunc: GreaterDepth, depthWrite: false, stencilWrite: true, stencilRef: 1, stencilFunc: NotEqualStencilFunc, stencilZPass: KeepStencilOp });
+XRAY_RIM.onBeforeCompile = s => { s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normalize(normal) * .022;'); };
 const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = new Mesh(g, MAT); m.castShadow = shadow; m.receiveShadow = false; return m; };
 
 export type CreatureKind = 'goat' | 'village' | 'light' | 'oasis' | 'penguin' | 'buoy';
-const WISH: Partial<Record<CreatureKind, WishIcon>> = { goat: 'peak', light: 'sea', buoy: 'sea', oasis: 'lake', penguin: 'ice' };
+const WISH: Partial<Record<CreatureKind, WishIcon>> = { goat: 'peak', light: 'shore', buoy: 'sea', oasis: 'lake', penguin: 'ice' };
 export const HEAD_Y: Record<CreatureKind, number> = { goat: 0.5, village: 0.72, light: 1.16, buoy: 0.68, oasis: 0.78, penguin: 0.62 };
 /** Characters stand larger than their cell, as on the concept sheets: they must read at a glance at island zoom. */
-export const KIND_SCALE: Record<CreatureKind, number> = { goat: 1.9, village: 1.55, light: 1.45, buoy: 1.55, oasis: 1.65, penguin: 1.75 };
+export const KIND_SCALE: Record<CreatureKind, number> = { goat: 1.55, village: 1.4, light: 1.35, buoy: 1.3, oasis: 1.45, penguin: 1.5 };
 
 const ease = (t: number) => t * t * (3 - 2 * t);
 const back = (t: number) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
@@ -63,7 +67,10 @@ export class Creature {
     // Drawn after the land (renderOrder) and before the creature's own colours, so it never tints the creature itself.
     const parts: Mesh[] = [];
     this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT) parts.push(m); });
-    for (const m of parts) { const s = new Mesh(m.geometry, XRAY); s.renderOrder = -2; m.add(s); }
+    for (const m of parts) {
+      const s = new Mesh(m.geometry, XRAY), r = new Mesh(m.geometry, XRAY_RIM);
+      s.renderOrder = -2.5; r.renderOrder = -2; m.add(s, r);
+    }
   }
 
   private build() {

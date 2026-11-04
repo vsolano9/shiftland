@@ -17,7 +17,7 @@ const drawCross = (c: CanvasRenderingContext2D) => { roundBadge(c, '#e8483e'); c
 const drawPlus = (c: CanvasRenderingContext2D) => { roundBadge(c, '#39b54a'); c.strokeStyle = '#fff'; c.lineWidth = 16; c.lineCap = 'round'; c.beginPath(); c.moveTo(64, 38); c.lineTo(64, 90); c.moveTo(38, 64); c.lineTo(90, 64); c.stroke(); };
 const drawMinus = (c: CanvasRenderingContext2D) => { roundBadge(c, '#e8483e'); c.strokeStyle = '#fff'; c.lineWidth = 16; c.lineCap = 'round'; c.beginPath(); c.moveTo(38, 64); c.lineTo(90, 64); c.stroke(); };
 
-export type WishIcon = 'peak' | 'sea' | 'lake' | 'ice';
+export type WishIcon = 'peak' | 'sea' | 'shore' | 'lake' | 'ice';
 function bubble(draw: (c: CanvasRenderingContext2D) => void) {
   return canvas(192, 192, c => {
     c.fillStyle = '#fffdf7'; c.strokeStyle = 'rgba(70,50,30,.18)'; c.lineWidth = 3;
@@ -35,6 +35,12 @@ const wishDraw: Record<WishIcon, (c: CanvasRenderingContext2D) => void> = {
     c.fillStyle = '#fff'; c.beginPath(); c.moveTo(80, 59); c.lineTo(96, 34); c.lineTo(112, 59); c.lineTo(103, 53); c.lineTo(96, 62); c.lineTo(88, 53); c.closePath(); c.fill();
   },
   sea: c => { c.strokeStyle = '#1aa7e0'; c.lineWidth = 9; c.lineCap = 'round'; for (const y of [58, 80, 102]) { c.beginPath(); c.moveTo(52, y); c.bezierCurveTo(70, y - 16, 78, y + 14, 96, y); c.bezierCurveTo(112, y - 14, 124, y + 14, 140, y); c.stroke(); } },
+  // the lighthouse's wish: land with the sea on one side of it (a buoy's is sea all round)
+  shore: c => {
+    c.fillStyle = '#7cc25a'; c.beginPath(); c.moveTo(42, 40); c.lineTo(92, 40); c.lineTo(92, 118); c.lineTo(42, 118); c.closePath(); c.fill();
+    c.fillStyle = '#e7cf94'; c.fillRect(88, 40, 14, 78);
+    c.strokeStyle = '#1aa7e0'; c.lineWidth = 9; c.lineCap = 'round'; for (const y of [58, 80, 102]) { c.beginPath(); c.moveTo(112, y); c.bezierCurveTo(122, y - 12, 130, y + 12, 148, y); c.stroke(); }
+  },
   lake: c => { c.fillStyle = '#c99a52'; c.beginPath(); c.ellipse(96, 84, 56, 38, 0, 0, 7); c.fill(); c.fillStyle = '#3fd6a8'; c.beginPath(); c.ellipse(96, 84, 38, 23, 0, 0, 7); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(80, 80); c.quadraticCurveTo(92, 72, 104, 80); c.stroke(); },
   ice: c => { c.fillStyle = '#bde9fb'; c.beginPath(); c.moveTo(54, 106); c.lineTo(74, 56); c.lineTo(122, 50); c.lineTo(142, 106); c.closePath(); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 4; c.beginPath(); c.moveTo(76, 96); c.lineTo(92, 72); c.lineTo(112, 90); c.stroke(); c.strokeStyle = '#1aa7e0'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(42, 122); c.quadraticCurveTo(70, 108, 96, 122); c.quadraticCurveTo(122, 134, 150, 120); c.stroke(); },
 };

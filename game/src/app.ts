@@ -15,7 +15,8 @@ import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
-import { DIR_NAME, fromJson, shift, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
+import { goalReason } from './game/reasons.ts';
+import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
 import { drawLogo } from './ui/logo.ts';
@@ -126,6 +127,7 @@ class App {
     this.thumbs = this.world.thumbs();
     this.controller = new Controller(this.levels, this.progress, this.stuck, e => this.onEvent(e));
     this.refreshIslands();
+    this.world.heroSfx = (s, o) => this.audio.play(s, o);
     this.world.focusTitle();
     this.view = this.world.views[this.controller.index];
     this.view.reconcile(this.view.lv.start, false);
@@ -354,6 +356,22 @@ class App {
     this.handStart = tut ? this.world.time.value : 0;
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
+    // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
+    const note = this.progress.solved(i) || s.moves ? '' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : i === this.firstSplit() ? 'A plate can be in two pieces. They move together' : '';
+    if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
+  }
+  /** The first island with a plate in two pieces, by the cells of its start board. */
+  private firstSplit() {
+    return this.levels.findIndex(lv => {
+      const { w, h, start: { plate } } = lv;
+      for (let p = 0; p < lv.plates; p++) {
+        const cells = [...plate.keys()].filter(i => plate[i] === p); if (cells.length < 2) continue;
+        const seen = new Set([cells[0]]), q = [cells[0]];
+        while (q.length) { const i = q.pop()!, x = i % w, y = Math.floor(i / w); for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) if (j >= 0 && plate[j] === p && !seen.has(j)) { seen.add(j); q.push(j); } }
+        if (seen.size < cells.length) return true;
+      }
+      return false;
+    });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
@@ -400,16 +418,18 @@ class App {
     if (!sol) { this.flashHint('No way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.first);
     v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
-    const late = s.par !== undefined && s.moves + sol.min > s.par;
+    // once the star is out of reach this run, the hints stop warning about it (second playtest P10)
+    const gone = s.hinted || (s.par !== undefined && s.moves + sol.min > s.par);
     if (this.hintLevel === 0) {
       this.hintLevel = 1;
-      this.flashHint(late ? 'Try this plate. Restart if you want the star' : 'Try this plate. Hint again shows the move, but costs the star', 5);
+      this.flashHint(gone ? 'Try this plate. Hint again shows the move' : 'Try this plate. Hint again shows the move, but costs the star', 5);
       return;
     }
     s.hinted = true;
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
-    this.flashHint(`${sol.min} move${sol.min === 1 ? '' : 's'} to go. No star this run: Restart to win it back`, 4);
+    const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
+    this.flashHint(gone ? togo : `${togo}. No star this run: Restart to win it back`, 4);
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);
@@ -424,7 +444,7 @@ class App {
       const [a, b] = GOAL_TEXT[c.kind];
       el.innerHTML = `<img alt="" src="${this.thumbs[c.kind].sad}"><div class="tx"><b>${a}</b><span>${b}</span></div><div class="badge">${icon.cross}</div>`;
       el.title = GOAL_RULE[c.kind];
-      el.addEventListener('click', () => { this.audio.play('ui'); this.flashHint(GOAL_RULE[c.kind], 6); });
+      el.addEventListener('click', () => { this.audio.play('ui'); const why = el.dataset.why; this.flashHint(why ? `Now: ${why}. ${GOAL_RULE[c.kind]}` : GOAL_RULE[c.kind], 6); });
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
@@ -442,6 +462,11 @@ class App {
       if (all !== wasMet) { e.el.classList.add('bump'); setTimeout(() => e.el.classList.remove('bump'), 260); }
       e.el.querySelector('.badge')!.innerHTML = all ? icon.check : icon.cross;
       (e.el.querySelector('img') as HTMLImageElement).src = this.thumbs[kind][all ? 'ok' : 'sad'];
+      // the second line says what is wrong right now: a chip that flips with no reason teaches nothing (second playtest P2)
+      const s = this.controller.session, why = e.goals.map(k => g[k] ? null : goalReason(s.lv, s.state, k)).find(Boolean) ?? null;
+      const line = e.el.querySelector('.tx span') as HTMLElement;
+      line.textContent = why ?? GOAL_TEXT[kind][1]; line.classList.toggle('why', !!why && s.moves > 0);
+      e.el.dataset.why = why ?? '';
       const cnt = e.el.querySelector('.count'); if (cnt) cnt.textContent = `${n}/${e.goals.length}`;
     }
   }
@@ -567,8 +592,15 @@ class App {
     }
     if (r.arrived.length) this.world.after(MOVE_TIME * .7, () => { for (const cell of r.arrived) { const p = v.worldPos(cell, 0); this.world.fx.splash(p.x, p.z, 4); } });
     this.refreshHud();
-    // the camera steps back with the move and not after it: a board still sliding under the pointer takes the next grab to the wrong plate
-    if (!this.controller.session.solved) this.world.keepInFrame(MOVE_TIME);
+    // the first island's hand comes back after a wrong move: Moves 2 / Par 1 on a board that looks unchanged reads as broken (second playtest P8)
+    if (this.controller.index === 0 && !s.solved) {
+      const at = s.state;
+      this.flashHint('Not yet. Try the other way', 2.4);
+      this.world.after(1.2, () => {
+        const next = this.controller.session === s && s.state === at && !this.drag ? solve(lv, 6, at)?.firstSolution[0] : undefined;
+        if (next) { this.handMove = parseMove(next); this.handStart = this.world.time.value; }
+      });
+    }
     this.world.after(MOVE_TIME + .05, () => {
       if (this.view !== v || this.controller.session.lv !== lv) return;
       const g = this.controller.session.goals;

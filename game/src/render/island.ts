@@ -1,9 +1,9 @@
 // One level's island: columns, creatures, decor, rails and move preview. The view holds no rules: it is told the State
 // to show and reconciles its columns by identity (plate + plate-anchored cell), so a move, an undo and a restart all
 // animate the same way.
-import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, type MeshLambertMaterial, type Sprite } from 'three';
+import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite } from 'three';
 import type { MoveDiff } from '../rules/diff.ts';
-import { DX, DY, seaMask, shift, type Dir, type Level, type State } from '../rules/rules.ts';
+import { DX, DY, railMoves, seaMask, shift, stateKey, type Dir, type Level, type State } from '../rules/rules.ts';
 import { Creature, MAT, HEAD_Y, KIND_SCALE, type CreatureKind } from './creatures.ts';
 import * as M from './models.ts';
 import type { LandRect, WaterRect } from './ocean.ts';
@@ -90,12 +90,18 @@ export class IslandView {
    * Without touching anything it says which way the plate runs and how far it has left each way.
    */
   private buildMark(p: number) {
-    const m = new Group(), n = this.lv.maxTravel, sp = MARK_STEP, flat = (o: Mesh, order: number) => { o.renderOrder = order; m.add(o); return o; };
+    const m = new Group(), n = this.lv.maxTravel, sp = MARK_STEP;
     const mat = (color: Color | string) => new MeshBasicMaterial({ color, transparent: true, depthWrite: false });
-    flat(new Mesh(new BoxGeometry(2 * n * sp + .1, .004, .075), mat(new Color('#3a2c22'))), 6);
-    for (let k = -n; k <= n; k++) { const st = flat(new Mesh(new CylinderGeometry(.052, .052, .006, 14), mat('#fff7e6')), 7); st.position.x = k * sp; }
-    const knob = new Mesh(new CylinderGeometry(.092, .092, .01, 20), mat(plateBand(p))); knob.renderOrder = 8; m.add(knob);
-    const core = new Mesh(new CylinderGeometry(.05, .05, .012, 16), mat('#ffffff')); core.renderOrder = 9; knob.add(core);
+    // behind tall land a slider still shows, fainter: a plate behind a peak can be seen and grabbed (World.pick takes the slider first)
+    const part = (g: BufferGeometry, c: Color | string, order: number, to: Object3D) => {
+      const o = new Mesh(g, mat(c)); o.renderOrder = order; to.add(o);
+      const through = new Mesh(g, new MeshBasicMaterial({ color: c, transparent: true, opacity: .5, depthWrite: false, depthFunc: GreaterDepth })); through.renderOrder = order; o.add(through);
+      return o;
+    };
+    part(new BoxGeometry(2 * n * sp + .1, .004, .075), new Color('#3a2c22'), 6, m);
+    for (let k = -n; k <= n; k++) { const st = part(new CylinderGeometry(.052, .052, .006, 14), '#fff7e6', 7, m); st.position.x = k * sp; }
+    const knob = part(new CylinderGeometry(.092, .092, .01, 20), plateBand(p), 8, m);
+    part(new CylinderGeometry(.05, .05, .012, 16), '#ffffff', 9, knob);
     m.rotation.y = this.lv.axis[p] === 1 ? 0 : -Math.PI / 2; m.visible = false; // -90 deg: local +x is world +z, the way the offset counts
     return { m, knob };
   }
@@ -452,7 +458,7 @@ export class IslandView {
     // Never further than two stops from the plate (a full rail runs off over the sea, through whoever stands in line),
     // and on a hint only the way the hint means
     const dir = this.railHint ? this.railDir : 0;
-    const reach = dir ? 1 : 2; // a hint points at the next stop: anything longer ran through the other plate's slider
+    const reach = 1; // the next stop each way: anything longer ran through creatures and the other plate's slider (the plate's own slider shows how far it has left)
     const lo = dir > 0 ? off : Math.max(-mt, off - range.neg - 1, off - reach), hi = dir < 0 ? off : Math.min(mt, off + range.pos + 1, off + reach);
     const tubeLen = hi - lo + .3, mid = (lo + hi) / 2;
     place(P.tube, mid); P.tube.scale.set(tubeLen, 1, 1); P.tube.rotation.y = ax === 1 ? 0 : Math.PI / 2;
@@ -471,7 +477,7 @@ export class IslandView {
       const sign = i ? 1 : -1, ok = (i ? range.pos > 0 : range.neg > 0) && (!dir || dir === sign);
       a.visible = ok;
       place(a, off + sign * .34);
-      a.rotation.set(Math.PI / 2, 0, ax === 1 ? -sign * Math.PI / 2 : (sign > 0 ? Math.PI : 0));
+      a.rotation.set(Math.PI / 2, 0, ax === 1 ? -sign * Math.PI / 2 : (sign > 0 ? 0 : Math.PI)); // outward, the way it goes
       a.userData.base = a.position.clone(); a.userData.sign = sign; a.userData.ax = ax;
     });
   }
@@ -679,10 +685,9 @@ export class IslandView {
   /** What the level camera must keep on screen, in island space: every land cell, a step of each plate's slide, and whoever stands on it. */
   /** Points the camera must hold: the start board while playing (it must not creep per move), the board as it now stands on the win screen. */
   framePoints(current = false) {
-    // Playing, the board opens as large as it fits and the camera steps back when land rises out of frame (World.keepInFrame).
     if (current) return this.statePoints(this.state, 1.25, true);
     const pts = this.statePoints(this.lv.start, .72, false);
-    if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .72, false));
+    if (this.alsoFrame) pts.push(...this.statePoints(this.alsoFrame, .72, false));
     // a wish is half the puzzle: its bubble must clear the top bar, wherever it had to sit
     this.placeBubbles();
     for (const c of this.creatures) {
@@ -691,6 +696,40 @@ export class IslandView {
       pts.push(new Vector3(p.x + h[0] * S, p.y + y0 + h[1] * S + .34, p.z + h[2] * S));
     }
     return pts;
+  }
+  /** A second state the framing must hold (the title island's two poses). */
+  alsoFrame?: State;
+  private reach: Vector3[] | null = null;
+  /**
+   * While playing the camera never moves: it is set once to hold what the level can become (second playtest P1: a camera stepping
+   * back between moves slid the plates out from under the finger and made the island look different each time). These points are the
+   * tallest each cell gets within par + 1 moves of the start. Holding every reachable state would cost a third of the board's size for
+   * boards nobody plays; a plate pushed further than that may run under the HUD or a little off the edge, and it can still be pulled back.
+   */
+  reachPoints() {
+    if (this.reach) return this.reach;
+    const { lv } = this, moves = railMoves(lv), tops = new Float32Array(lv.w * lv.h).fill(-1), reachDepth = (lv.par ?? 4) + 1;
+    const seen = new Set([stateKey(lv.start)]), q: State[] = [lv.start], depth = [0];
+    for (let k = 0; k < q.length; k++) {
+      const s = q[k], objs = new Set(s.objs.map(o => o.cell));
+      for (let i = 0; i < tops.length; i++) if (s.plate[i] >= 0) tops[i] = Math.max(tops[i], topY(s.elev[i]) + (objs.has(i) ? .72 : .05));
+      if (q.length >= 4000 || depth[k] >= reachDepth) continue;
+      for (const [p, d] of moves) { const n = shift(lv, s, p, d); if (n) { const key = stateKey(n); if (!seen.has(key)) { seen.add(key); q.push(n); depth.push(depth[k] + 1); } } }
+    }
+    const pts: Vector3[] = [];
+    tops.forEach((top, i) => {
+      if (top < 0) return;
+      const [x, z] = this.xz(i);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pts.push(new Vector3(x + sx * .56, -.05, z + sz * .56), new Vector3(x + sx * .56, top, z + sz * .56));
+    });
+    return this.reach = pts;
+  }
+  /** Every free plate's slider as a screen-picking target: a handle that stays reachable behind tall land. */
+  markSegments() {
+    return this.marks.filter(k => k.m.visible).map(k => {
+      const ax = this.lv.axis[k.plate] === 1, half = this.lv.maxTravel * MARK_STEP + .06, p = k.m.position;
+      return { plate: k.plate, a: new Vector3(this.ox + p.x - (ax ? half : 0), p.y, this.oz + p.z - (ax ? 0 : half)), b: new Vector3(this.ox + p.x + (ax ? half : 0), p.y, this.oz + p.z + (ax ? 0 : half)) };
+    });
   }
   private statePoints(s: State, head: number, buoys: boolean) {
     const { lv } = this, pts: Vector3[] = [];
