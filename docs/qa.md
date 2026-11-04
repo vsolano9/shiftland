@@ -44,6 +44,25 @@ Agents told to play as a new player, each on a newer build.
 | 2 | `playtest2\` | Lake against sea and corners stumped a player for 12 minutes: live reasons on chips |
 | 3 | `playtest3\` | "Clearly above a typical jam entry, not yet a great puzzle game". Bite-and-retreat untaught, warning used as an oracle, notes vanish, bubbles float: all addressed |
 | 4 | `playtest4\` | "A good puzzle game is hiding inside a pleasant one, but its middle sags." Findings below |
+| 5 | `playtest5\` | Saw-tooth curve and a quit point at the Tundra's start: campaign cut to 24, water dots added. Findings below |
+
+### Playtest 5 findings (whole game, 28 islands, reached 25)
+
+| Id | Finding | Result |
+|---|---|---|
+| P5-1 | Hint arrow reads backwards | It pointed out already, but beside the ring it read as a funnel. Moved further along the rail and larger. `p8\_ar.png` |
+| P5-2 | "That water reaches the sea" says neither which water nor where; the Tundra's start was the quit point | White dots run along the way out to sea, or pulse on the lake: chip hover and tap, creature tap, a move that newly causes it (`leakOf`). `p8\_leak.jpg`, e2e |
+| P5-3 | One trick (bite and retreat) solves too much | Partly answered by the cuts. It is still the game's main trick |
+| P5-4 | Saw-tooth curve | Cut to 24, Twin Palms moved. Low Tide stays a wall at the Coast's end |
+| P5-5 | Creatures hidden behind land | X-ray from 30% hidden, was 50%. `p8\_c2.jpg` |
+| P5-6 | Bubbles far from their owners | Distance costs in the placement, larger dots. `p8\_c2.jpg` |
+| P5-7 | Hint panel covers the hand and plate | It moves up when the rail runs under it; e2e |
+| P5-8 | Hint text promised the wrong moment | Reworded, `reasons.test.ts` |
+| P5-9 | One reason spoke for several creatures | A chip lists each different reason. `p8\_c2.jpg` island 6 |
+| P5-10 | Blurbs | 14 and 20 rewritten; 3 keeps "corner dots", held by a test |
+| P5-11 | A long drag moved two stops | One drag, one stop; unit tests. The handle moving after a move stays: it follows its plate |
+| P5-12 | Label wording, Play didn't resume, labels on island art, two open islands | Label renamed, Play resumes (e2e), labels moved back and step aside rather than vanish (`p8\_map.png`). Two open islands is the unlock rule, by design |
+| P5-13 | Grey rock by a buoy; Hint needs another press after Restart | The rock is the buoy's jumping fish (`p8\_rock.png`). Restart wins the star back, so the warning press comes first again |
 
 ### Playtest 4 findings (islands 6 to 17)
 
