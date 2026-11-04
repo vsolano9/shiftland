@@ -4,7 +4,7 @@
 import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite } from 'three';
 import type { MoveDiff } from '../rules/diff.ts';
 import { DX, DY, railMoves, seaMask, shift, stateKey, type Dir, type Level, type State } from '../rules/rules.ts';
-import { beamDir } from '../game/reasons.ts';
+import { beamRun } from '../game/reasons.ts';
 import { Creature, MAT, HEAD_Y, KIND_SCALE, type CreatureKind } from './creatures.ts';
 import * as M from './models.ts';
 import type { LandRect, WaterRect } from './ocean.ts';
@@ -344,8 +344,8 @@ export class IslandView {
         c.face(land(x, y + 1) || !land(x + 1, y) ? -.4 : 1.25, !animate);
       }
       if (c.kind === 'light') {
-        const dir = beamDir(this.lv, next, cell);
-        if (dir) c.aimBeam(dir[0], dir[1]);
+        const { dir, run } = beamRun(this.lv, next, cell);
+        if (dir) c.aimBeam(dir[0], dir[1], run);
       }
     }
   }

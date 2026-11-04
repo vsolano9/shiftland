@@ -155,7 +155,7 @@ export class Creature {
 
   private beamAim = 0; private beamAt = 0;
   /** Point the lamp along a board direction: +x and +z are the world's. */
-  aimBeam(dx: number, dz: number) { this.beamAim = Math.atan2(-dz, dx); }
+  aimBeam(dx: number, dz: number, run = 4) { this.beamAim = Math.atan2(-dz, dx); this.beam?.scale.setScalar(run >= 3 ? 1 : run === 2 ? .78 : .5); }
   private faceY = -.4;
   face(y: number, snap: boolean) { this.faceY = y; if (snap) this.body.rotation.y = y; }
   celebrate(on: boolean) { this.celebrating = on ? 1 : 0; this.people.forEach(p => { p.visible = on; }); }

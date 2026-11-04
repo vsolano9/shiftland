@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalsMet, type Level, type State, type Kind } from '../rules/rules.ts';
-import { beamDir, goalReason, hasSplitPlate } from './reasons.ts';
+import { beamDir, beamRun, goalReason, hasSplitPlate } from './reasons.ts';
 
 /** A 5x5 grid from rows: '#' land, '.' water; one creature at (x, y). */
 function board(rows: string[], kind: Kind, x: number, y: number, up = 1, buoys: number[] = [], ice = true) {
@@ -26,6 +26,15 @@ describe('beamDir', () => {
     expect(beamDir(a.lv, a.s, 2 + 1 * 5)).toBeNull(); // land to the north, and the pond to the south doesn't count
     const b = board(['###', '#.#', '###'], 'light', 1, 0);
     expect(beamDir(b.lv, b.s, 1)).toEqual([0, -1]); // a cell on the map's edge looks straight off it
+  });
+});
+
+describe('beamRun', () => {
+  it('says how much water lies that way, and the map edge counts as far', () => {
+    const channel = board(['#####', '#####', '#####', '....#', '#####'], 'light', 1, 2);
+    expect(beamRun(channel.lv, channel.s, 1 + 2 * 5)).toEqual({ dir: [0, 1], run: 1 }); // one row of sea, then land
+    const open = board(SOLID, 'light', 2, 1);
+    expect(beamRun(open.lv, open.s, 2 + 1 * 5).run).toBeGreaterThanOrEqual(3); // the top row, then off the map
   });
 });
 

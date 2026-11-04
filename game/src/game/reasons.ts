@@ -8,7 +8,10 @@ const CORNERS = [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
  * Where a lighthouse on `cell` shines: over its widest stretch of open sea, never over land or into a lake, since the
  * lamp is what tells a player that sea is what it wants. Null when no side has sea. The map's edge counts as open water.
  */
-export function beamDir(lv: Level, s: State, cell: number): [number, number] | null {
+export function beamDir(lv: Level, s: State, cell: number): [number, number] | null { return beamRun(lv, s, cell).dir; }
+
+/** The same, with how much water lies that way (1 to 4), so a beam down a narrow channel stops short of the land across it. */
+export function beamRun(lv: Level, s: State, cell: number) {
   const { w, h } = lv, sea = seaMask(lv, s), x = cell % w, y = Math.floor(cell / w);
   let best = 0, dir: [number, number] | null = null;
   for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
@@ -21,7 +24,7 @@ export function beamDir(lv: Level, s: State, cell: number): [number, number] | n
     }
     if (n > best) { best = n; dir = [dx, dy]; }
   }
-  return dir;
+  return { dir, run: best };
 }
 
 /** True when some plate's cells no longer touch edge to edge (a plate that slid across a gap, or lost its middle). */
