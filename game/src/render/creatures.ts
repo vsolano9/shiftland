@@ -1,13 +1,15 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
+import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, CustomBlending, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, OneMinusSrcAlphaFactor, SphereGeometry, SrcAlphaFactor, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
 import { makeSprite, sprites, type WishIcon } from './sprites.ts';
 
 export const MAT = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
-const XRAY = new MeshBasicMaterial({ color: '#1d4468', depthFunc: GreaterDepth, depthWrite: false });
+// A see-through tint and not a flat colour: a solid navy shape over the land read as a hole in the picture (critic T11).
+// CustomBlending with transparent off keeps it in the opaque pass, before the creature's own colours; alpha still counts.
+const XRAY = new MeshBasicMaterial({ color: '#163a63', opacity: .46, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor });
 const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = new Mesh(g, MAT); m.castShadow = shadow; m.receiveShadow = false; return m; };
 
 export type CreatureKind = 'goat' | 'village' | 'light' | 'oasis' | 'penguin' | 'buoy';

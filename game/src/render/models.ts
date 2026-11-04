@@ -122,27 +122,43 @@ export const fish = merge([
 
 // PALM OASIS
 const seg = (x: number, y: number, tilt: number, top: number, bottom: number, len: number, c: string): P => ({ g: cyl(top, bottom, len, 6), c, p: [x, y, 0], r: [0, 0, -tilt] });
-// Two segments per frond, so each one arcs out and droops like a palm leaf and not a propeller blade.
-const fronds = (ox: number, oy: number, up: number, cA: string, cB: string, n = 9, w = 1, bend = 0.72, len = 1) => {
+// One palm leaf along +x: an arc that climbs and droops, folded along its spine, wide in the middle, pointed at the tip,
+// with notches in its edge so it reads as a frond and not a blade. Closed underneath, because the camera sees under the high ones.
+function frond(len: number, width: number, lift: number, droop: number) {
+  const N = 6, pts: [number, number, number, number][] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, w = i === N ? 0 : width * Math.sin(Math.PI * Math.min(1, .16 + t * .86)) ** .75 * (i % 2 ? 1 : .74);
+    pts.push([len * t * (1 - t * .12), len * (lift * t - droop * t * t), w, w * .42]);
+  }
+  const v: number[] = [], tri = (a: number[], b: number[], c: number[]) => v.push(...a, ...b, ...c);
+  for (let i = 0; i < N; i++) {
+    const [x0, y0, w0, f0] = pts[i], [x1, y1, w1, f1] = pts[i + 1];
+    const s0 = [x0, y0, 0], s1 = [x1, y1, 0], l0 = [x0, y0 - f0, w0], l1 = [x1, y1 - f1, w1], r0 = [x0, y0 - f0, -w0], r1 = [x1, y1 - f1, -w1];
+    tri(s0, l0, l1); tri(s0, l1, s1); tri(s0, s1, r1); tri(s0, r1, r0);   // top
+    tri(s0, l1, l0); tri(s0, s1, l1); tri(s0, r1, s1); tri(s0, r0, r1);   // underside
+  }
+  const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(v, 3));
+  return g;
+}
+/** A crown: a long drooping ring, then a few short leaves still reaching up, so it has a top and an underside and not a flat star. */
+const fronds = (ox: number, oy: number, cA: string, cB: string, n = 8, w = 1, droop = .95, len = 1, up = 3) => {
   const out: P[] = [];
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
-    const t1 = up, t2 = up + bend, ca = Math.cos(a), sa = Math.sin(a), L = 0.15 * len;
-    const d1 = [Math.cos(t1) * ca, -Math.sin(t1), Math.cos(t1) * sa], d2 = [Math.cos(t2) * ca, -Math.sin(t2), Math.cos(t2) * sa];
-    out.push({ g: box(L, 0.018, 0.09 * w), c, p: [ox + d1[0] * L / 2, oy + d1[1] * L / 2, d1[2] * L / 2], r: [0, -a, -t1] });
-    out.push({ g: box(0.14 * len, 0.014, 0.06 * w), c, p: [ox + d1[0] * L + d2[0] * 0.06 * len, oy + d1[1] * L + d2[1] * 0.06 * len, d1[2] * L + d2[2] * 0.06 * len], r: [0, -a, -t2] });
+    const a = (i / n) * Math.PI * 2 + .3 + (i % 3) * .07, L = (i % 2 ? .37 : .33) * len;
+    out.push({ g: frond(L, .062 * w, .34, droop), c: i % 2 ? cA : cB, p: [ox, oy, 0], r: [0, -a, 0] });
   }
+  for (let i = 0; i < up; i++) out.push({ g: frond(.24 * len, .05 * w, .95, .75), c: i % 2 ? cB : cA, p: [ox, oy, 0], r: [0, -(i / up) * Math.PI * 2 - .9, 0] });
   return out;
 };
 export const palm = merge([
   seg(0.004, 0.07, 0.08, 0.036, 0.052, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.03, 0.037, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.026, 0.031, 0.13, '#8c5f39'),
-  ...fronds(0.085, 0.395, -0.28, '#4ea344', '#3d8c3a'),
+  ...fronds(0.085, 0.385, '#58b04a', '#3f923c'),
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
   seg(0.02, 0.06, 0.35, 0.05, 0.07, 0.14, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.044, 0.052, 0.14, '#7d5431'), seg(0.214, 0.198, 1.6, 0.038, 0.046, 0.14, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.03, 0.04, 0.11, '#7d5431'),
   // limp, straw-coloured leaves splayed on the sand: thin enough that it reads as a dead palm, not a green umbrella
-  ...fronds(0.36, 0.15, 0.1, '#a7a044', '#8f8f3c', 8, 0.72, 0.95, 1.2),
+  ...fronds(0.36, 0.14, '#a7a044', '#8f8f3c', 7, .8, .75, 1.05, 0),
 ]);
 
 // PENGUIN

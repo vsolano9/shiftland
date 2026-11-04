@@ -105,7 +105,7 @@ export class IslandView {
   /** Wish bubbles step to a side of their creature where they cover nobody else, judged in screen space (the camera angle is fixed). */
   private bubbleKey = '';
   private placeBubbles() {
-    const key = this.creatures.map(c => `${Math.round(c.root.position.x * 4)},${Math.round(c.root.position.z * 4)},${Math.round(c.root.position.y * 4)},${c.met ? 1 : 0}`).join(';');
+    const key = this.creatures.map(c => `${Math.round(c.root.position.x * 4)},${Math.round(c.root.position.z * 4)},${Math.round(c.root.position.y * 4)},${c.met ? 1 : 0}`).join(';') + `|${this.marks.map(k => k.m.visible ? `${Math.round(k.m.position.x * 4)},${Math.round(k.m.position.y * 4)},${Math.round(k.m.position.z * 4)}` : '').join(';')}`;
     if (key === this.bubbleKey) return;
     this.bubbleKey = key;
     const CA = Math.cos(.72), SA = Math.sin(.72), CE = Math.cos(.82), SE = Math.sin(.82);
@@ -113,6 +113,11 @@ export class IslandView {
     type Blob = { u: number; v: number; r: number; owner: Creature | null };
     const blobs: Blob[] = [];
     for (const a of this.anchors) { const [u, v] = screen(a.position.x, a.position.y, a.position.z); blobs.push({ u, v, r: .22, owner: null }); } // handles stay uncovered
+    // and so does each plate's slider, end to end (critic T12): it is how a player plans without touching anything
+    for (const k of this.marks) if (k.m.visible) for (const o of [-.42, 0, .42]) {
+      const ax = this.lv.axis[k.plate] === 1, [u, v] = screen(k.m.position.x + (ax ? o : 0), k.m.position.y, k.m.position.z + (ax ? 0 : o));
+      blobs.push({ u, v, r: .2, owner: null });
+    }
     const blob = (c: Creature, y: number, r: number) => { const p = c.root.position, [u, v] = screen(p.x, p.y + y, p.z); blobs.push({ u, v, r, owner: c }); };
     for (const c of this.creatures) { const h = HEAD_Y[c.kind] * KIND_SCALE[c.kind]; blob(c, h * .28, .3); blob(c, h * .78, .25); }
     const placed: [number, number][] = [];
@@ -437,7 +442,8 @@ export class IslandView {
     // Never further than two stops from the plate (a full rail runs off over the sea, through whoever stands in line),
     // and on a hint only the way the hint means
     const dir = this.railHint ? this.railDir : 0;
-    const lo = dir > 0 ? off : Math.max(-mt, off - range.neg - 1, off - 2), hi = dir < 0 ? off : Math.min(mt, off + range.pos + 1, off + 2);
+    const reach = dir ? 1 : 2; // a hint points at the next stop: anything longer ran through the other plate's slider
+    const lo = dir > 0 ? off : Math.max(-mt, off - range.neg - 1, off - reach), hi = dir < 0 ? off : Math.min(mt, off + range.pos + 1, off + reach);
     const tubeLen = hi - lo + .3, mid = (lo + hi) / 2;
     place(P.tube, mid); P.tube.scale.set(tubeLen, 1, 1); P.tube.rotation.y = ax === 1 ? 0 : Math.PI / 2;
     const sh = P.tube.userData.shadow as Mesh; sh.position.copy(P.tube.position); sh.position.y -= .01; sh.scale.copy(P.tube.scale); sh.rotation.copy(P.tube.rotation);
@@ -624,7 +630,8 @@ export class IslandView {
     }
     v.needsUpdate = true;
     for (const k of this.marks) {
-      const c = this.showMarks && this.railPlate !== k.plate ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
+      const hinted = this.railPlate !== null && this.railHint; // while a hint points at one plate, the others' sliders stay out of its way
+      const c = this.showMarks && this.railPlate !== k.plate && !hinted ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
       k.m.visible = !!c;
       if (c) {
         const d = c.plate === dp; k.m.position.set(c.x + (d ? this.dragNow.x : 0), c.y + this.lift[c.plate] + .014, c.z + (d ? this.dragNow.z : 0));
@@ -663,8 +670,8 @@ export class IslandView {
   framePoints(current = false) {
     // Playing, the board opens as large as it fits and the camera steps back when land rises out of frame (World.keepInFrame).
     if (current) return this.statePoints(this.state, 1.25, true);
-    const pts = this.statePoints(this.lv.start, .9, false);
-    if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .9, false));
+    const pts = this.statePoints(this.lv.start, .72, false);
+    if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .72, false));
     return pts;
   }
   private statePoints(s: State, head: number, buoys: boolean) {
@@ -672,7 +679,7 @@ export class IslandView {
     const objs = new Set([...s.objs.map(o => o.cell), ...(buoys ? lv.buoys : [])]);
     for (let i = 0; i < s.plate.length; i++) {
       const p = s.plate[i]; if (p < 0) continue;
-      const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .15, ax = lv.axis[p] === 1;
+      const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .06, ax = lv.axis[p] === 1;
       const top = topY(s.elev[i]) + (objs.has(i) ? head : .05);
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         const px = x + sx * (.5 + (ax ? slide : 0)), pz = z + sz * (.5 + (ax ? 0 : slide));
