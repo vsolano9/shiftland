@@ -92,9 +92,7 @@ test('a reload puts the player back on the same board', async ({ page, context }
   await page.reload();
   await page.waitForFunction(`${SL} && ${SL}.world.frames > 5`, undefined, { timeout: 60_000 });
   await page.evaluate(`${SL}.progress.unlocked = () => true`);
-  await page.tap('#btn-play');
-  await page.waitForTimeout(2200);
-  await page.evaluate(`document.querySelector('.pin[data-level="6"]').click()`);
+  await page.tap('#btn-play'); // Play goes straight back to an unfinished run
   await page.waitForTimeout(2200);
   await expect(page.locator('#hint')).toContainText('where you left off');
   expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([8, 1]);

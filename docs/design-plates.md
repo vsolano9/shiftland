@@ -163,11 +163,11 @@ A level's goals list shows each creature's icon, a tick or cross, and a second l
 
 | Biome | Levels | New idea | Why it adds depth |
 |---|---|---|---|
-| Meadow | 1-7 | plates, uplift, rifts, goats, villages, buoys, carrying a peak | the base verb |
-| Coast | 8-12 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
-| Desert | 13-19 | lakes vs sea (oasis wants a lake, buoys want sea); a bite carries land off (Twin Palms) | the same rift must be closed off or opened to the ocean |
-| Tundra | 20-24 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
-| Finale | 25-28 | all of the above on a larger island, par 4-7 | the payoff |
+| Meadow | 1-6 | plates, uplift, rifts, goats, villages, buoys, carrying a peak | the base verb |
+| Coast | 7-10 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
+| Desert | 11-16 | lakes vs sea (oasis wants a lake, buoys want sea); a bite carries land off (Twin Palms) | the same rift must be closed off or opened to the ocean |
+| Tundra | 17-20 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
+| Finale | 21-24 | all of the above on a larger island, par 4-7 | the payoff |
 
 Each twist ships only if the solver and audit support it before levels are made with it.
 
@@ -225,7 +225,7 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 
 ## Screens
 
-Title → level select (the 28 islands as an archipelago map) → level (HUD: level name, moves / par, goal chips each with icon + short label + status badge ("Goat: on a peak", "Village: stays low", "Lighthouse: by the sea", "Buoy: open sea"; icons alone don't teach the rule, HUD critic T4), undo, restart, menu; until the first move the selected plate's rail and a "Drag a plate along its rail" hint show (T1); the phone layout keeps the counter and goal strip, clear of the drag (T5); concept `concepts/shiftland-level-hud.png`) → level complete → … → ending (the whole archipelago, all creatures happy). Settings: volume, reduced motion, colour-blind patterns on/off.
+Title → level select (the 24 islands as an archipelago map) → level (HUD: level name, moves / par, goal chips each with icon + short label + status badge ("Goat: on a peak", "Village: stays low", "Lighthouse: by the sea", "Buoy: open sea"; icons alone don't teach the rule, HUD critic T4), undo, restart, menu; until the first move the selected plate's rail and a "Drag a plate along its rail" hint show (T1); the phone layout keeps the counter and goal strip, clear of the drag (T5); concept `concepts/shiftland-level-hud.png`) → level complete → … → ending (the whole archipelago, all creatures happy). Settings: volume, reduced motion, colour-blind patterns on/off.
 
 ## Design questions (game-design-self-critique)
 
@@ -318,7 +318,7 @@ Title → level select (the 28 islands as an archipelago map) → level (HUD: le
 | Which water: dots on the board (Nov 4, playtest 5 P5-2) | "That water reaches the sea" named neither the water nor where it leaks, and islands 16-17 were the quit point. Dots run along the shortest way out to sea, or pulse on the lake | The answer to "why" shows on the board and leaves the plan to the player: it names the leak, not the plate to close it | `leakOf` in `game/reasons.ts`, three tests; shots `p8\_leak.jpg` | Chip hover and tap, creature tap, and after a move that newly causes the complaint. Oasis, lighthouse, penguin, buoy | The first dot starts beside the creature, so a path can cross under a plate's edge on screen; drawn over land by design |
 | Hint panel steps off the plate (Nov 4, playtest 5 P5-7) | A panel above the chips covered the hand and plate it was talking about | The player can read and watch at once | `hintOffPlate` tests rail points against the panel; `p8\_leak.jpg` (Wishing Well panel up, Low Tide stays down) | Both hint presses, all shapes through `--hint-top` | Up, it can sit over the top of a tall board for its 6 s |
 | Nearer bubbles, all reasons (Nov 4, playtest 5 P5-6, P5-9) | A wish bubble three cells off read as someone else's; one chip reason spoke for two creatures | Bubble distance now costs, dots grew; a chip lists each different reason | `placeBubbles`, `refreshChips` | Every island with several of a kind | Two reasons can wrap on a narrow chip |
-| Play resumes an unfinished run (Nov 4, playtest 5 P5-12) | Play from the title always asked for the map, even mid-island | One press back into what you were doing | `toMap` opens `pickLevel(controller.index)` when moves > 0 and unsolved | Title only; the Map button still shows the map | Fresh saves and finished islands still go to the map |
+| Play resumes an unfinished run (Nov 4, playtest 5 P5-12) | Play from the title always asked for the map, even mid-island | One press back into what you were doing | `toMap` opens `pickLevel(controller.index)` when moves > 0 and unsolved | Title only; the Map button still shows the map | With no unfinished run, Play goes where it always did |
 
 ## Grey-box (2026-11-03)
 

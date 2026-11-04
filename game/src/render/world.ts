@@ -691,10 +691,16 @@ export class World {
     const placed: { x: number; y: number; hw: number; hh: number }[] = [];
     for (const p of this.pins) {
       if (p.hide?.()) { p.el.style.display = 'none'; continue; }
-      const [x, y] = this.project(p.pos);
-      p.el.style.display = ''; p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      let [x, y] = this.project(p.pos);
+      p.el.style.display = '';
       const hw = (p.hw ??= p.el.offsetWidth / 2), hh = (p.hh ??= p.el.offsetHeight / 2);
-      if (p.label) p.el.style.visibility = placed.some(q => Math.abs(q.x - x) < q.hw + hw && Math.abs(q.y - y) < q.hh + hh) ? 'hidden' : '';
+      if (p.label) { // first a spot beside its own place: a chapter's name matters, the Tundra's vanished behind a pin
+        const free = (a: number, b: number) => a - hw > 4 && a + hw < innerWidth - 4 && b - hh > 58 && !placed.some(q => Math.abs(q.x - a) < q.hw + hw + 3 && Math.abs(q.y - b) < q.hh + hh + 3);
+        const side = hw + 26, spot = ([[0, 0], [side, 0], [-side, 0], [0, -hh * 2 - 8], [side, -hh * 2], [-side, -hh * 2], [0, hh * 2 + 8]] as const).find(([a, b]) => free(x + a, y + b));
+        p.el.style.visibility = spot ? '' : 'hidden';
+        if (spot) { x += spot[0]; y += spot[1]; }
+      }
+      p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
       if (!p.el.style.visibility) placed.push({ x, y, hw, hh });
     }
     if (this.path) this.path.visible = this.map && !this.homes && !this.drive && !this.peekAt; // at the ending tour's close range the dots are big ovals
