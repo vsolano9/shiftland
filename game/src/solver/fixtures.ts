@@ -2,7 +2,7 @@
 // trap and its aha move in levels/tutorial.ts or levels/campaign.ts, and `npm run levels:audit` proves each claim against the
 // rules. A level whose idea stops being true (a rules change, a map edit) fails here instead of shipping as solver noise.
 import { previewDiff } from '../rules/diff.ts';
-import { canFinish, DIR_NAME, goalsMet, railMoves, seaMask, shift, solve, solved, type Level, type State } from '../rules/rules.ts';
+import { canFinish, DIR_NAME, goalsMet, railMoves, seaMask, shift, solve, solved, stateKey, type Level, type State } from '../rules/rules.ts';
 import type { Claim, Spec } from '../levels/tutorial.ts';
 import { applyAll, greedySolveRate, landShare, minPlateKept, partsOf, randomSolveRate, shortestSolutions } from './audit.ts';
 
@@ -17,6 +17,48 @@ const MIN_LAND_KEPT = 0.6;
 
 const opposite: Record<string, string> = { N: 'S', S: 'N', E: 'W', W: 'E' };
 
+/** The cells plate `p` took from other plates by moving `dir` somewhere on the line `moves` from the level's start. */
+function bitten(lv: Level, moves: string[], p: number, dir: string): number[] {
+  const out: number[] = [];
+  let s = lv.start;
+  for (const q of moves) {
+    const t = applyAll(lv, s, [q]);
+    if (!t) return out;
+    if (Number(q[1]) === p && q[2] === dir) for (let i = 0; i < t.plate.length; i++) if (t.plate[i] === p && s.plate[i] >= 0 && s.plate[i] !== p) out.push(i);
+    s = t;
+  }
+  return out;
+}
+
+/** The shortest line from the start on which no plate ever slides back the way it came after biting, or null when an
+ *  exhaustive search finds none, at any length: then the level cannot be solved without a bite and a retreat. `limit` is
+ *  there for maps with a huge state space; hitting it throws rather than claim a proof. */
+export function solveWithoutRetreat(lv: Level, limit = 2_000_000): string[] | null {
+  const rails = railMoves(lv);
+  interface N { s: State; bit: number; line: string[] }
+  let frontier: N[] = [{ s: lv.start, bit: 0, line: [] }];
+  const seen = new Set([`${stateKey(lv.start)}|0`]);
+  while (frontier.length) {
+    const next: N[] = [];
+    for (const f of frontier) for (const [p, d] of rails) {
+      if ((f.bit >> (p * 4 + (d + 2) % 4)) & 1) continue; // p bit going the other way: this would be the retreat
+      const t = shift(lv, f.s, p, d);
+      if (!t) continue;
+      const took = t.plate.some((q, i) => q === p && f.s.plate[i] >= 0 && f.s.plate[i] !== p);
+      const bit = took ? f.bit | (1 << (p * 4 + d)) : f.bit;
+      const line = [...f.line, `P${p}${DIR_NAME[d]}`];
+      if (solved(lv, t)) return line;
+      const k = `${stateKey(t)}|${bit}`;
+      if (!seen.has(k)) {
+        seen.add(k); next.push({ s: t, bit, line });
+        if (seen.size > limit) throw new Error(`${lv.name}: over ${limit} states, no proof`);
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+
 /** Every claim that is true of the move `m` from s to t (earlier: the moves before it in the same solution). */
 export function claimsOf(lv: Level, s: State, t: State, m: string, earlier: string[] = []): Set<Claim> {
   const out = new Set<Claim>();
@@ -26,6 +68,7 @@ export function claimsOf(lv: Level, s: State, t: State, m: string, earlier: stri
   if (up === 0 && down === 0) out.add('quiet');
   if (down > 0) out.add('unticks');
   if (earlier.some(q => q[1] === m[1] && q[2] === opposite[m[2]])) out.add('returns');
+  if (bitten(lv, earlier, Number(m[1]), opposite[m[2]]).some(i => t.plate[i] < 0)) out.add('carries');
   t.objs.forEach((o, k) => { if (t.elev[o.cell] > s.elev[s.objs[k].cell]) out.add('lifts'); });
   const d = previewDiff(lv, s, t);
   if (d.flood.length) out.add('floods');

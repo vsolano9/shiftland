@@ -89,6 +89,19 @@ const DESERT: Spec[] = [
       aha: { move: 'P2E', says: 'the little breakwater slides over the end of the rift and the sea is shut out', shows: ['seals'] } },
   },
   {
+    name: 'Sandbar', biome: 'desert', teaches: "a bite takes land off its plate for good: b can never slide off the buoy's spot, so a bites that land, and backing off carries it away and leaves open sea", axis: '-|-', expectPar: 2,
+    blurb: 'What a plate bites, it can carry off.',
+    map: `
+      ~  ~  ~  ~  ~  ~  ~  ~  ~
+      ~  ~  a0 a0 ~  b0 b0 ~  ~
+      ~  ~  a0 a0L b0 b0 b0 ~  ~
+      ~  b0 a0 a0 b0* c0 c0 c0 ~
+      ~  b0 b0 b0 b0 c0 c0 ~  ~
+      ~  ~  ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P0E P0W', trap: { move: 'P0W', finish: 3, why: "a backs straight off and the lamp has its sea, but the buoy's spot is still b's land, and b cannot slide clear of it: something still has to bite it" },
+      aha: { move: 'P0W', says: 'the same slide back, after the bite: the land over the buoy leaves with a, and lamp and buoy both see the sea', shows: ['carries', 'ticks2'] } },
+  },
+  {
     name: 'Oxbow', biome: 'desert', role: 'puzzle', teaches: 'the first level to ask for both waters: one rift, cut in two by a stub of land, is sea at one end and a lake at the other', axis: '--|', expectPar: 3,
     blurb: 'A strip of land can keep a lake and the sea apart.',
     map: `
@@ -127,24 +140,11 @@ const DESERT: Spec[] = [
       ~  a0 a0 ~  c0 ~  b0 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~  ~`,
     fixture: { intended: 'P1E P0E P2W P2E', trap: { move: 'P2W', finish: 'dead', why: 'two goals tick at once, but c bit too soon: the land over the buoy is still its own, and no way on clears that spot and keeps the rest' },
-      aha: { move: 'P2E', says: 'the bite comes home: the land over the buoy rides off with it, and the oasis slides back beside the sealed pond', shows: ['returns', 'ticks2', 'seals'] } },
+      aha: { move: 'P2E', says: 'the bite comes home: the land over the buoy rides off with it, and the oasis slides back beside the sealed pond', shows: ['returns', 'carries', 'ticks2', 'seals'] } },
   },
 ];
 
 const TUNDRA: Spec[] = [
-  {
-    name: 'Anchor Rock', biome: 'tundra', pinned: 'b', teaches: 'a pinned plate never moves: the slide that saved this village in the meadow is gone, so bring land to the rock from the other side', axis: '-||', expectPar: 2,
-    blurb: 'The rock never moves, but other plates can bite into it.',
-    map: `
-      ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 c0 c0 ~  ~
-      ~  a0 a0 ~  ~  ~  ~
-      ~  ~  a0 b1G b0 b0 ~
-      ~  a0 a0 b1V b0 ~  ~
-      ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P2S P2S', trap: { move: 'P0E', finish: 'dead', why: 'the rock cannot step aside as a meadow plate could: the push breaks the village' },
-      aha: { move: 'P2S', says: 'bring the land to the rock: c crosses the bay and comes down on the goat, and the village never feels it', shows: ['reclaims'] } },
-  },
   {
     name: 'Thin Ice', biome: 'tundra', teaches: 'ice melts at height 2, not before: the first push only lifts the wall, the second carries it on and it melts one cell short of the penguin', axis: '-|', expectPar: 2,
     blurb: 'Ice raised to height 2 melts; penguins want ice by the sea.',
@@ -157,6 +157,19 @@ const TUNDRA: Spec[] = [
       ~  ~  ~  ~  ~  ~  ~  ~  ~`,
     fixture: { intended: 'P0E P0E', trap: { move: 'P0W', finish: 4, why: 'a backs away from the wall: the water opens on the wrong side of it, nowhere near the penguin' },
       aha: { move: 'P0E', says: 'the first push lifts the wall to height 1 and it holds; the second carries it on, it melts, and the penguin looks out on a channel open to the sea', shows: ['melts'] } },
+  },
+  {
+    name: 'Anchor Rock', biome: 'tundra', pinned: 'b', teaches: "a pinned plate cannot step aside: the Sandbar bite would break the village on the rock, and only the biter's own front can change, so c takes the front cell that faces the village first", axis: '-||', expectPar: 3,
+    blurb: 'The rock never moves, but other plates can bite into it.',
+    map: `
+      ~  ~  ~  ~  ~  ~  ~  ~
+      ~  ~  c0 c0 ~  ~  ~  ~
+      ~  a0 a0 a0 b1V b0 b0 ~
+      ~  a0 a0 a0 b0* b0 ~  ~
+      ~  ~  a0 ~  ~  ~  ~  ~
+      ~  ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P2S P0E P0W', trap: { move: 'P0E', finish: 'dead', why: 'the bite that cleared the sandbar, and the rock cannot step aside as a meadow plate could: the same push lands on the village and breaks it' },
+      aha: { move: 'P2S', says: 'c comes down on the front of a: now a has nothing in the village row to hit the rock with, and its next bite takes only the land over the buoy', shows: ['quiet'] } },
   },
   {
     name: 'Cold Feet', biome: 'tundra', role: 'puzzle', teaches: 'a move that would melt ice under a creature is refused: walk the refusals back, clear the floe a place to go, and it steps off the seam', axis: '-|-', expectPar: 3,

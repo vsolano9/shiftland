@@ -45,7 +45,7 @@ describe('ship check (npm run levels:audit)', () => {
 });
 
 describe('tutorial levels keep their designed traps', () => {
-  const trap: Record<string, string> = { 'Village Green': 'P0E', 'The Long Pier': 'P0W' };
+  const trap: Record<string, string> = { 'Village Green': 'P0E', 'The Long Pier': 'P0W', Sandbar: 'P0W' };
   for (const [name, move] of Object.entries(trap)) {
     it(`${name}: tempting ${move}`, () => {
       const a = audit(all.find(l => l.name === name)!, 6, 1)!;

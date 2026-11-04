@@ -31,9 +31,9 @@ describe('level build', () => {
 
 describe('the campaign', () => {
   const biomes = CAMPAIGN.map(s => s.biome ?? 'meadow');
-  it('runs Meadow 7, Coast 4, Desert 5, Tundra 5, Finale 3, in that order', () => {
+  it('runs Meadow 7, Coast 4, Desert 6, Tundra 5, Finale 3, in that order', () => {
     const count = (b: string) => biomes.filter(x => x === b).length;
-    expect(['meadow', 'coast', 'desert', 'tundra', 'finale'].map(count)).toEqual([7, 4, 5, 5, 3]);
+    expect(['meadow', 'coast', 'desert', 'tundra', 'finale'].map(count)).toEqual([7, 4, 6, 5, 3]);
     const order = biomes.filter((b, i) => b !== biomes[i - 1]);
     expect(order).toEqual(['meadow', 'coast', 'desert', 'tundra', 'finale']);
   });

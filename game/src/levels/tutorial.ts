@@ -14,6 +14,7 @@ export type Claim =
   | 'quiet'      // ticks no goal at all: pure preparation
   | 'unticks'    // gives up a goal that was met
   | 'returns'    // slides back a plate that moved earlier in the solution
+  | 'carries'    // slides back off land it bit from another plate, and that land is now water: the bite and retreat
   | 'melts'      // melts ice
   | 'lake'       // leaves more lake cells than before
   | 'seals'      // turns sea into lake

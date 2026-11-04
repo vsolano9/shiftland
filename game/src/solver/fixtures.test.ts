@@ -3,8 +3,8 @@ import { fromJson, goalsMet, seaMask, shift, solve, type Level, type LevelJson }
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
-import { checkFixture, claimsOf, lakesBeforeTheyAreTaught, shapeProblems } from './fixtures';
-import { applyAll } from './audit';
+import { checkFixture, claimsOf, lakesBeforeTheyAreTaught, shapeProblems, solveWithoutRetreat } from './fixtures';
+import { applyAll, firstMoves, greedySolveRate, shortestSolutions } from './audit';
 
 vi.setConfig({ testTimeout: 60_000 }); // High Pasture's dead-trap proof walks 272k states
 
@@ -96,6 +96,48 @@ describe('the moments the finale is built on', () => {
   });
 });
 
+describe('bite and retreat (playtest 3 P1: the technique nothing taught)', () => {
+  const sandbar = byName('Sandbar'), rock = byName('Anchor Rock');
+  it('Sandbar: the one line at par is the bite and the retreat, and greedy play cannot find it', () => {
+    expect(shortestSolutions(sandbar, 2, 16).map(s => s.join(' '))).toEqual(['P0E P0W']);
+    expect(greedySolveRate(sandbar)).toBe(0);
+  });
+  it('Sandbar: the bite ticks nothing, the retreat ticks both goals and leaves water on the land it bit', () => {
+    const bite = applyAll(sandbar, sandbar.start, ['P0E'])!;
+    expect(goalsMet(sandbar, bite).filter(Boolean)).toHaveLength(0);
+    const has = claimsOf(sandbar, bite, applyAll(sandbar, bite, ['P0W'])!, 'P0W', ['P0E']);
+    expect(has).toContain('carries');
+    expect(has).toContain('ticks2');
+  });
+  it('Sandbar and Anchor Rock cannot be solved at any length without a retreat: an exhaustive search finds no line', () => {
+    expect(solveWithoutRetreat(sandbar)).toBeNull();
+    expect(solveWithoutRetreat(rock)).toBeNull();
+  });
+  it('Sandbar: b cannot slide clear of the buoy, on either side', () => {
+    for (const d of [0, 2] as const) expect(goalsMet(sandbar, shift(sandbar, sandbar.start, 1, d)!)[1]).toBe(false);
+    expect(shift(sandbar, shift(sandbar, sandbar.start, 1, 0)!, 1, 0)).toBeNull();
+    expect(shift(sandbar, shift(sandbar, sandbar.start, 1, 2)!, 1, 2)).toBeNull();
+  });
+  it('Sandbar: no first move is a dead end, and the tempting one still ends in a bite and a retreat', () => {
+    for (const m of firstMoves(sandbar, 9)) expect(m.finish, m.move).not.toBeNull();
+    expect(shortestSolutions(sandbar, 2, 16, applyAll(sandbar, sandbar.start, ['P0W'])!).map(s => s.join(' '))).toEqual(['P2W P2E']); // c bites and backs off instead
+  });
+  it('Mirage, the first puzzle that needs it literally, proves the same claim on its aha', () => {
+    expect(spec('Mirage').fixture!.aha.shows).toContain('carries');
+  });
+  it('Anchor Rock: the Sandbar bite breaks the village until c has taken the front of a', () => {
+    const c = applyAll(rock, rock.start, ['P2S'])!;
+    const bitten = applyAll(rock, c, ['P0E'])!;
+    expect(goalsMet(rock, bitten)[0]).toBe(true);
+    expect(goalsMet(rock, applyAll(rock, rock.start, ['P0E'])!)[0]).toBe(false);
+    expect(claimsOf(rock, bitten, applyAll(rock, bitten, ['P0W'])!, 'P0W', ['P2S', 'P0E'])).toContain('carries');
+  });
+  it('a claim of carrying fails on a retreat that only gives back open water', () => {
+    const open = byName('Open Water'), out = applyAll(open, open.start, ['P1E'])!;
+    expect(claimsOf(open, out, applyAll(open, out, ['P1W'])!, 'P1W', ['P1E'])).not.toContain('carries');
+  });
+});
+
 describe('ponds before the desert (Nov 4 playtest P8: a pond appeared in level 5, before lakes are taught)', () => {
   it('no meadow or coast level shows one on its intended line or any preview from it', () => {
     for (const lv of all.filter(l => l.biome === 'meadow' || l.biome === 'coast')) expect(lakesBeforeTheyAreTaught(lv, lv.sol!), lv.name).toEqual([]);
@@ -127,7 +169,7 @@ describe('claims', () => {
     expect(claims('Thin Ice', [], 'P0E')).not.toContain('melts');
     expect(claims('Thin Ice', ['P0E'], 'P0E')).toContain('melts');
   });
-  it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P2S')).toContain('hitsrock'));
+  it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P0E')).toContain('hitsrock'));
   it('unticks', () => expect(claims('The Summit', ['P0W', 'P0W', 'P1S', 'P1N'], 'P0E')).toContain('unticks'));
   it('opens', () => {
     const lv = byName('Breakwater');
