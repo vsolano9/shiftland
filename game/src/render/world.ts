@@ -7,7 +7,7 @@ import { heroLevel } from './hero.ts';
 import { IslandView } from './island.ts';
 import * as M from './models.ts';
 import { Mask, MASK_RANGE, Ocean, type LandRect } from './ocean.ts';
-import { BIOMES, topY } from './palette.ts';
+import { BIOMES, DAYLIGHT, type DayLight, MORNING, topY } from './palette.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
 import { MAT, Creature, type CreatureKind } from './creatures.ts';
@@ -80,7 +80,7 @@ export class World {
     this.ocean = new Ocean(this.staticMask, this.activeMask, this.time);
     this.scene.add(this.ocean.mesh);
 
-    this.scene.add(new HemisphereLight('#fdfbf2', '#7fa3a8', 1.5));
+    this.scene.add(this.hemi);
     this.scene.add(new AmbientLight('#ffffff', .35));
     const sun = this.sun = new DirectionalLight('#fff3dc', 2.35);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -248,7 +248,7 @@ export class World {
   showMap(dur = 1.1, bottom = 0, done?: () => void) {
     this.map = true; this.peekAt = null;
     this.mapBottom = bottom;
-    this.seaTarget = ['#0f8fb4', '#26cfcb'];
+    this.seaTarget = ['#0f8fb4', '#26cfcb']; this.dayTarget = MORNING;
     this.setShadowSpan(70);
     this.flyTo(this.mapCenter(), this.mapDistance(), dur, done);
   }
@@ -416,10 +416,21 @@ export class World {
       this.writeActive(v);
       const look = BIOMES[v.biome];
       this.seaTarget = look.sea;
+      this.dayTarget = DAYLIGHT[v.biome];
     }
     this.writeStatic();
   }
   seaTarget: [string, string] | null = null;
+  // the hour eases along with the sea as the camera travels between islands
+  private hemi = new HemisphereLight(MORNING.sky, MORNING.under, MORNING.hemi);
+  private dayTarget: DayLight = MORNING;
+  private sunFrom = new Vector3(...MORNING.from);
+  private easeDay(dt: number) {
+    const k = 1 - Math.exp(-dt * 1.4), d = this.dayTarget;
+    this.sun.color.lerp(new Color(d.sun), k); this.sun.intensity += (d.sunI - this.sun.intensity) * k;
+    this.hemi.color.lerp(new Color(d.sky), k); this.hemi.groundColor.lerp(new Color(d.under), k); this.hemi.intensity += (d.hemi - this.hemi.intensity) * k;
+    this.sunFrom.lerp(new Vector3(...d.from), k);
+  }
 
   /** A neighbour reaching into the active mask must be in it too, or its shore stops dead at the mask's straight edge. */
   private neighbourLand: LandRect[] = [];
@@ -515,6 +526,7 @@ export class World {
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
+    this.easeDay(dt);
     // clouds pass by on a flight, then clear: nothing may hide an island on the map
     const cm = this.clouds[0].o.material as MeshLambertMaterial;
     cm.opacity += ((this.fly ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5);
@@ -550,7 +562,7 @@ export class World {
     this.camera.lookAt(focus);
     // sun follows the view so shadows stay crisp
     const sc = this.map ? (this.peekAt ?? this.mapCenter()) : (this.active ? new Vector3(this.active.ox, 0, this.active.oz) : focus);
-    this.sun.target.position.copy(sc); this.sun.position.copy(sc).add(new Vector3(-7, 16, 8));
+    this.sun.target.position.copy(sc); this.sun.position.copy(sc).add(this.sunFrom);
     for (const p of this.pins) {
       if (p.hide?.()) { p.el.style.display = 'none'; continue; }
       const [x, y] = this.project(p.pos);

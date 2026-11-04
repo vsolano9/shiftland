@@ -139,7 +139,8 @@ const FRAG = /* glsl */`
     // white shore foam, breathing in and out
     float breathe = .025+.02*sin(t*.9+n1*11.);
     float foam = smoothstep(breathe+.05, breathe, d + (fbm(p*5.+t*.14)-.5)*.1);
-    foam *= mix(.12, 1., smoothstep(.4,.6,fbm(p*2.4+vec2(t*.05,-t*.03))));   // broken surf, not a sticker outline
+    // broken surf, not a sticker outline: fine gaps in it and water between the patches (critic T6)
+    foam *= mix(.08, 1., smoothstep(.44,.58,fbm(p*2.4+vec2(t*.05,-t*.03))))*mix(.45, .86, smoothstep(.38,.62,fbm(p*9.-t*.1)));
     // a broken lace of foam just off the shore
     float ring = smoothstep(.055,.0,abs(d-(.33+.06*sin(t*.7+p.x*.35)))) * smoothstep(.42,.6,fbm(p*3.6-t*.08));
     // from the map the near waves would alias away, so a coarser set takes over and the sea stays alive and clean
