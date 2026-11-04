@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Shiftland</title>
-  <style>
-    html, body { margin: 0; height: 100%; background: #123438; color: #e8f4f2; font: 16px system-ui, sans-serif; }
-    #app { display: grid; place-items: center; height: 100%; }
-  </style>
 </head>
 <body>
-  <div id="app">Shiftland</div>
+  <canvas id="c" tabindex="0" aria-label="Shiftland game board"></canvas>
+  <div id="vignette"></div>
+  <div id="ui"></div>
+  <div id="loading">Shiftland</div>
   <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

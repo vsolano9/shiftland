@@ -1,0 +1,177 @@
+// The ocean: one big plane with a stylized shader. Coast distance, lakes and dry rift floors come from two masks:
+// a static low-res mask of the whole archipelago, and a high-res mask of the active island rewritten while it animates.
+// Channels: R = distance to land (0 = on land, 1 = MASK_RANGE or farther), G = lake, B = dry floor (a rift not flooded yet).
+import { ClampToEdgeWrapping, Color, DataTexture, LinearFilter, Mesh, PlaneGeometry, RGBAFormat, ShaderMaterial, UnsignedByteType, Vector4 } from 'three';
+
+export const MASK_RANGE = 4; // world units encoded by R
+const CHAMFER = .2;        // same as terrain.ts vertex shader C
+
+function makeTexture(w: number, h: number): DataTexture {
+  const t = new DataTexture(new Uint8Array(w * h * 4).fill(255), w, h, RGBAFormat, UnsignedByteType);
+  t.minFilter = LinearFilter; t.magFilter = LinearFilter; t.wrapS = t.wrapT = ClampToEdgeWrapping; t.needsUpdate = true;
+  return t;
+}
+
+export interface LandRect { x0: number; z0: number; x1: number; z1: number; cut?: [number, number, number, number] }
+/** Is a point in the sliver a corner chamfer removed? a and b run from 0 to 1 toward that corner. */
+function inCut(a: number, b: number, cut: number) {
+  if (!cut) return false;
+  const C = CHAMFER * cut, k = C / (1 - C), o = 1 - b;
+  return o < a * k && a > (1 - C) + (o - C) * k;
+}
+export interface WaterRect extends LandRect { lake?: number; dry?: number }
+
+/** Rasterizes land rectangles into a distance mask (two-pass chamfer) and writes water state on top. */
+export class Mask {
+  tex: DataTexture;
+  private dist: Float32Array;
+  private blur: Float32Array | null;
+  constructor(readonly w: number, readonly h: number, public x0: number, public z0: number, public size: [number, number], smooth = false) {
+    this.tex = makeTexture(w, h);
+    this.dist = new Float32Array(w * h);
+    this.blur = smooth ? new Float32Array(w * h) : null;
+  }
+  get bounds() { return new Vector4(this.x0, this.z0, this.size[0], this.size[1]); }
+  moveTo(x0: number, z0: number) { this.x0 = x0; this.z0 = z0; }
+  write(land: LandRect[], water: WaterRect[]) {
+    const { w, h, dist } = this;
+    const sx = w / this.size[0], sz = h / this.size[1], INF = 1e6;
+    dist.fill(INF);
+    for (const r of land) {
+      // a pixel is land when its centre is; rounding outward would swell the shore by a pixel all round
+      const ax = Math.max(0, Math.ceil((r.x0 - this.x0) * sx - .5)), bx = Math.min(w, Math.ceil((r.x1 - this.x0) * sx - .5));
+      const az = Math.max(0, Math.ceil((r.z0 - this.z0) * sz - .5)), bz = Math.min(h, Math.ceil((r.z1 - this.z0) * sz - .5));
+      const cut = r.cut;
+      for (let y = az; y < bz; y++) for (let x = ax; x < bx; x++) {
+        if (cut && (cut[0] || cut[1] || cut[2] || cut[3])) {
+          // leave out the slice that terrain.ts's coast chamfer removes, so foam follows the chiselled shore
+          const u = (this.x0 + (x + .5) / sx - r.x0) / (r.x1 - r.x0), v = (this.z0 + (y + .5) / sz - r.z0) / (r.z1 - r.z0);
+          if (inCut(u, 1 - v, cut[0]) || inCut(u, v, cut[1]) || inCut(1 - u, v, cut[2]) || inCut(1 - u, 1 - v, cut[3])) continue;
+        }
+        dist[x + y * w] = 0;
+      }
+    }
+    // chamfer distance (3-4 metric), in pixels
+    const A = 1, B = Math.SQRT2;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = x + y * w; let d = dist[i];
+      if (x > 0) d = Math.min(d, dist[i - 1] + A);
+      if (y > 0) { d = Math.min(d, dist[i - w] + A); if (x > 0) d = Math.min(d, dist[i - w - 1] + B); if (x < w - 1) d = Math.min(d, dist[i - w + 1] + B); }
+      dist[i] = d;
+    }
+    for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
+      const i = x + y * w; let d = dist[i];
+      if (x < w - 1) d = Math.min(d, dist[i + 1] + A);
+      if (y < h - 1) { d = Math.min(d, dist[i + w] + A); if (x < w - 1) d = Math.min(d, dist[i + w + 1] + B); if (x > 0) d = Math.min(d, dist[i + w - 1] + B); }
+      dist[i] = d;
+    }
+    // rounded contours for the active island: the chamfer metric alone draws angular "map contour" foam lines
+    if (this.blur) for (let pass = 0; pass < 2; pass++) {
+      const b = this.blur, R = 3;
+      for (let y = 0; y < h; y++) { let s = 0; for (let x = -R; x <= R; x++) s += dist[Math.max(0, x) + y * w]; for (let x = 0; x < w; x++) { b[x + y * w] = s; s += dist[Math.min(w - 1, x + R + 1) + y * w] - dist[Math.max(0, x - R) + y * w]; } }
+      for (let x = 0; x < w; x++) { let s = 0; for (let y = -R; y <= R; y++) s += b[x + Math.max(0, y) * w]; for (let y = 0; y < h; y++) { const i = x + y * w; dist[i] = dist[i] === 0 ? 0 : s / 49; s += b[x + Math.min(h - 1, y + R + 1) * w] - b[x + Math.max(0, y - R) * w]; } }
+    }
+    const data = this.tex.image.data as Uint8Array, toByte = 255 / (MASK_RANGE * sx);
+    for (let i = 0; i < w * h; i++) {
+      data[i * 4] = Math.min(255, dist[i] * toByte); data[i * 4 + 1] = 0; data[i * 4 + 2] = 0; data[i * 4 + 3] = 255;
+    }
+    for (const r of water) {
+      if (!r.lake && !r.dry) continue;
+      const ax = Math.max(0, Math.floor((r.x0 - this.x0) * sx)), bx = Math.min(w, Math.ceil((r.x1 - this.x0) * sx));
+      const az = Math.max(0, Math.floor((r.z0 - this.z0) * sz)), bz = Math.min(h, Math.ceil((r.z1 - this.z0) * sz));
+      for (let y = az; y < bz; y++) for (let x = ax; x < bx; x++) {
+        const i = (x + y * w) * 4;
+        data[i + 1] = Math.max(data[i + 1], (r.lake ?? 0) * 255);
+        data[i + 2] = Math.max(data[i + 2], (r.dry ?? 0) * 255);
+      }
+    }
+    this.tex.needsUpdate = true;
+  }
+}
+
+const VERT = /* glsl */`
+  varying vec3 vW;
+  void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }
+`;
+const FRAG = /* glsl */`
+  precision highp float;
+  varying vec3 vW;
+  uniform float uTime; uniform sampler2D uStatic; uniform vec4 uStaticB; uniform sampler2D uActive; uniform vec4 uActiveB;
+  uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uLake; uniform vec3 uFloor; uniform float uRange; uniform float uMotion;
+  float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
+  float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+    return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
+  float fbm(vec2 p){ return .55*vn(p)+.3*vn(p*2.1+7.)+.15*vn(p*4.3+13.); }
+  // Small white crescents scattered over the open water, like the concept sheets' waves.
+  float wavelets(vec2 p, float t){
+    // screen-aligned rows (the camera's azimuth is fixed), so waves read as little horizontal smiles, not streaks of rain
+    vec2 s = vec2(p.x*.7518 - p.y*.6594, p.x*.6594 + p.y*.7518);
+    vec2 q = s*vec2(.95,1.9); q.x += floor(q.y)*.5 + t*.02;
+    vec2 id = floor(q), f = fract(q)-.5;
+    float r = h21(id);
+    float life = sin(t*(.3+.6*r)+r*40.); life = smoothstep(.05,.7,life);
+    vec2 o = vec2(h21(id+3.)-.5, h21(id+7.)-.5)*.42; vec2 g = (f-o)*vec2(1.,1.5);
+    float bend = g.y - 2.6*g.x*g.x + .02;
+    float w = max(fwidth(bend), .012);
+    float line = smoothstep(.026+w,.026,abs(bend))*smoothstep(.2,.07,abs(g.x));
+    return line*life*step(.58,r);
+  }
+  void main(){
+    float t = uTime;
+    vec2 p = vW.xz;
+    vec4 m;
+    vec2 ua = (p-uActiveB.xy)/uActiveB.zw;
+    if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = texture2D(uActive, ua);
+    else { vec2 us = (p-uStaticB.xy)/uStaticB.zw; m = (us.x>0. && us.y>0. && us.x<1. && us.y<1.) ? texture2D(uStatic, us) : vec4(1.,0.,0.,1.); }
+    float dist = m.r*uRange;
+    float wob = (fbm(p*1.4+vec2(t*.05,-t*.04))-.5);
+    float d = dist + wob*.1;
+    float n1 = fbm(p*.33+vec2(t*.016,t*.011));
+    float n2 = fbm(p*.8-vec2(t*.03,t*.018));
+    vec3 col = mix(uDeep, uDeep*1.1+vec3(0.,.018,.018), smoothstep(.34,.66,n1));
+    col = mix(col, uShallow, smoothstep(1.7,.12,d)*.95);
+    col += .035*smoothstep(.45,.75,n2)*uShallow;
+    // one or two ripple bands hugging the shore
+    float ripple = sin(d*9. - t*1.15 + n2*3.);
+    float rs = smoothstep(.72,.98,ripple)*smoothstep(1.05,.3,d);
+    col = mix(col, col+vec3(.25,.34,.34), rs*.2);
+    // white shore foam, breathing in and out
+    float breathe = .05+.025*sin(t*.9+n1*11.);
+    float foam = smoothstep(breathe+.05, breathe, d + (fbm(p*5.+t*.14)-.5)*.12);
+    // a broken lace of foam just off the shore
+    float ring = smoothstep(.055,.0,abs(d-(.33+.06*sin(t*.7+p.x*.35)))) * smoothstep(.42,.6,fbm(p*3.6-t*.08));
+    float wl = wavelets(p, t)*smoothstep(.55,1.3,dist)*(1.-smoothstep(.025,.06,fwidth(p.x)));
+    col += vec3(.62)*wl;
+    // lake: still, green-teal water, its own colour
+    col = mix(col, uLake*(.92+.2*n2) + .12*smoothstep(.74,.98,sin(d*9.-t*.8+n2*3.)), m.g);
+    // rift floor before the sea reaches it
+    vec3 flr = uFloor*(.72+.5*fbm(p*4.))*mix(.55,1.,smoothstep(0.,.3,dist));
+    col = mix(col, flr, m.b);
+    float fm = max(foam, ring*.5)*(1.-m.b);
+    col = mix(col, vec3(.96,.99,1.), fm*(1.-.35*m.g));
+    gl_FragColor = vec4(col,1.);
+    #include <colorspace_fragment>
+  }
+`;
+
+export class Ocean {
+  mesh: Mesh;
+  uniforms: Record<string, { value: unknown }>;
+  constructor(public staticMask: Mask, public activeMask: Mask, time: { value: number }) {
+    this.uniforms = {
+      uTime: time, uStatic: { value: staticMask.tex }, uStaticB: { value: staticMask.bounds },
+      uActive: { value: activeMask.tex }, uActiveB: { value: activeMask.bounds },
+      uDeep: { value: new Color('#0e7fae') }, uShallow: { value: new Color('#1fcdcf') },
+      uLake: { value: new Color('#3fd6a8') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
+    };
+    const g = new PlaneGeometry(1200, 1200); g.rotateX(-Math.PI / 2);
+    this.mesh = new Mesh(g, new ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.uniforms }));
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = -1;
+  }
+  syncBounds() { (this.uniforms.uActiveB.value as Vector4).copy(this.activeMask.bounds); (this.uniforms.uStaticB.value as Vector4).copy(this.staticMask.bounds); }
+  setSea(deep: string, shallow: string, k = 1) {
+    (this.uniforms.uDeep.value as Color).lerp(new Color(deep), k);
+    (this.uniforms.uShallow.value as Color).lerp(new Color(shallow), k);
+  }
+}
