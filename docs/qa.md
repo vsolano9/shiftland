@@ -20,9 +20,9 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 
 | Build | Input | Shape | Result | Evidence |
 |---|---|---|---|---|
-| 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p8\a24.log` |
-| 24 islands | Real touch | 390x844 | Reached the ending | `p8\a24p.log` |
-| 24 islands | Real touch | 844x390 | Reached the ending in 3 of 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p8\a24l-r1.log` to `r3` |
+| 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p11\a24.log` |
+| 24 islands | Real touch | 390x844 | Reached the ending | `p11\a24p.log` |
+| 24 islands | Real touch | 844x390 | Reached the ending, 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p11\a24l.log`, `p8\a24l-r1.log` to `r3` |
 | Plate cells and buttons under the HUD | Probe, every island along its par line, frozen build | 844x390, 390x844, 360x640, 1280x720, 1024x768 | No plate cell or action button is covered by a chip, note or button. A phone with 4 chips used to push a third row over Hint: found by the critic, fixed with icon-only chips from 4 up | session scratch `overlay.mjs` (run it on a frozen build: a dev-server hot reload mid-scan reports false misses) |
 | Rail handle on its plate | Probe, every plate of every island along its par line | 1280x720 | The handle projects onto its own plate, near its slider | session scratch `anchor.mjs` |
 | 28 islands (older build), random walk | Controller | 1280x720 | 14 random moves on each island: 27 px past the screen edge on Still Water, none on the rest | `wander.mjs`, design row "Camera holds par moves' reach" |

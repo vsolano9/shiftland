@@ -26,6 +26,18 @@ async function open(page: Page, i: number) {
   await page.waitForTimeout(2500);
 }
 
+test('shadows rest only on the settled map and come back on an island', async ({ page }) => {
+  const errors = await start(page);
+  const live = () => page.evaluate(`${SL}.world.renderer.shadowMap.autoUpdate`);
+  await open(page, 1);
+  expect(await live()).toBe(true);
+  await page.click('#b-map');
+  await expect.poll(live, { timeout: 20_000 }).toBe(false);
+  await open(page, 1);
+  await expect.poll(live, { timeout: 5_000 }).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test('a rail handle sits on its own plate, even beside a cell the plate has raised', async ({ page }) => {
   const errors = await start(page);
   await open(page, 22); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
