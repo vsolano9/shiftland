@@ -101,9 +101,9 @@ describe('Controller', () => {
     c.drag(0, -0.7, 0); c.release();
     expect(c.session.moves).toBe(1);
   });
-  it('drag: exact half cells ask for nothing (Codex chain 6 Major 1: W/E oscillation)', () => {
+  it('drag: exactly on the snap point asks for nothing (Codex chain 6 Major 1: W/E oscillation)', () => {
     const { c } = make();
-    for (const [dx, dy] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) { c.drag(0, dx, dy); c.release(); }
+    for (const [dx, dy] of [[0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]]) { c.drag(0, dx, dy); c.release(); }
     expect(c.session.moves).toBe(0);
   });
   it('drag past the last legal stop strains: one shake per push, preview stays at the legal stops', () => {

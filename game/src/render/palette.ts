@@ -16,6 +16,8 @@ export const PLATES: PlateLook[] = [
   { name: 'rust', band: '#c8622a', hue: '#d98a52', pattern: 3 },    // checks
 ];
 
+export const PATTERN_WORD = ['stripes', 'dots', 'zigzags', 'checks'];
+
 /** The hour on an island: the journey runs from morning over the meadow to sunset at the summit. */
 export interface DayLight { sun: string; sunI: number; sky: string; under: string; hemi: number; from: [number, number, number] }
 export const MORNING: DayLight = { sun: '#fff3dc', sunI: 2.35, sky: '#fdfbf2', under: '#7fa3a8', hemi: 1.5, from: [-7, 16, 8] };

@@ -85,7 +85,7 @@ export class IslandView {
   /** With railHint: which way along the rail the hint points (+1 east/south, -1 west/north). */
   railDir = 0;
   private anchors: Mesh[] = [];
-  private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number; grab: boolean }[] = [];
+  private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number; grab: boolean; at?: Column }[] = [];
   /**
    * A small slider set into each free plate: a groove, one stud per stop, and a glowing peg at the stop it is on.
    * Without touching anything it says which way the plate runs and how far it has left each way.
@@ -577,7 +577,9 @@ export class IslandView {
       } else if (c.yDelay + c.yDur > c.dur && c.y !== c.ty) {
         c.y = c.ty;
       }
-      const dh = c.hiT - c.hi;
+      // a hint's plate breathes, so "this one" is plain among neighbours of nearly the same colour (playtest 4 P4)
+      const breathing = this.railHint && this.railPlate === c.plate && this.selected !== c.plate;
+      const dh = (breathing ? .32 + .28 * Math.sin(t * 4.2) : c.hiT) - c.hi;
       if (Math.abs(dh) > .004) { c.hi += dh * Math.min(1, dt * 12); writeHi(this.mesh, c.idx, c.hi); }
     }
     for (let i = this.cols.length - 1; i >= 0; i--) if (this.cols[i].dead) this.cols.splice(i, 1);
@@ -642,18 +644,20 @@ export class IslandView {
   noteDragEnd(p: number) { this.lastDragPlate = p; }
 
   /** The column a plate's slider rides: its own, or the nearest one the plate still has once a neighbour has bitten that one away. */
-  private markCol(k: { plate: number; patX: number; patZ: number }) {
-    let best: (typeof this.cols)[number] | undefined, bd = Infinity;
+  private markCol(k: { plate: number; patX: number; patZ: number }, taken: Column[] = []) {
+    let best: Column | undefined, bd = Infinity;
     for (const q of this.cols) {
       if (q.plate !== k.plate || q.removing || q.dead) continue;
-      const d = (q.patX - k.patX) ** 2 + (q.patZ - k.patZ) ** 2;
+      let d = (q.patX - k.patX) ** 2 + (q.patZ - k.patZ) ** 2;
+      // two sliders side by side grab each other's presses (playtest 4 P1, Mirage): another cell of the plate if it has one
+      if (taken.some(t => Math.abs(t.tx - q.tx) < 1.2 && Math.abs(t.tz - q.tz) < 1.2)) d += 1000;
       if (d < bd) { bd = d; best = q; }
     }
     return best;
   }
   /** Where a plate's rail is counted from: at the plate's current offset it lies on land the plate still has (playtest 3: a hint rail floated out over the sea). */
   private railHome(p: number): [number, number] {
-    const k = this.marks.find(m => m.plate === p), c = k && this.markCol(k);
+    const k = this.marks.find(m => m.plate === p), c = k && (k.at && k.at.plate === p && !k.at.dead && !k.at.removing ? k.at : this.markCol(k)); // the rail replaces the slider, in the same place
     if (!c) return this.plateAnchor(p);
     const off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p] === 1;
     // where it is going, not where it is mid-slide: the rail is refreshed once, at the start of the move
@@ -671,7 +675,7 @@ export class IslandView {
       this.mesh.setMatrixAt(c.idx, mat4);
       for (const m of c.decor) {
         // nothing grows on the cell that carries a plate's slider while it shows
-        const onMark = this.showMarks && this.marks.some(k => k.plate === c.plate && k.patX === c.patX && k.patZ === c.patZ);
+        const onMark = this.showMarks && this.marks.some(k => k.at === c);
         const showing = !onMark && c.level < 2 && !c.removing && !this.occupied(c) && this.dim < .5 && (!m.userData.bloom || this.bloomed);
         const s = (m.userData.k ?? 1) + ((showing ? 1 : 0) - (m.userData.k ?? 1)) * (m.userData.bloom ? .09 : .25);
         m.userData.k = s; m.visible = s > .02;
@@ -680,9 +684,11 @@ export class IslandView {
       }
     }
     v.needsUpdate = true;
+    const taken: Column[] = [];
     for (const k of this.marks) {
       const hinted = this.railPlate !== null && this.railHint; // while a hint points at one plate, the others' sliders stay out of its way
-      const c = this.showMarks ? this.markCol(k) : undefined;
+      const c = this.showMarks ? this.markCol(k, taken) : undefined;
+      k.at = c; if (c) taken.push(c);
       k.m.visible = !!c && this.railPlate !== k.plate && !hinted;
       // hovering swaps a slider for its rail: it stays a grab target, or the plate under it steals the press that follows
       k.grab = !!c && (!hinted || this.railPlate === k.plate);
@@ -762,10 +768,17 @@ export class IslandView {
   }
   /** Every free plate's slider as a screen-picking target: a handle that stays reachable behind tall land. */
   markSegments() {
-    return this.marks.filter(k => k.grab).map(k => {
-      const ax = this.lv.axis[k.plate] === 1, half = this.lv.maxTravel * MARK_STEP + .06, p = k.m.position;
-      return { plate: k.plate, a: new Vector3(this.ox + p.x - (ax ? half : 0), p.y, this.oz + p.z - (ax ? 0 : half)), b: new Vector3(this.ox + p.x + (ax ? half : 0), p.y, this.oz + p.z + (ax ? 0 : half)) };
-    });
+    const out: { plate: number; a: Vector3; b: Vector3; reach: number }[] = [];
+    for (const k of this.marks) {
+      if (!k.grab) continue;
+      const ax = this.lv.axis[k.plate] === 1, half = this.lv.maxTravel * MARK_STEP + .06, p = k.m.position, shown = this.railPlate === k.plate;
+      const seg = (from: number, to: number, reach: number, y = p.y) => out.push({ plate: k.plate, reach, a: new Vector3(this.ox + p.x + (ax ? from : 0), y, this.oz + p.z + (ax ? 0 : from)), b: new Vector3(this.ox + p.x + (ax ? to : 0), y, this.oz + p.z + (ax ? 0 : to)) });
+      // the plate whose rail is showing is the one the player is looking at: it wins a close call, and the dots
+      // out at the rail's ends grab it too, a little more tightly so they don't steal the plate next door
+      seg(-half, half, shown ? 26 : 16);
+      if (shown) { const y = this.plateTop(k.plate) + .07; seg(-1.15, 1.15, 12, y); seg(-1, -1, 26, y); seg(1, 1, 26, y); seg(0, 0, 26, y); } // the rail rides above the slider's cell
+    }
+    return out;
   }
   private statePoints(s: State, head: number, buoys: boolean) {
     const { lv } = this, pts: Vector3[] = [];

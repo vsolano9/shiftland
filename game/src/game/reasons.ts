@@ -29,6 +29,18 @@ export function beamRun(lv: Level, s: State, cell: number) {
 
 const NAME: Record<Kind, string> = { goat: 'goat', village: 'village', light: 'lighthouse', oasis: 'oasis', penguin: 'penguin' };
 
+// says what the move does and not that it helps: "it gives the oasis what it needs" taught nothing (playtest 4)
+const MEETS: Record<Kind, string> = { goat: 'It lifts the goat onto a peak.', village: 'It settles the village on low ground.', light: 'It brings the sea to the lighthouse.', oasis: 'It gives the oasis a lake beside it.', penguin: "It brings the sea to the penguins' ice." };
+
+/** Who a move refused as 'melt' would drop in the water. */
+export function meltReason(lv: Level, s: State, p: number, d: Dir): string {
+  const next = shift(lv, { ...s, ice: undefined }, p, d), step = DX[d] + DY[d] * lv.w;
+  // ice a cell holds after the move: what slid onto it, plus its own unless its plate slid away
+  const icy = (j: number) => (s.plate[j - step] === p && s.ice?.[j - step]) || (s.plate[j] !== p && s.ice?.[j]);
+  const hit = next?.objs.find(o => next.elev[o.cell] >= 2 && icy(o.cell));
+  return `That would melt the ice under the ${hit ? NAME[hit.kind] : 'creatures'}`;
+}
+
 /**
  * What a move refused as 'stack' runs into, in words that fit the thing: "Two creatures can't share a cell" read oddly for a
  * palm or a lighthouse (playtest 3 P7). Looks the way the plate was pushed; `shift` allows one object per cell, so the hit
@@ -51,7 +63,7 @@ export function moveWhy(lv: Level, s: State, p: number, d: Dir): string {
   const next = shift(lv, s, p, d);
   if (!next) return '';
   const was = goalsMet(lv, s), now = goalsMet(lv, next), fresh = now.findIndex((m, i) => m && !was[i]);
-  if (fresh >= 0) return fresh < s.objs.length ? `It gives the ${NAME[s.objs[fresh].kind]} what it needs.` : 'It frees the buoy.';
+  if (fresh >= 0) return fresh < s.objs.length ? MEETS[s.objs[fresh].kind] : 'It frees the buoy.';
   const step = DX[d] + DY[d] * lv.w;
   for (let i = 0; i < s.plate.length; i++) if (s.plate[i] === p && s.plate[i + step] >= 0 && s.plate[i + step] !== p)
     return 'It bites its neighbour and keeps that land when it slides back.';

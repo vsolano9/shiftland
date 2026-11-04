@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { goalsMet, type Level, type State, type Kind } from '../rules/rules.ts';
-import { beamDir, beamRun, goalReason, hasSplitPlate, moveWhy, stackReason } from './reasons.ts';
+import { beamDir, beamRun, goalReason, hasSplitPlate, meltReason, moveWhy, stackReason } from './reasons.ts';
+import { refusal } from '../rules/rules.ts';
 
 /** A 5x5 grid from rows: '#' land, '.' water; one creature at (x, y). */
 function board(rows: string[], kind: Kind, x: number, y: number, up = 1, buoys: number[] = [], ice = true) {
@@ -48,7 +49,7 @@ describe('moveWhy and stackReason', () => {
   }
   it('names a goal it meets first', () => {
     const { lv, s } = pair([{ kind: 'goat', cell: 3 + 6 }]);
-    expect(moveWhy(lv, s, 0, 1)).toBe('It gives the goat what it needs.'); // plate 0 bites under the goat's plate edge
+    expect(moveWhy(lv, s, 0, 1)).toBe('It lifts the goat onto a peak.'); // plate 0 bites under the goat's plate edge
   });
   it('explains a bite that meets nothing yet', () => {
     const { lv, s } = pair([{ kind: 'village', cell: 1 + 6 }, { kind: 'goat', cell: 4 + 6 }]);
@@ -59,6 +60,14 @@ describe('moveWhy and stackReason', () => {
     expect(stackReason(lv, s, 0, 1)).toBe('The oasis is in the way of the goat');
     const free = pair([{ kind: 'goat', cell: 1 }]);
     expect(stackReason(free.lv, free.s, 0, 1)).toBe('Something already stands there');
+  });
+  it('names who stands on the ice a move would melt', () => {
+    const { lv, s } = pair([{ kind: 'penguin', cell: 3 + 6 }]);
+    const ice = new Uint8Array(s.plate.length);
+    ice[3 + 6] = 1;
+    const icy: State = { ...s, ice };
+    expect(refusal(lv, icy, 0, 1)).toBe('melt');
+    expect(meltReason(lv, icy, 0, 1)).toBe('That would melt the ice under the penguin');
   });
   it('names the blocker the way the plate was pushed, not the other way', () => {
     const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }, { kind: 'penguin', cell: 1 + 12 }, { kind: 'village', cell: 0 + 12 }]);

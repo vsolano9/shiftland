@@ -531,12 +531,12 @@ export class World {
   pick(px: number, py: number): number | null {
     const v = this.active; if (!v) return null;
     // a slider draws over everything, so what it covers can't be what the player means
-    let near = 16, slid: number | null = null;
+    let near = 0, slid: number | null = null; // how far inside a segment's reach the pointer is: the deepest wins
     for (const m of v.markSegments()) {
       const [ax, ay] = this.project(m.a), [bx, by] = this.project(m.b), dx = bx - ax, dy = by - ay;
       const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
-      const d = Math.hypot(px - ax - t * dx, py - ay - t * dy);
-      if (d < near) { near = d; slid = m.plate; }
+      const d = m.reach - Math.hypot(px - ax - t * dx, py - ay - t * dy);
+      if (d > near) { near = d; slid = m.plate; }
     }
     if (slid !== null) return slid;
     this.ndc.set(px / innerWidth * 2 - 1, -(py / innerHeight) * 2 + 1);

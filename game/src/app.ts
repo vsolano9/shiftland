@@ -12,10 +12,10 @@ import { browserStorage, Progress, tutorialCount } from './game/progress.ts';
 import raw from './levels/levels.json';
 import { HEAD_Y, KIND_SCALE, type CreatureKind } from './render/creatures.ts';
 import { MOVE_TIME, type IslandView } from './render/island.ts';
-import { BIOMES, type BiomeName } from './render/palette.ts';
+import { BIOMES, PATTERN_WORD, PLATES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
-import { goalReason, hasSplitPlate, moveWhy, stackReason } from './game/reasons.ts';
+import { goalReason, hasSplitPlate, meltReason, moveWhy, stackReason } from './game/reasons.ts';
 import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
@@ -100,7 +100,7 @@ class App {
   settings = loadSettings();
   private view!: IslandView;
   private busyUntil = 0;
-  private drag: { plate: number; start: Vector3; y: number; pointer: number; moved: boolean; across: number } | null = null;
+  private drag: { plate: number; start: Vector3; y: number; pointer: number; moved: boolean; across: number; refused: boolean } | null = null;
   private dragging = false;
   private pinEls: HTMLElement[] = [];
   private thumbs!: ReturnType<World['thumbs']>;
@@ -425,7 +425,9 @@ class App {
     const gone = s.hinted || (s.par !== undefined && s.moves + sol.min > s.par);
     if (this.hintLevel === 0) {
       this.hintLevel = 1;
-      this.flashHint(gone ? 'Try this plate. Hint again shows the move' : 'Try this plate. Hint again shows the move, but costs the star', 5);
+      // by name and pattern, since four plates side by side made "this plate" a guess (playtest 4 P4)
+      const look = PLATES[m.plate % PLATES.length], which = `Try the ${look.name} plate with the ${PATTERN_WORD[look.pattern]}.`;
+      this.flashHint(gone ? `${which} Hint again shows the move` : `${which} Hint again shows the move, but costs the star`, 6);
       return;
     }
     s.hinted = true;
@@ -543,8 +545,10 @@ class App {
       case 'moved': this.afterMove(e.plate); break;
       case 'blocked': {
         this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
-        const say = { rail: 'End of the rail', stack: '', melt: 'That would melt the ice under them', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
-        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, e.at, e.plate, e.dir), 2.5);
+        if (this.drag) this.drag.refused = true;
+        const say = { rail: 'End of the rail', stack: '', melt: '', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
+        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, e.at, e.plate, e.dir));
+        else if (e.why === 'melt') this.flashHint(meltReason(this.view.lv, e.at, e.plate, e.dir));
         else if (e.why) this.flashHint(say[e.why]);
         break;
       }
@@ -588,7 +592,7 @@ class App {
     clearTimeout(this.noteT); this.noteT = window.setTimeout(() => n.classList.add('off'), 2600);
   }
   private noteT = 0;
-  private flashHint(t: string, sec = 1.5) {
+  private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
     const h = $('hint'); h.textContent = t; h.classList.remove('off');
     clearTimeout(this.flashT);
     this.flashT = window.setTimeout(() => {
@@ -603,6 +607,8 @@ class App {
     const v = this.view, s = this.controller.session;
     $('done').classList.add('hidden'); v.celebrate(false); v.setBloom(false); this.completeTimer = false;
     this.hintLevel = 0; v.showMarks = true; this.solveGen++;
+    clearTimeout(this.flashT); clearTimeout(this.hintSlow); $('hint').classList.add('off'); // a hint about the old board says nothing about this one
+    if (v.railHint) { v.railHint = 0; v.railDir = 0; v.showRail(null); }
     this.world.frameActive('level', .5); this.showBlurb(8); // a restart is when a player wants the clue again
     clearTimeout(this.stuckTimer);
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
@@ -868,7 +874,7 @@ class App {
     const start = this.world.groundPoint(e.clientX, e.clientY, y);
     if (!start) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    this.drag = { plate, start, y, pointer: e.pointerId, moved: false, across: 0 };
+    this.drag = { plate, start, y, pointer: e.pointerId, moved: false, across: 0, refused: false };
     this.dragging = true;
     v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
@@ -903,7 +909,7 @@ class App {
   }
   private pointerUp(e: PointerEvent) {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
-    const p = this.drag.plate, across = this.drag.across, tapped = !this.drag.moved;
+    const p = this.drag.plate, across = this.drag.across, tapped = !this.drag.moved, refused = this.drag.refused;
     this.drag = null; this.dragging = false;
     this.view.setQuiet(false);
     this.view.noteDragEnd(p);
@@ -913,6 +919,8 @@ class App {
     if (tapped && this.controller.session.moves === before) this.askCreature(e.clientX, e.clientY);
     // dragged clean across the rail: say so, or the plate just looks broken
     if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }
+    // a nudge that sprang back looks like a game that ignored you (playtest 4 P3)
+    else if (!tapped && !refused && this.controller.session.moves === before) this.flashHint('Drag further: a plate moves a whole cell at a time');
     (e.target as HTMLElement).style.cursor = 'default';
   }
   private pointerCancel() {

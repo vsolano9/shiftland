@@ -6,7 +6,7 @@
 import type { Dir } from '../rules/rules.ts';
 
 /** Fraction of a cell the pointer must pass (strictly) along the rail before the next stop is asked for. */
-export const SNAP = 0.5;
+export const SNAP = 0.35; // a half-cell asked too much: a short confident flick did nothing (playtest 4 P3)
 
 /**
  * axis 0 = the plate slides N/S, 1 = E/W. dx/dy: drag in cells since the drag started, +x east, +y south.
