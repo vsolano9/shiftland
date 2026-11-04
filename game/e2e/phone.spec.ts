@@ -88,6 +88,7 @@ test('a reload puts the player back on the same board', async ({ page, context }
   const r = await railOf(page, await firstMove(page));
   await swipe(cdp, page, r.a, r.b);
   const before = await page.evaluate(`[...${SL}.controller.session.state.plate].join()`);
+  await page.evaluate(`for (let i = 0; i < 6; i++) ${SL}.progress.complete(i, 1, 1)`); // a player who really got here: the test's unlock doesn't outlive the reload
   await page.reload();
   await page.waitForFunction(`${SL} && ${SL}.world.frames > 5`, undefined, { timeout: 60_000 });
   await page.evaluate(`${SL}.progress.unlocked = () => true`);
