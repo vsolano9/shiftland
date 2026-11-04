@@ -18,16 +18,27 @@ export interface MoveDiff {
   moved: [number, number, number][];
   /** goals that flip: [goal index (objects then buoys), now met] */
   flips: [number, boolean][];
+  /** cells where ice melts: lifted to height 2+, so the cell turns to water (these are in `flood` too) */
+  melt: number[];
 }
 
 export function previewDiff(lv: Level, a: State, b: State): MoveDiff {
-  const d: MoveDiff = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [] };
+  const d: MoveDiff = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [], melt: [] };
   for (let i = 0; i < lv.w * lv.h; i++) {
     const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
     if (wasLand && !isLand) d.flood.push(i);
     if (isLand && b.plate[i] !== a.plate[i]) d.arrive.push(i);
     if (wasLand && isLand && b.plate[i] !== a.plate[i] && b.elev[i] > a.elev[i]) d.rise.push([i, b.elev[i]]);
     if (wasLand && isLand && b.plate[i] === a.plate[i] && b.elev[i] !== a.elev[i]) d.carry.push([i, b.elev[i]]);
+  }
+  // A melted cell is one the mover should occupy after the step but which ended up as water: nothing else turns a
+  // plate's arrival cell to water. Ice below height 2 melts only where a plate takes a cell, so these are all in flood.
+  if (a.ice && b.off) for (let p = 0; p < lv.plates; p++) {
+    const moved = b.off[p] - (a.off ? a.off[p] : 0);
+    if (moved === 0) continue;
+    const step = lv.axis[p] === 1 ? moved : moved * lv.w;
+    for (let i = 0; i < lv.w * lv.h; i++) if (a.plate[i] === p && b.plate[i + step] < 0) d.melt.push(i + step);
+    d.melt.sort((x, y) => x - y);
   }
   b.objs.forEach((o, k) => { if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]); });
   const g0 = goalsMet(lv, a), g1 = goalsMet(lv, b);

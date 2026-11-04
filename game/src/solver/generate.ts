@@ -63,5 +63,5 @@ function base(seed: number, o: GenOptions): Level {
   const interior = land.filter(i => { const x = i % w, y = Math.floor(i / w); return x > 1 && y > 1 && x < w - 2 && y < h - 2 && (!place || seam(i)); });
   const buoys = r() < 0.5 && interior.length ? [pick(interior)] : [];
   const axis = Array.from({ length: plates }, () => (r() < 0.5 ? 0 : 1));
-  return { w, h, plates, axis, maxTravel, buoys, start: { plate, elev, objs } };
+  return { w, h, plates, axis, maxTravel, buoys, biome: 'meadow', start: { plate, elev, objs } };
 }
