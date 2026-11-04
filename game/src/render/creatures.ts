@@ -1,6 +1,6 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { AdditiveBlending, BoxGeometry, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
+import { BoxGeometry, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
@@ -11,9 +11,9 @@ const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = n
 
 export type CreatureKind = 'goat' | 'village' | 'light' | 'oasis' | 'penguin' | 'buoy';
 const WISH: Partial<Record<CreatureKind, WishIcon>> = { goat: 'peak', light: 'sea', buoy: 'sea', oasis: 'lake', penguin: 'ice' };
-export const HEAD_Y: Record<CreatureKind, number> = { goat: 0.72, village: 0.72, light: 1.16, buoy: 0.68, oasis: 0.78, penguin: 0.62 };
+export const HEAD_Y: Record<CreatureKind, number> = { goat: 0.5, village: 0.72, light: 1.16, buoy: 0.68, oasis: 0.78, penguin: 0.62 };
 /** Characters stand larger than their cell, as on the concept sheets: they must read at a glance at island zoom. */
-export const KIND_SCALE: Record<CreatureKind, number> = { goat: 1.9, village: 1.55, light: 1.45, buoy: 1.55, oasis: 1.4, penguin: 1.6 };
+export const KIND_SCALE: Record<CreatureKind, number> = { goat: 1.9, village: 1.55, light: 1.45, buoy: 1.55, oasis: 1.65, penguin: 1.75 };
 
 const ease = (t: number) => t * t * (3 - 2 * t);
 const back = (t: number) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
@@ -59,9 +59,10 @@ export class Creature {
   private build() {
     const b = this.body;
     if (this.kind === 'goat') {
-      this.legs = mesh(M.goatBody); b.add(this.legs);
+      b.add(mesh(M.goatBody));
+      this.legs = mesh(M.goatLegs); this.legs.position.y = M.GOAT_HIP; b.add(this.legs);
       const h = new Group(); this.head = mesh(M.goatHead); this.brows = mesh(M.goatBrows, false);
-      h.add(this.head, this.brows); h.position.set(0, .4, .17); b.add(h);
+      h.add(this.head, this.brows); h.position.set(...M.GOAT_HEAD); b.add(h);
       b.rotation.y = 0.45;
       this.head.userData.pivot = h;
     } else if (this.kind === 'village') {
@@ -75,8 +76,8 @@ export class Creature {
     } else if (this.kind === 'light') {
       b.add(mesh(M.lighthouse));
       const lampMesh = new Mesh(M.lamp, this.lampMat = new MeshBasicMaterial({ vertexColors: true, color: 0x555555 })); b.add(lampMesh);
-      const cone = new ConeGeometry(.55, 2.3, 16, 1, true); cone.translate(0, -1.15, 0); cone.rotateZ(Math.PI / 2 + 0.08);
-      this.beam = new Mesh(cone, new MeshBasicMaterial({ color: '#ffe89a', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, blending: AdditiveBlending }));
+      const cone = new ConeGeometry(.42, 2, 16, 1, true); cone.translate(0, -1, 0); cone.rotateZ(Math.PI / 2 + 0.08);
+      this.beam = new Mesh(cone, new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false }));
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {
       b.add(mesh(M.buoy));
@@ -88,7 +89,7 @@ export class Creature {
       }
     } else {
       for (const [x, z, a] of [[-.17, -.1, .4], [.17, -.06, -.3], [0, .17, .1]] as const) {
-        const g = new Group(); g.add(mesh(M.penguin)); g.position.set(x, 0, z); g.rotation.y = a; b.add(g);
+        const g = new Group(); g.add(mesh(M.penguin)); g.position.set(x, 0, z); g.rotation.order = 'YXZ'; g.rotation.y = a; b.add(g);
         this.pens.push({ g, x, z, a });
       }
     }
@@ -118,6 +119,10 @@ export class Creature {
   hideWish(hidden: boolean) { if (this.bubble) this.bubble.userData.hidden = hidden; }
   /** Bubbles step aside while a plate is being dragged, so they never hide the board being read. */
   quiet = false;
+  far = false;
+  /** Where the wish bubble sits relative to the head; the island view picks a spot that covers nobody. */
+  bubbleHome: [number, number, number] = [.2, .1, -.18];
+  private bubbleAt: [number, number, number] = [.2, .1, -.18];
 
   celebrate(on: boolean) { this.celebrating = on ? 1 : 0; this.people.forEach(p => { p.visible = on; }); }
 
@@ -131,7 +136,9 @@ export class Creature {
       const s = (.54 / KIND_SCALE[this.kind]) * back(Math.max(0, 1 - this.metK * 1.8)) * (this.bubble.userData.hidden || this.quiet ? 0 : 1);
       this.bubble.scale.setScalar(Math.max(s, 0.0001));
       this.bubble.visible = s > .01;
-      this.bubble.position.y = HEAD_Y[this.kind] + .12 + Math.sin(t * 1.7 + this.phase) * .02;
+      const q = this.bubble.position, r = Math.min(1, dt * 6) || 0, h = this.bubbleHome;
+      this.bubbleAt[0] += (h[0] - this.bubbleAt[0]) * r; this.bubbleAt[1] += (h[1] - this.bubbleAt[1]) * r; this.bubbleAt[2] += (h[2] - this.bubbleAt[2]) * r;
+      q.set(this.bubbleAt[0], HEAD_Y[this.kind] + this.bubbleAt[1] + Math.sin(t * 1.7 + this.phase) * .02, this.bubbleAt[2]);
     }
     if (this.badge.visible) {
       this.badgeLife -= dt;
@@ -150,17 +157,16 @@ export class Creature {
     switch (this.kind) {
       case 'goat': {
         const pivot = this.head!.userData.pivot as Group;
-        // unhappy: folded down with a drooped head, looking up with a sigh; happy: proud, tail up, a little hop
-        // (concepts/shiftland-creatures.png: flopped on its belly, head low and turned aside)
-        const squat = (1 - k) * .58;
-        this.legs!.scale.y = 1 - squat; this.legs!.position.y = 0;
-        pivot.position.y = .4 - squat * .46 + Math.sin(ph * 1.8) * .006;
-        pivot.rotation.x = k > .5 ? Math.sin(ph * .8) * .1 - .05 : .18 + Math.sin(ph * .8) * .04;
-        pivot.rotation.y = (1 - k) * .55;
-        pivot.rotation.z = (1 - k) * (.16 + Math.sin(ph * .6) * .06);
+        // unhappy: flopped flat on its side, legs folded, head on the ground, sighing (concepts/shiftland-creatures.png);
+        // happy: up on all fours, chin high, a little hop
+        const sad = 1 - k, ry = this.body.rotation.y, dx = sad * .2;
+        this.body.rotation.z = sad * 1.36;
+        this.legs!.scale.y = 1 - sad * .42;
+        this.body.position.set(Math.cos(ry) * dx, sad * .012 + hop * .2 + pulse * .22 * k, -Math.sin(ry) * dx);
+        pivot.rotation.x = sad * .28 + k * (Math.sin(ph * .8) * .08 - .1) + sad * Math.sin(ph * .8) * .03;
+        pivot.rotation.z = sad * -1.02;
         this.brows!.visible = k < .5;
-        this.body.position.y = hop * .2 + pulse * .22;
-        this.body.scale.setScalar(1 + pulse * .08);
+        this.body.scale.setScalar((1 - sad * .14) * (1 + pulse * .08)); // lying down it is long: keep it on its cell
         if (this.next < 0) {
           this.next = 5 + Math.random() * 6;
           if (this.metK > .5) { this.pop = Math.max(this.pop, .9); } else { const [x, y, z] = this.world(.05, .36, .25); this.fx.sigh(x, y, z); }
@@ -190,9 +196,11 @@ export class Creature {
       }
       case 'light': {
         this.lampMat!.color.setRGB(.33 + k * .9, .33 + k * .85, .34 + k * .6);
-        (this.beam!.material as MeshBasicMaterial).opacity = k * (.11 + .025 * Math.sin(ph * 2.3));
+        this.beam!.visible = !this.far;
+        (this.beam!.material as MeshBasicMaterial).opacity = k * (.2 + .03 * Math.sin(ph * 2.3));
         this.beam!.rotation.y = ph * .55;
-        this.body.rotation.z = (1 - k) * Math.sin(ph * 1.4) * .025 + pulse * .04;
+        // away from the sea it leans over, dark, like the sheet's unhappy tower
+        this.body.rotation.z = (1 - k) * (.27 + Math.sin(ph * 1.4) * .012) + pulse * .04;
         this.body.position.y = hop * .08;
         break;
       }
@@ -225,12 +233,16 @@ export class Creature {
       }
       case 'penguin': {
         this.pens.forEach((p, i) => {
+          // huddled and shivering when unhappy; when happy each takes turns to belly-slide across its ice and back
           const huddle = 1 - k, wa = ph * 3.4 + i * 2;
-          p.g.position.x = p.x * (1 - huddle * .35);
-          p.g.position.z = p.z * (1 - huddle * .35);
-          p.g.rotation.z = Math.sin(wa) * (.05 + k * .16);
-          p.g.rotation.y = p.a + (k ? Math.sin(ph * .7 + i) * k * .9 : 0);
-          p.g.position.y = Math.abs(Math.sin(wa)) * k * .04 + hop * .17;
+          const u = ((ph * .13 + i * .37) % 1 + 1) % 1, s = u < .3 ? Math.sin(u / .3 * Math.PI) : 0;
+          const lie = Math.min(1, s * 3.2) * k, d = s * s * .3 * k;
+          p.g.position.x = p.x * (1 - huddle * .35) + Math.sin(p.a) * d;
+          p.g.position.z = p.z * (1 - huddle * .35) + Math.cos(p.a) * d;
+          p.g.rotation.x = lie * 1.36;
+          p.g.rotation.z = lie ? 0 : Math.sin(wa) * (.05 + k * .16 + huddle * .05);
+          p.g.rotation.y = p.a + (lie ? 0 : Math.sin(ph * .7 + i) * k * .5);
+          p.g.position.y = lie * .075 + (lie ? 0 : Math.abs(Math.sin(wa)) * k * .04) + hop * .17;
         });
         break;
       }

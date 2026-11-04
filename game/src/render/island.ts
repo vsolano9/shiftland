@@ -81,12 +81,44 @@ export class IslandView {
   railPlate: number | null = null;
   railHint = 0;
   private anchors: Mesh[] = [];
-  private markMat = new MeshBasicMaterial({ color: '#fffaf0', transparent: true, opacity: .62, depthWrite: false });
   private marks: { m: Mesh; plate: number; patX: number; patZ: number }[] = [];
   /** Axis marks show on the island being played, until it is solved. */
   showMarks = false;
   /** Bubbles step aside while a plate is dragged. */
+  /** Wish bubbles step to a side of their creature where they cover nobody else, judged in screen space (the camera angle is fixed). */
+  private bubbleKey = '';
+  private placeBubbles() {
+    const key = this.creatures.map(c => `${Math.round(c.root.position.x * 4)},${Math.round(c.root.position.z * 4)},${Math.round(c.root.position.y * 4)},${c.met ? 1 : 0}`).join(';');
+    if (key === this.bubbleKey) return;
+    this.bubbleKey = key;
+    const CA = Math.cos(.72), SA = Math.sin(.72), CE = Math.cos(.82), SE = Math.sin(.82);
+    const screen = (x: number, y: number, z: number): [number, number] => [x * CA - z * SA, y * CE - (x * SA + z * CA) * SE];
+    type Blob = { u: number; v: number; r: number; owner: Creature };
+    const blobs: Blob[] = [];
+    const blob = (c: Creature, y: number, r: number) => { const p = c.root.position, [u, v] = screen(p.x, p.y + y, p.z); blobs.push({ u, v, r, owner: c }); };
+    for (const c of this.creatures) { const h = HEAD_Y[c.kind] * KIND_SCALE[c.kind]; blob(c, h * .28, .3); blob(c, h * .78, .25); }
+    const placed: [number, number][] = [];
+    const CAND: [number, number][] = [[.3, .12], [-.34, .12], [0, .42], [.58, .1], [-.6, .1], [.34, .46], [-.36, .46], [.75, .3], [-.78, .3], [0, .78]];
+    for (const c of this.creatures) {
+      if (!c.bubble) continue;
+      const S = KIND_SCALE[c.kind], p = c.root.position, y0 = HEAD_Y[c.kind] * S;
+      const [hu, hv] = screen(p.x, p.y + y0, p.z);
+      let best = CAND[0], bestCost = Infinity;
+      CAND.forEach((o, n) => {
+        const u = hu + o[0], v = hv + o[1]; let cost = n * .02;
+        for (const b of blobs) { if (b.owner === c) continue; const d = Math.hypot(u - b.u, v - b.v) - b.r - .24; if (d < 0) cost -= d * 4; }
+        for (const [bu, bv] of placed) { const d = Math.hypot(u - bu, v - bv) - .5; if (d < 0) cost -= d * 6; }
+        if (cost < bestCost) { bestCost = cost; best = o; }
+      });
+      placed.push([hu + best[0], hv + best[1]]);
+      // back to world, in the root's scaled space: right on screen is (CA, 0, -SA), up on screen is world up
+      c.bubbleHome = [best[0] * CA / S, best[1] / CE / S, -best[0] * SA / S];
+    }
+  }
+
   setQuiet(q: boolean) { for (const c of this.creatures) c.quiet = q; }
+  /** On the map a lighthouse beam would be a stray fan across the neighbours. */
+  setFar(f: boolean) { for (const c of this.creatures) c.far = f; }
 
   constructor(readonly lv: Level, readonly index: number, readonly ox: number, readonly oz: number, private host: IslandHost) {
     this.biome = ((lv as Level & { biome?: BiomeName }).biome ?? 'meadow') as BiomeName;
@@ -111,7 +143,8 @@ export class IslandView {
     // a faint double arrow on every free plate: a plan can be read without touching anything
     for (let p = 0; p < lv.plates; p++) {
       if (lv.pinned?.includes(p)) continue;
-      const m = new Mesh(M.axisMark, this.markMat); m.rotation.y = lv.axis[p] === 1 ? 0 : Math.PI / 2; m.renderOrder = 6; m.visible = false;
+      // in the plate's own band colour: it reads on any ground, and says whose rail this is
+      const m = new Mesh(M.axisMark, new MeshBasicMaterial({ color: plateBand(p), transparent: true, opacity: .92, depthWrite: false })); m.rotation.y = lv.axis[p] === 1 ? 0 : Math.PI / 2; m.renderOrder = 6; m.visible = false;
       const [x, z] = this.plateAnchor(p), s = lv.start, cell = (x + (lv.w - 1) / 2) + (z + (lv.h - 1) / 2) * lv.w, [patX, patZ] = this.patOf(s, p, cell);
       this.marks.push({ m, plate: p, patX, patZ }); this.group.add(m);
     }
@@ -494,6 +527,7 @@ export class IslandView {
       }
       cr.update(dt, t);
     }
+    this.placeBubbles();
     // ghost pulses
     for (const o of this.ghostGroup.children) if (o.userData.pulse) { const s = o as Sprite, b = .42 + Math.sin(t * 7) * .05; s.scale.setScalar(b); }
     // rail arrows
@@ -579,6 +613,21 @@ export class IslandView {
   /** Worst-case size of the board in world units, with its centre at (ox, oz). */
   get span() { return Math.max(this.lv.w, this.lv.h); }
   /** The box the camera must keep in view: start land plus how far each plate can slide, clipped to the grid. */
+  /** What the level camera must keep on screen, in island space: every land cell, a step of each plate's slide, and whoever stands on it. */
+  framePoints() {
+    const { lv } = this, s = lv.start, pts: Vector3[] = [];
+    const objs = new Set(s.objs.map(o => o.cell));
+    for (let i = 0; i < s.plate.length; i++) {
+      const p = s.plate[i]; if (p < 0) continue;
+      const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .45, ax = lv.axis[p] === 1;
+      const top = topY(s.elev[i]) + (objs.has(i) ? 1.1 : .1);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const px = x + sx * (.5 + (ax ? slide : 0)), pz = z + sz * (.5 + (ax ? 0 : slide));
+        pts.push(new Vector3(px, -.05, pz), new Vector3(px, top, pz));
+      }
+    }
+    return pts;
+  }
   frameBox() {
     const { lv } = this, s = lv.start;
     let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9, top = 0;

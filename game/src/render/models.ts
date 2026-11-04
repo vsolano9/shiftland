@@ -26,35 +26,41 @@ const sph = (r: number, a = 8, b = 6) => new SphereGeometry(r, a, b);
 const tor = (r: number, t: number) => new TorusGeometry(r, t, 5, 10);
 
 // GOAT: faces +z. The stand pose holds legs and body, the head is separate so it can nod.
-const CREAM = '#f4e7d3', SHADE = '#dfc9ab', HOOF = '#6e4b34', HORN = '#7a4e2c', DARK = '#2a2320';
+const CREAM = '#f6ead8', SHADE = '#e2cdb0', HOOF = '#5a3d2b', HORN = '#8f5e35', DARK = '#2a2320';
+export const GOAT_HIP = 0.2, GOAT_HEAD: [number, number, number] = [0, 0.49, 0.215];
+// Slim and long-legged, as on the sheet: a goat is its silhouette, a back line, a raised neck and a horn arc.
 export const goatBody = merge([
-  { g: box(0.2, 0.17, 0.33), c: CREAM, p: [0, 0.255, 0] },
-  { g: box(0.17, 0.05, 0.27), c: SHADE, p: [0, 0.16, 0] },
-  { g: box(0.14, 0.16, 0.11), c: CREAM, p: [0, 0.37, 0.13], r: [-0.45, 0, 0] },           // neck into the head
-  { g: box(0.05, 0.09, 0.05), c: SHADE, p: [0, 0.34, -0.18], r: [0.8, 0, 0] },            // short raised tail
-  { g: box(0.052, 0.19, 0.055), c: CREAM, p: [-0.068, 0.09, 0.125] }, { g: box(0.052, 0.19, 0.055), c: CREAM, p: [0.068, 0.09, 0.125] },
-  { g: box(0.052, 0.19, 0.055), c: SHADE, p: [-0.068, 0.09, -0.125] }, { g: box(0.052, 0.19, 0.055), c: SHADE, p: [0.068, 0.09, -0.125] },
-  { g: box(0.06, 0.045, 0.065), c: HOOF, p: [-0.068, 0.022, 0.125] }, { g: box(0.06, 0.045, 0.065), c: HOOF, p: [0.068, 0.022, 0.125] },
-  { g: box(0.06, 0.045, 0.065), c: HOOF, p: [-0.068, 0.022, -0.125] }, { g: box(0.06, 0.045, 0.065), c: HOOF, p: [0.068, 0.022, -0.125] },
+  { g: box(0.15, 0.145, 0.34), c: CREAM, p: [0, 0.275, -0.01] },
+  { g: box(0.145, 0.15, 0.1), c: CREAM, p: [0, 0.285, 0.145] },                            // chest
+  { g: box(0.155, 0.125, 0.1), c: SHADE, p: [0, 0.285, -0.15] },                           // rump
+  { g: box(0.115, 0.03, 0.24), c: SHADE, p: [0, 0.195, 0] },                               // belly
+  { g: box(0.085, 0.21, 0.09), c: CREAM, p: [0, 0.39, 0.175], r: [0.42, 0, 0] },           // neck
+  { g: box(0.032, 0.085, 0.032), c: SHADE, p: [0, 0.37, -0.205], r: [-0.65, 0, 0] },       // tail, up and back
 ]);
-// Three cones per horn sweep up and back in the arc that makes it a goat at 40 px.
+const goatLeg = (x: number, z: number, c: string): P[] => [
+  { g: box(0.042, 0.19, 0.046), c, p: [x, 0.1 - GOAT_HIP, z] },
+  { g: box(0.05, 0.04, 0.056), c: HOOF, p: [x, 0.02 - GOAT_HIP, z] },
+];
+/** Origin at the hip, so the legs fold when the goat flops. */
+export const goatLegs = merge([...goatLeg(-0.052, 0.13, CREAM), ...goatLeg(0.052, 0.13, CREAM), ...goatLeg(-0.052, -0.135, SHADE), ...goatLeg(0.052, -0.135, SHADE)]);
+// Three thin segments per horn: up, back, then the tip sweeps down: the arc that makes it a goat at 40 px.
 const horn = (sx: number): P[] => [
-  { g: cyl(0.024, 0.032, 0.09, 5), c: HORN, p: [sx * 0.05, 0.09, -0.015], r: [-0.3, 0, -sx * 0.22] },
-  { g: cyl(0.016, 0.024, 0.09, 5), c: HORN, p: [sx * 0.066, 0.165, -0.06], r: [-1.05, 0, -sx * 0.2] },
-  { g: cone(0.016, 0.09, 5), c: HORN, p: [sx * 0.078, 0.19, -0.135], r: [-1.95, 0, 0] },
+  { g: cyl(0.017, 0.023, 0.08, 5), c: HORN, p: [sx * 0.03, 0.085, -0.03], r: [-0.35, 0, -sx * 0.12] },
+  { g: cyl(0.013, 0.017, 0.075, 5), c: HORN, p: [sx * 0.038, 0.142, -0.073], r: [-0.95, 0, -sx * 0.12] },
+  { g: cone(0.013, 0.07, 5), c: HORN, p: [sx * 0.046, 0.167, -0.138], r: [-1.72, 0, 0] },
 ];
 export const goatHead = merge([
-  { g: box(0.125, 0.125, 0.15), c: CREAM, p: [0, 0, 0.03] },
-  { g: box(0.09, 0.075, 0.085), c: '#fff7ea', p: [0, -0.032, 0.125] },
-  { g: box(0.032, 0.022, 0.012), c: '#c98a7a', p: [0, -0.016, 0.17] },
-  { g: box(0.036, 0.06, 0.03), c: '#fff7ea', p: [0, -0.092, 0.125] },                      // beard
-  { g: box(0.024, 0.038, 0.012), c: DARK, p: [-0.04, 0.025, 0.106] }, { g: box(0.024, 0.038, 0.012), c: DARK, p: [0.04, 0.025, 0.106] },
-  { g: box(0.1, 0.032, 0.05), c: SHADE, p: [-0.105, 0.012, -0.01], r: [0, 0, 0.42] }, { g: box(0.1, 0.032, 0.05), c: SHADE, p: [0.105, 0.012, -0.01], r: [0, 0, -0.42] },
+  { g: box(0.095, 0.1, 0.115), c: CREAM, p: [0, 0, 0] },
+  { g: box(0.072, 0.066, 0.09), c: '#fff7ea', p: [0, -0.03, 0.09] },                       // muzzle
+  { g: box(0.042, 0.018, 0.008), c: '#c98a7a', p: [0, -0.012, 0.136] },                    // nose
+  { g: box(0.026, 0.052, 0.022), c: '#fff7ea', p: [0, -0.082, 0.1] },                      // beard
+  { g: box(0.014, 0.03, 0.026), c: DARK, p: [-0.047, 0.012, 0.045] }, { g: box(0.014, 0.03, 0.026), c: DARK, p: [0.047, 0.012, 0.045] },
+  { g: box(0.08, 0.024, 0.036), c: SHADE, p: [-0.08, 0.018, -0.03], r: [0, 0, 0.32] }, { g: box(0.08, 0.024, 0.036), c: SHADE, p: [0.08, 0.018, -0.03], r: [0, 0, -0.32] },
   ...horn(-1), ...horn(1),
 ]);
 export const goatBrows = merge([
-  { g: box(0.042, 0.012, 0.012), c: DARK, p: [-0.04, 0.056, 0.108], r: [0, 0, 0.5] },   // inner ends up: sad, not cross
-  { g: box(0.042, 0.012, 0.012), c: DARK, p: [0.04, 0.056, 0.108], r: [0, 0, -0.5] },
+  { g: box(0.018, 0.01, 0.034), c: DARK, p: [-0.05, 0.04, 0.05], r: [0.45, 0, 0] },         // outer ends low: sad, not cross
+  { g: box(0.018, 0.01, 0.034), c: DARK, p: [0.05, 0.04, 0.05], r: [0.45, 0, 0] },
 ]);
 
 // VILLAGE: one house; a village is three, placed and tilted by the creature view.
@@ -92,10 +98,10 @@ export const lamp = merge([{ g: cyl(0.075, 0.075, 0.125, 10), c: '#ffe894', p: [
 
 // BUOY: faces any way; origin at its waterline.
 export const buoy = merge([
-  { g: cyl(0.16, 0.2, 0.08, 10), c: '#e04238', p: [0, 0.03, 0] },
-  { g: cone(0.17, 0.28, 10), c: '#f6f0e6', p: [0, 0.2, 0] },
-  { g: cyl(0.095, 0.135, 0.07, 10), c: '#e04238', p: [0, 0.18, 0] },
-  { g: cyl(0.03, 0.05, 0.05, 10), c: '#e04238', p: [0, 0.32, 0] },
+  { g: cyl(0.16, 0.2, 0.08, 16), c: '#e04238', p: [0, 0.03, 0] },
+  { g: cone(0.17, 0.28, 16), c: '#f6f0e6', p: [0, 0.2, 0] },
+  { g: cyl(0.095, 0.135, 0.07, 16), c: '#e04238', p: [0, 0.18, 0] },
+  { g: cyl(0.03, 0.05, 0.05, 16), c: '#e04238', p: [0, 0.32, 0] },
   { g: tor(0.042, 0.012), c: '#d03a33', p: [0, 0.385, 0] },
 ]);
 export const fish = merge([
@@ -105,21 +111,28 @@ export const fish = merge([
 ]);
 
 // PALM OASIS
-const palmTrunk: P[] = [
-  { g: cyl(0.018, 0.028, 0.14, 6), c: '#8c5f39', p: [0, 0.07, 0], r: [0, 0, -0.08] },
-  { g: cyl(0.016, 0.02, 0.14, 6), c: '#7d5431', p: [0.016, 0.2, 0], r: [0, 0, -0.17] },
-  { g: cyl(0.014, 0.018, 0.13, 6), c: '#8c5f39', p: [0.04, 0.33, 0], r: [0, 0, -0.3] },
-];
-const fronds = (droop: number) => {
+const seg = (x: number, y: number, tilt: number, top: number, bottom: number, len: number, c: string): P => ({ g: cyl(top, bottom, len, 6), c, p: [x, y, 0], r: [0, 0, -tilt] });
+// Two segments per frond, so each one arcs out and droops like a palm leaf and not a propeller blade.
+const fronds = (ox: number, oy: number, up: number, cA: string, cB: string) => {
   const out: P[] = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    out.push({ g: box(0.2, 0.012, 0.06), c: i % 2 ? '#4ea344' : '#3d8c3a', p: [0.06 + Math.cos(a) * 0.09, 0.405 - droop * 0.09, Math.sin(a) * 0.09], r: [0, -a, -0.15 - droop] });
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
+    const t1 = up, t2 = up + 0.72, ca = Math.cos(a), sa = Math.sin(a);
+    const d1 = [Math.cos(t1) * ca, -Math.sin(t1), Math.cos(t1) * sa], d2 = [Math.cos(t2) * ca, -Math.sin(t2), Math.cos(t2) * sa];
+    out.push({ g: box(0.15, 0.018, 0.09), c, p: [ox + d1[0] * 0.075, oy + d1[1] * 0.075, d1[2] * 0.075], r: [0, -a, -t1] });
+    out.push({ g: box(0.14, 0.014, 0.06), c, p: [ox + d1[0] * 0.15 + d2[0] * 0.06, oy + d1[1] * 0.15 + d2[1] * 0.06, d1[2] * 0.15 + d2[2] * 0.06], r: [0, -a, -t2] });
   }
   return out;
 };
-export const palm = merge([...palmTrunk, ...fronds(0.25)]);
-export const palmWilt = merge([...palmTrunk, ...fronds(0.95).map(p => ({ ...p, c: '#a8a84f' }))]);
+export const palm = merge([
+  seg(0.004, 0.07, 0.08, 0.026, 0.038, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.021, 0.027, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.018, 0.022, 0.13, '#8c5f39'),
+  ...fronds(0.085, 0.395, -0.28, '#4ea344', '#3d8c3a'),
+]);
+// Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
+export const palmWilt = merge([
+  seg(0.02, 0.06, 0.35, 0.026, 0.038, 0.13, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.021, 0.027, 0.13, '#7d5431'), seg(0.214, 0.198, 1.6, 0.019, 0.022, 0.13, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.016, 0.02, 0.1, '#7d5431'),
+  ...fronds(0.355, 0.135, 0.55, '#7f9a3f', '#94a64a'),
+]);
 
 // PENGUIN
 export const penguin = merge([

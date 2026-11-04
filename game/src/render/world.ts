@@ -8,7 +8,7 @@ import { Mask, Ocean } from './ocean.ts';
 import { BIOMES } from './palette.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
-import { MAT, HEAD_Y, Creature, type CreatureKind } from './creatures.ts';
+import { MAT, Creature, type CreatureKind } from './creatures.ts';
 
 const AZ = 0.72, EL = 0.82; // camera azimuth and elevation, radians
 const CAM_DIR = new Vector3(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(AZ) * Math.cos(EL));
@@ -132,25 +132,28 @@ export class World {
 
   // ---- camera framing
   private fitDistance(v: IslandView) {
-    // pull back until the island's corners fit between the HUD bars
-    const b = v.frameBox(); let best = 13;
-    const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(); const up = new Vector3().crossVectors(CAM_DIR, right).normalize();
-    const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
-    const pts: Vector3[] = [];
-    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) for (const y of [0, b.top]) pts.push(new Vector3(sx * b.hx, y, sz * b.hz));
-    for (const p of pts) {
-      const d = p.clone().sub(new Vector3(0, .3, 0));
-      const x = Math.abs(d.dot(right)), yy = Math.abs(d.dot(up)), z = d.dot(CAM_DIR);
-      const usableV = 1 - this.hudPad.top - this.hudPad.bottom, usableH = 1 - this.hudPad.left - this.hudPad.right;
-      best = Math.max(best, x / (tanH * .96 * usableH) + z, yy / (tanV * usableV) + z);
-    }
-    return best;
+    return this.fit(v).dist;
   }
   private focusOf(v: IslandView) {
+    return this.fit(v).focus;
+  }
+  /** The closest camera that keeps the island's real land (not its bounding box) between the HUD bars: the board is the game, it fills the screen. */
+  private fit(v: IslandView) {
+    const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(), up = new Vector3().crossVectors(CAM_DIR, right).normalize();
+    const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
+    const usableV = 1 - this.hudPad.top - this.hudPad.bottom, usableH = 1 - this.hudPad.left - this.hudPad.right;
+    const pts = v.framePoints();
+    let u0 = 1e9, u1 = -1e9, w0 = 1e9, w1 = -1e9;
+    for (const p of pts) { const u = p.dot(right), w = p.dot(up); u0 = Math.min(u0, u); u1 = Math.max(u1, u); w0 = Math.min(w0, w); w1 = Math.max(w1, w); }
+    const cu = (u0 + u1) / 2, cw = (w0 + w1) / 2;
+    let dist = 7;
+    for (const p of pts) {
+      const z = p.dot(CAM_DIR) - cu * right.dot(CAM_DIR) - cw * up.dot(CAM_DIR);
+      dist = Math.max(dist, Math.abs(p.dot(right) - cu) / (tanH * .97 * usableH) + z, Math.abs(p.dot(up) - cw) / (tanV * .97 * usableV) + z);
+    }
     // shift the look-at so the island sits in the part of the screen the UI leaves free
-    const b = v.frameBox(), c = new Vector3(v.ox + b.cx, .3, v.oz + b.cz), d = this.fitDistance(v), tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2);
-    const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(); const up = new Vector3().crossVectors(CAM_DIR, right).normalize();
-    return c.addScaledVector(up, -(this.hudPad.bottom - this.hudPad.top) * tanV * d).addScaledVector(right, (this.hudPad.right - this.hudPad.left) * tanV * this.camera.aspect * d);
+    const focus = new Vector3(v.ox, 0, v.oz).addScaledVector(right, cu + (this.hudPad.right - this.hudPad.left) * tanH * dist).addScaledVector(up, cw - (this.hudPad.bottom - this.hudPad.top) * tanV * dist);
+    return { dist, focus };
   }
   /** The screen fractions the UI takes in each framing. Short landscape screens move the UI to the sides. */
   private pads(kind: PadKind): Pad {
@@ -322,14 +325,14 @@ export class World {
       out[kind] = {} as Record<'ok' | 'sad', string>;
       for (const mood of ['ok', 'sad'] as const) {
         const cr = new Creature(kind, 0, fxStub, 0);
-        cr.setMet(mood === 'ok', false); cr.update(0, 0);
-        if (kind === 'goat') cr.body.rotation.y = 1; // a goat reads from the side, by its horns and back
+        // a chip says who; the tick or cross says how they feel. A flopped goat at 28 px is only a white blob, so every portrait stands.
+        cr.setMet(true, false); cr.far = true; cr.update(0, 0);
+        if (kind === 'goat') cr.body.rotation.y = 1.05; // a goat reads from the side, by its horns and back
         if (cr.bubble) cr.bubble.visible = false;
         cr.badge.visible = false;
         scene.add(cr.root);
-        const h = HEAD_Y[kind] * .72;
-        const dist = kind === 'light' ? 2.6 : kind === 'goat' ? 1.15 : kind === 'buoy' ? 1.7 : kind === 'penguin' ? 1.5 : 2;
-        cam.position.set(1.1 * dist * .5, h * .5 + dist * .42, dist * .86); cam.lookAt(0, h * .5, 0);
+        const [cy, dist] = ({ goat: [.34, 1.7], village: [.17, 2], light: [.44, 2.25], buoy: [.2, 1.25], oasis: [.24, 2], penguin: [.12, 1.65] } as Record<CreatureKind, [number, number]>)[kind];
+        cam.position.set(1.1 * dist * .5, cy + dist * .42, dist * .86); cam.lookAt(0, cy, 0);
         this.renderer.setRenderTarget(rt); this.renderer.clear(); this.renderer.render(scene, cam);
         this.renderer.readRenderTargetPixels(rt, 0, 0, size, size, pixels);
         const img = c2.createImageData(size, size);
@@ -352,11 +355,14 @@ export class World {
     const t = (this.time.value += dt);
     for (let i = this.timers.length - 1; i >= 0; i--) if (this.timers[i].at <= t) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     this.frameHook?.(dt, t);
-    for (const v of this.views) if (v === this.active || v.busy || this.map) v.update(dt, t);
+    for (const v of this.views) { v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
-    for (const c of this.clouds) { c.o.position.x += c.v * dt; if (c.o.position.x > this.aabb.x1 + 8) c.o.position.x = this.aabb.x0 - 8; c.o.visible = !this.reducedClouds(); }
+    // clouds pass by on a flight, then clear: nothing may hide an island on the map
+    const cm = this.clouds[0].o.material as MeshLambertMaterial;
+    cm.opacity += ((this.fly ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5);
+    for (const c of this.clouds) { c.o.position.x += c.v * dt; if (c.o.position.x > this.aabb.x1 + 8) c.o.position.x = this.aabb.x0 - 8; c.o.visible = cm.opacity > .01; }
     for (const g of this.gulls) {
       g.a += g.s * dt; g.g.position.set(g.c.x + Math.cos(g.a) * g.r, g.c.y + Math.sin(g.a * 2.3) * .3, g.c.z + Math.sin(g.a) * g.r);
       g.g.rotation.y = -g.a; g.g.children[0].rotation.z = Math.sin(t * 6 + g.a) * .22;
@@ -415,7 +421,6 @@ export class World {
     const f = this.fly; if (!f) return;
     this.focus.copy(f.to); this.dist = f.d1; this.fly = null; f.done?.();
   }
-  private reducedClouds() { return !this.map && !this.fly; }
   get flying() { return !!this.fly; }
   get cameraFocus() { return this.focus; }
 }

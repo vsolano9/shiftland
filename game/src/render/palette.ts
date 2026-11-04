@@ -17,11 +17,11 @@ export const PLATES: PlateLook[] = [
 
 export interface BiomeLook { ground: string; mix: number; rock: string; sand: string; sea: [string, string]; accent: string; label: string }
 export const BIOMES: Record<BiomeName, BiomeLook> = {
-  meadow: { ground: '#7ccb46', mix: 0.2, rock: '#8d8a84', sand: '#c9a56b', sea: ['#1298ad', '#22cfc9'], accent: '#6cbf3c', label: 'Meadow' },
-  coast: { ground: '#ecd59a', mix: 0.2, rock: '#9b9184', sand: '#e9d29a', sea: ['#0f93bd', '#35dbd9'], accent: '#2fa9d6', label: 'Coast' },
-  desert: { ground: '#efb066', mix: 0.26, rock: '#b08660', sand: '#f0cd8a', sea: ['#118da3', '#35cfb8'], accent: '#e8953a', label: 'Desert' },
-  tundra: { ground: '#eef3f8', mix: 0.14, rock: '#7e8794', sand: '#cfd9e2', sea: ['#17749c', '#3cb4d0'], accent: '#7fc4ec', label: 'Tundra' },
-  finale: { ground: '#86c85a', mix: 0.28, rock: '#7f7a78', sand: '#d4b57a', sea: ['#0d6a9e', '#26bcd0'], accent: '#a06be0', label: 'Finale' },
+  meadow: { ground: '#7ccb46', mix: 0.3, rock: '#8d8a84', sand: '#c9a56b', sea: ['#1298ad', '#22cfc9'], accent: '#6cbf3c', label: 'Meadow' },
+  coast: { ground: '#ecd59a', mix: 0.45, rock: '#9b9184', sand: '#e9d29a', sea: ['#0f93bd', '#35dbd9'], accent: '#2fa9d6', label: 'Coast' },
+  desert: { ground: '#efb066', mix: 0.48, rock: '#b08660', sand: '#f0cd8a', sea: ['#118da3', '#35cfb8'], accent: '#e8953a', label: 'Desert' },
+  tundra: { ground: '#eef3f8', mix: 0.32, rock: '#7e8794', sand: '#cfd9e2', sea: ['#17749c', '#3cb4d0'], accent: '#7fc4ec', label: 'Tundra' },
+  finale: { ground: '#86c85a', mix: 0.34, rock: '#7f7a78', sand: '#d4b57a', sea: ['#0d6a9e', '#26bcd0'], accent: '#a06be0', label: 'Finale' },
 };
 
 export const color = (hex: string) => new Color(hex).convertSRGBToLinear();
@@ -29,6 +29,7 @@ export const srgb = (hex: string) => new Color(hex);
 
 export function plateTint(p: number, b: BiomeName, out = new Color()): Color {
   const l = PLATES[p % PLATES.length], g = BIOMES[b];
-  return out.copy(new Color(g.ground)).lerp(new Color(l.hue), g.mix);
+  // round the colour wheel, not across it: green and coral averaged in RGB is mud; through yellow it is a fresh lime
+  return out.copy(new Color(g.ground)).lerpHSL(new Color(l.hue), g.mix);
 }
 export const plateBand = (p: number) => new Color(PLATES[p % PLATES.length].band);

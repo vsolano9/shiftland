@@ -97,9 +97,9 @@ const FRAG_HEAD = /* glsl */`
   float fbm(vec2 p){ return .55*vnoise(p)+.3*vnoise(p*2.1+7.)+.15*vnoise(p*4.3+13.); }
   float aa(float e, float x){ float w = fwidth(x)+1e-4; return smoothstep(e-w, e+w, x); }
   float patternMask(vec2 p, float kind){
-    if (kind < .5) { float s = fract((p.x + p.y) * 1.25); return aa(.5, s) ; }                        // diagonal stripes
-    if (kind < 1.5) { vec2 q = p*1.25; q.x += .5*floor(q.y); vec2 g = fract(q)-.5; return 1. - aa(.25, length(g)); } // round dots
-    if (kind < 2.5) { float z = abs(fract(p.x*1.1)-.5); float s = fract(p.y*1.1 + z); return aa(.5, s); } // chevrons
+    if (kind < .5) { float s = fract((p.x + p.y) * 2.2); return aa(.5, s) ; }                        // diagonal stripes
+    if (kind < 1.5) { vec2 q = p*2.1; q.x += .5*floor(q.y); vec2 g = fract(q)-.5; return 1. - aa(.25, length(g)); } // round dots
+    if (kind < 2.5) { float z = abs(fract(p.x*2.)-.5); float s = fract(p.y*2. + z); return aa(.5, s); } // chevrons
     vec2 c = floor(p*1.5); return mod(c.x+c.y, 2.);                                                   // checks
   }
 `;
@@ -115,7 +115,7 @@ const FRAG_BODY = /* glsl */`
       vec3 top = vTint * (.93 + .14*n);
       top *= 1. + .05*min(level,1.);                                       // raised ground is a touch lighter
       float pm = patternMask(pw, vMisc.z);
-      top = mix(top, top*.78, pm);
+      top = mix(top, top*.87, pm);
       // an anchored plate has gone to stone, but keeps a hint of its colour
       if (vFx.w > .5) { float g0 = dot(top, vec3(.3,.59,.11)); top = mix(top, vec3(g0)*vec3(.82,.84,.88), .72); }
       // peaks: bare rock from height 2 (goat happy, village crushed), snow at 3; never mistaken for ground
