@@ -15,6 +15,7 @@ import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, PATTERN_WORD, PLATES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
+import { SNAP } from './game/drag.ts';
 import { goalReason, hasSplitPlate, meltReason, moveWhy, stackReason } from './game/reasons.ts';
 import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
@@ -100,7 +101,7 @@ class App {
   settings = loadSettings();
   private view!: IslandView;
   private busyUntil = 0;
-  private drag: { plate: number; start: Vector3; y: number; pointer: number; moved: boolean; across: number; refused: boolean } | null = null;
+  private drag: { plate: number; start: Vector3; y: number; pointer: number; across: number; refused: boolean; far: number } | null = null;
   private dragging = false;
   private pinEls: HTMLElement[] = [];
   private thumbs!: ReturnType<World['thumbs']>;
@@ -876,7 +877,7 @@ class App {
     const start = this.world.groundPoint(e.clientX, e.clientY, y);
     if (!start) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    this.drag = { plate, start, y, pointer: e.pointerId, moved: false, across: 0, refused: false };
+    this.drag = { plate, start, y, pointer: e.pointerId, across: 0, refused: false, far: 0 };
     this.dragging = true;
     v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
@@ -899,7 +900,7 @@ class App {
     const dx = pt.x - start.x, dz = pt.z - start.z;
     (e.target as HTMLElement).style.cursor = 'grabbing';
     const ax = v.lv.axis[plate], along = ax === 1 ? dx : dz;
-    if (Math.abs(along) > .06) this.drag.moved = true;
+    this.drag.far = Math.max(this.drag.far, Math.abs(along));
     this.drag.across = Math.max(this.drag.across, Math.abs(ax === 1 ? dz : dx) - Math.abs(along));
     const r = v.legalRange(plate);
     let o = along;
@@ -911,7 +912,7 @@ class App {
   }
   private pointerUp(e: PointerEvent) {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
-    const p = this.drag.plate, across = this.drag.across, tapped = !this.drag.moved, refused = this.drag.refused;
+    const p = this.drag.plate, across = this.drag.across, far = this.drag.far, tapped = far < .12, refused = this.drag.refused; // a finger shakes: this much is still a tap
     this.drag = null; this.dragging = false;
     this.view.setQuiet(false);
     this.view.noteDragEnd(p);
@@ -921,8 +922,8 @@ class App {
     if (tapped && this.controller.session.moves === before) this.askCreature(e.clientX, e.clientY);
     // dragged clean across the rail: say so, or the plate just looks broken
     if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }
-    // a nudge that sprang back looks like a game that ignored you (playtest 4 P3)
-    else if (!tapped && !refused && this.controller.session.moves === before) this.flashHint('Drag further: a plate moves a whole cell at a time');
+    // a nudge that sprang back looks like a game that ignored you (playtest 4 P3); a drag that reached a stop and came back was a choice, and a shaky tap is a tap
+    else if (!refused && far >= .12 && far <= SNAP && this.controller.session.moves === before) this.flashHint('Drag further: a plate moves a whole cell at a time');
     (e.target as HTMLElement).style.cursor = 'default';
   }
   private pointerCancel() {
