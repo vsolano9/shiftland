@@ -137,6 +137,8 @@ const FRAG = /* glsl */`
     vec2 ua = (p-uActiveB.xy)/uActiveB.zw;
     // the two masks are drawn at different sharpness: the fine one fades in over its border, or a neighbour's shallows show a straight seam
     if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = mix(m, texture2D(uActive, ua), smoothstep(0.,.1,min(min(ua.x,ua.y),min(1.-ua.x,1.-ua.y))));
+    // a just-opened rift has a shore, not a ruled line: its edge is read off a wandering point
+    if (ua.x>.02 && ua.y>.02 && ua.x<.98 && ua.y<.98) m.b = texture2D(uActive, ua+(vec2(vn(p*2.3),vn(p*2.3+9.))-.5)*.5/uActiveB.zw).b;
     float dist = m.r*uRange;
     float wob = (fbm(p*1.4+vec2(t*.05,-t*.04))-.5);
     float d = dist + wob*.1;
@@ -170,10 +172,19 @@ const FRAG = /* glsl */`
     col = mix(col, lake, m.g);
     // rift floor before the sea reaches it
     // wet and dark, half sea already: bright sand laid on the water looks like a sheet of cardboard
-    vec3 flr = mix(uFloor*(.42+.3*fbm(p*4.)), col, .2)*mix(.7,1.,smoothstep(0.,.3,dist));
-    col = mix(col, flr, m.b);
+    // the sea doesn't fade in over it, it runs in: the edge wanders, and a line of foam rides it
+    float wet = 0., front = 0.;
+    if (m.b>.001) {
+      float n3 = fbm(p*3.1+vec2(t*.2,0.)), n4 = fbm(p*7.3-vec2(0.,t*.3));
+      wet = smoothstep(.2,.5,m.b+(n3-.5)*.55+(n4-.5)*.2);
+      front = smoothstep(.0,.5,wet)*smoothstep(1.,.5,wet);
+      float sandRipple = .5+.5*sin((p.x*.7518-p.y*.6594)*11.+n3*5.);
+      // a sandbar just under the water, not a panel laid on it: shallow sea over sand, with ripples, its edge melting away
+      vec3 flr = mix(uFloor*(1.05+.4*n4+.15*sandRipple), uShallow, .24)*mix(.72,1.,smoothstep(0.,.3,dist));
+      col = mix(col, flr, wet);
+    }
     // under land nobody sees water, except where a hidden neighbour stands: there it must be plain sea, not a raft of foam
-    float fm = max(foam, ring*.5)*(1.-m.b)*smoothstep(0.,.04,dist);
+    float fm = max(max(foam, ring*.5)*(1.-wet), front*.85)*smoothstep(0.,.04,dist);
     col = mix(col, vec3(.96,.99,1.), fm*(1.-.35*m.g));
     gl_FragColor = vec4(col,1.);
     #include <colorspace_fragment>
