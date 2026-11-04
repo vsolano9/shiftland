@@ -41,14 +41,14 @@ const icon = {
 };
 
 const GOAL_TEXT: Record<CreatureKind, [string, string]> = {
-  goat: ['Goat', 'height 2 or more'], village: ['Village', 'height 1 or less'], light: ['Lighthouse', 'beside the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'beside a lake'], penguin: ['Penguins', 'ice by the sea'],
+  goat: ['Goat', 'on bare rock'], village: ['Village', 'off the rock'], light: ['Lighthouse', 'beside the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'beside a lake'], penguin: ['Penguins', 'ice by the sea'],
 };
 /** The full rule, shown when a goal chip is tapped. */
 const GOAL_RULE: Record<CreatureKind, string> = {
-  goat: 'The goat wants a peak: height 2 or more. Count the dots. Pushing two plates together lifts the seam one higher than either side.',
-  village: 'The village wants low ground: height 1 or less. If the land rises under it, it is unhappy.',
+  goat: 'The goat wants a peak: bare rock, two dots or more on the corner. Pushing two plates together lifts the seam one higher.',
+  village: 'The village wants ground below the rock: one dot at most. If the land rises to rock under it, it crumbles.',
   light: 'The lighthouse wants open sea on a side next to it. Pull plates apart, or sail its plate to the shore.',
-  buoy: 'The buoy never moves. Land can slide under it and beach it. It wants open sea around it.',
+  buoy: 'A buoy is chained to the sea floor: it stays where it is while the plates move. Land slid under it beaches it. It wants open sea.',
   oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it.',
   penguin: 'Penguins want their ice touching the sea. Lifting ice melts it, and a plate carries what stands on it.',
 };
@@ -61,10 +61,10 @@ const ENDING_KEY = 'shiftland.ending.v1';
 const parseMove = (m: string) => ({ plate: Number(m[1]), dir: DIR_NAME.indexOf(m[2] as 'N') as Dir });
 
 const SETTINGS_KEY = 'shiftland.settings.v1';
-interface Settings { music: number; sfx: number; muted: boolean; reduced: boolean }
+interface Settings { music: number; sfx: number; muted: boolean; reduced: boolean; assist: boolean }
 function loadSettings(): Settings {
-  const d: Settings = { music: .7, sfx: .85, muted: false, reduced: matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false };
-  try { const s = JSON.parse(browserStorage()?.getItem(SETTINGS_KEY) ?? 'null'); if (s) { for (const k of ['music', 'sfx'] as const) if (typeof s[k] === 'number' && s[k] >= 0 && s[k] <= 1) d[k] = s[k]; for (const k of ['muted', 'reduced'] as const) if (typeof s[k] === 'boolean') d[k] = s[k]; } } catch { /* defaults */ }
+  const d: Settings = { music: .7, sfx: .85, muted: false, reduced: matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, assist: false };
+  try { const s = JSON.parse(browserStorage()?.getItem(SETTINGS_KEY) ?? 'null'); if (s) { for (const k of ['music', 'sfx'] as const) if (typeof s[k] === 'number' && s[k] >= 0 && s[k] <= 1) d[k] = s[k]; for (const k of ['muted', 'reduced', 'assist'] as const) if (typeof s[k] === 'boolean') d[k] = s[k]; } } catch { /* defaults */ }
   return d;
 }
 
@@ -141,7 +141,8 @@ class App {
       <div id="s-map" class="screen hidden">
         <div id="map-tl"><button class="round" id="m-back" aria-label="Back">${icon.back}</button></div>
         <div id="map-title" class="card">Choose an island</div>
-        <div id="map-stars" class="card">${icon.star}<span id="stars-n">0</span></div>
+        <div id="map-stars" class="card" title="A star: solved within par, without showing the move">${icon.star}<span id="stars-n">0</span></div>
+        <div id="map-note" class="card off" role="status"></div>
       </div>
       <div id="s-level" class="screen hidden">
         <div id="hud-tl" class="card"><div id="hud-name"></div><div id="hud-moves"></div></div>
@@ -167,6 +168,7 @@ class App {
         <div class="set-row"><label for="s-sfx">Sounds</label><input type="range" id="s-sfx" min="0" max="1" step=".01"></div>
         <div class="set-row"><label for="s-muted">Mute everything</label><input type="checkbox" id="s-muted"></div>
         <div class="set-row"><label for="s-reduced">Reduced motion</label><input type="checkbox" id="s-reduced"></div>
+        <div class="set-row"><label for="s-assist">Show who a drag pleases</label><input type="checkbox" id="s-assist"></div>
         <div class="set-foot"><button class="btn" id="s-reset">Reset progress</button><button class="btn" id="s-full">Fullscreen</button><button class="btn primary" id="s-close">Close</button></div>
         <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
       </div></div>`;
@@ -175,6 +177,7 @@ class App {
     click('t-set', () => this.openSettings()); click('b-set', () => this.openSettings());
     click('t-mute', () => this.toggleMute());
     click('m-back', () => this.toTitle());
+    click('map-stars', () => this.flashNote('A star: solved within par, without showing the move'));
     click('b-undo', () => this.controller.act({ kind: 'undo' }));
     click('b-restart', () => this.controller.act({ kind: 'restart' }));
     click('b-map', () => this.toMap());
@@ -198,6 +201,8 @@ class App {
     sfx.oninput = () => { this.settings.sfx = +sfx.value; this.saveSettings(); this.audio.play('select', { plate: 1 }); };
     muted.onchange = () => { this.settings.muted = muted.checked; this.saveSettings(); };
     reduced.onchange = () => { this.settings.reduced = reduced.checked; this.world.reducedMotion = reduced.checked; this.world.fx.reduced = reduced.checked; this.saveSettings(); };
+    const assist = $<HTMLInputElement>('s-assist');
+    assist.onchange = () => { this.settings.assist = assist.checked; this.saveSettings(); };
     this.pinEls = this.levels.map((_, i) => {
       const el = document.createElement('div'); el.className = 'pin'; el.dataset.level = String(i);
       el.addEventListener('click', () => { this.audio.unlock(); this.pickLevel(i); });
@@ -237,7 +242,7 @@ class App {
   private toggleMute() { this.settings.muted = !this.settings.muted; this.saveSettings(); }
   private openSettings() {
     $<HTMLInputElement>('s-music').value = String(this.settings.music); $<HTMLInputElement>('s-sfx').value = String(this.settings.sfx);
-    $<HTMLInputElement>('s-muted').checked = this.settings.muted; $<HTMLInputElement>('s-reduced').checked = this.settings.reduced;
+    $<HTMLInputElement>('s-muted').checked = this.settings.muted; $<HTMLInputElement>('s-reduced').checked = this.settings.reduced; $<HTMLInputElement>('s-assist').checked = this.settings.assist;
     $('settings').classList.remove('hidden');
   }
 
@@ -297,7 +302,7 @@ class App {
     return s;
   }
   private pickLevel(i: number) {
-    if (!this.progress.unlocked(i)) { this.audio.play('blocked'); return; }
+    if (!this.progress.unlocked(i)) { this.audio.play('blocked'); this.mapNote(i); return; }
     this.audio.play('ui');
     const cur = this.controller.session;
     if (i === this.controller.index && cur.moves > 0 && !cur.solved) { this.enterLevel(i, true); return; } // back to the unfinished island, moves and all
@@ -377,7 +382,7 @@ class App {
     const late = s.par !== undefined && s.moves + sol.min > s.par;
     if (this.hintLevel === 0) {
       this.hintLevel = 1;
-      this.flashHint(late ? 'Try this plate. Restart if you want the star' : 'Try this plate. Press Hint again to see the move', 4);
+      this.flashHint(late ? 'Try this plate. Restart if you want the star' : 'Try this plate. Hint again shows the move, but costs the star', 5);
       return;
     }
     s.hinted = true;
@@ -400,6 +405,7 @@ class App {
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
+    box.classList.toggle('many', this.chips.size > 4); // a phone can't hold six labelled chips: icons only there (tap one for its rule)
     for (const [, e] of this.chips) if (e.goals.length > 1) { const n = document.createElement('div'); n.className = 'count'; e.el.appendChild(n); }
     $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`); // the hint sits above however many rows the chips take
   }
@@ -456,8 +462,11 @@ class App {
       }
       case 'wrong-axis': this.audio.play('blocked'); this.flashHint('This plate slides the other way'); break;
       case 'preview': {
-        this.view.showPreview(e.diff);
-        this.previewChips(e.diff ? e.diff.flips : null);
+        // the ghost shows what a move does to the land; which creature that pleases is for the player to work out.
+        // Only the first islands say it outright, while the rules are new (first-player playtest P1: free +/- solved 9 islands by scanning)
+        const tell = this.controller.index < 3 || this.settings.assist;
+        this.view.showPreview(e.diff, tell);
+        this.previewChips(e.diff && tell ? e.diff.flips : null);
         if (e.steps > 0) this.audio.play('stop', { plate: e.plate });
         break;
       }
@@ -467,6 +476,16 @@ class App {
       case 'finished': this.toEnding(); break;
     }
   }
+  /** Why a locked island won't open: the island to solve first, by number. */
+  private mapNote(i: number) {
+    const need = this.levels.findIndex((_, k) => k < i && this.progress.unlocked(k) && !this.progress.solved(k));
+    this.flashNote(need >= 0 ? `Solve island ${need + 1} to reach island ${i + 1}` : `Solve more islands to reach island ${i + 1}`);
+  }
+  private flashNote(t: string) {
+    const n = $('map-note'); n.textContent = t; n.classList.remove('off');
+    clearTimeout(this.noteT); this.noteT = window.setTimeout(() => n.classList.add('off'), 2600);
+  }
+  private noteT = 0;
   private flashHint(t: string, sec = 1.5) {
     const h = $('hint'); h.textContent = t; h.classList.remove('off');
     clearTimeout(this.flashT);
@@ -495,6 +514,7 @@ class App {
     this.firstMoveMade = true;
     this.handStart = 0; this.handMove = null; v.railHint = 0;
     $('hint').classList.add('off'); $('b-undo').classList.remove('glow'); $('stuck').classList.add('hidden-el');
+    if (this.hintLevel) v.showRail(plate); // the pointed-at plate lets go: the hint was for the board before this move
     this.hintLevel = 0;
     v.absorbDrag(plate);
     const before = v.creatures.map(c => c.met);
@@ -524,6 +544,7 @@ class App {
     this.refreshHud();
     this.world.after(MOVE_TIME + .05, () => {
       if (this.view !== v || this.controller.session.lv !== lv) return;
+      if (!this.controller.session.solved) this.world.keepInFrame();
       const g = this.controller.session.goals;
       v.applyGoals(g, true);
       let delay = 0;

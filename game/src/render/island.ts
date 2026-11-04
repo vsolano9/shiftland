@@ -108,8 +108,9 @@ export class IslandView {
     this.bubbleKey = key;
     const CA = Math.cos(.72), SA = Math.sin(.72), CE = Math.cos(.82), SE = Math.sin(.82);
     const screen = (x: number, y: number, z: number): [number, number] => [x * CA - z * SA, y * CE - (x * SA + z * CA) * SE];
-    type Blob = { u: number; v: number; r: number; owner: Creature };
+    type Blob = { u: number; v: number; r: number; owner: Creature | null };
     const blobs: Blob[] = [];
+    for (const a of this.anchors) { const [u, v] = screen(a.position.x, a.position.y, a.position.z); blobs.push({ u, v, r: .22, owner: null }); } // handles stay uncovered
     const blob = (c: Creature, y: number, r: number) => { const p = c.root.position, [u, v] = screen(p.x, p.y + y, p.z); blobs.push({ u, v, r, owner: c }); };
     for (const c of this.creatures) { const h = HEAD_Y[c.kind] * KIND_SCALE[c.kind]; blob(c, h * .28, .3); blob(c, h * .78, .25); }
     const placed: [number, number][] = [];
@@ -310,7 +311,10 @@ export class IslandView {
   private moveCreatures(next: State, animate: boolean, dur: number) {
     this.crT = this.crT.filter(t => t.t < t.dur && !this.creatures.includes(t.c));
     for (const c of this.creatures) {
-      const cell = this.creatureCell(c, next), [tx, tz] = this.xz(cell), ty = this.creatureY(c, next, cell);
+      const cell = this.creatureCell(c, next), [cx, cz] = this.xz(cell), ty = this.creatureY(c, next, cell);
+      // a buoy that a plate carried a creature onto shuffles to the corner (it stays on its cell for the rules), so neither stands inside the other
+      const shoved = c.kind === 'buoy' && next.objs.some(o => o.cell === cell), tx = cx + (shoved ? .3 : 0), tz = cz - (shoved ? .3 : 0);
+      c.root.scale.setScalar(KIND_SCALE[c.kind] * (shoved ? .62 : 1));
       if (animate) this.crT.push({ c, fx: c.root.position.x, fy: c.root.position.y, fz: c.root.position.z, tx, ty, tz, t: 0, dur, delay: 0 });
       else c.root.position.set(tx, ty, tz);
       if (c.kind === 'goat') {
@@ -452,6 +456,7 @@ export class IslandView {
   private ghostRise = new MeshBasicMaterial({ color: '#ffb25e', transparent: true, opacity: .46, depthWrite: false });
   private ghostArrive = new MeshBasicMaterial({ color: '#fff4cf', transparent: true, opacity: .34, depthWrite: false });
   private ghostFlood = new MeshBasicMaterial({ map: sprites().hatch, transparent: true, opacity: .86, depthWrite: false, side: DoubleSide });
+  private ghostLake = new MeshBasicMaterial({ map: sprites().hatchLake, transparent: true, opacity: .86, depthWrite: false, side: DoubleSide });
   private planeG = new PlaneGeometry(.96, .96);
 
   clearPreview() {
@@ -459,7 +464,7 @@ export class IslandView {
     for (const s of this.badgePool) s.visible = false;
     for (const c of this.creatures) c.hideWish(false);
   }
-  showPreview(diff: MoveDiff | null) {
+  showPreview(diff: MoveDiff | null, tell = true) {
     this.clearPreview();
     if (!diff) return;
     const s = this.state;
@@ -468,9 +473,12 @@ export class IslandView {
       const m = new Mesh(this.ghostBoxG, this.ghostRise); m.scale.set(1, Math.max(.05, b - a), 1); m.position.set(x, (a + b) / 2, z); m.renderOrder = 7; this.ghostGroup.add(m);
       const sp = makeSprite(sprites().chevrons, .46, 15); sp.position.set(x, b + .3, z); sp.userData.pulse = true; this.ghostGroup.add(sp);
     }
+    // the board after the move, so each flooded cell can say whether it joins the sea or closes into a lake
+    const after = s.plate.slice(); for (const c of diff.arrive) after[c] = 0; for (const c of diff.flood) after[c] = -1;
+    const sea = diff.flood.length ? seaMask(this.lv, { ...s, plate: after }) : null;
     for (const cell of diff.flood) {
       const [x, z] = this.xz(cell);
-      const m = new Mesh(this.planeG, this.ghostFlood); m.rotation.x = -Math.PI / 2; m.position.set(x, topY(s.elev[cell]) + .025, z); m.renderOrder = 7; this.ghostGroup.add(m);
+      const m = new Mesh(this.planeG, sea?.[cell] ? this.ghostFlood : this.ghostLake); m.rotation.x = -Math.PI / 2; m.position.set(x, topY(s.elev[cell]) + .025, z); m.renderOrder = 7; this.ghostGroup.add(m);
     }
     for (const cell of diff.arrive) {
       if (s.plate[cell] >= 0) continue;
@@ -478,7 +486,7 @@ export class IslandView {
       const m = new Mesh(this.ghostBoxG, this.ghostArrive); m.scale.set(1, b, 1); m.position.set(x, b / 2, z); m.renderOrder = 7; this.ghostGroup.add(m);
     }
     // goal flips: a + or - on the creature, so a move's consequence is visible before committing
-    diff.flips.forEach(([g, met]) => {
+    if (tell) diff.flips.forEach(([g, met]) => {
       const c = this.creatures.find(k => k.goalIndex === g); if (!c) return;
       const sp = makeSprite(met ? sprites().plus : sprites().minus, .34, 24);
       sp.position.set(c.root.position.x, c.root.position.y + HEAD_Y[c.kind] * KIND_SCALE[c.kind] + .05, c.root.position.z); sp.userData.pulse = true;

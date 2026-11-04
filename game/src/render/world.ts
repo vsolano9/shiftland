@@ -224,6 +224,12 @@ export class World {
     this.padKind = kind; this.hudPad = this.pads(kind);
     this.flyTo(this.focusOf(v), this.fitDistance(v), dur);
   }
+  /** After a move: step back only if the land rose out of frame. The camera never creeps in, so the board doesn't breathe from move to move. */
+  keepInFrame(dur = .45) {
+    const v = this.active; if (!v || this.map || this.fly) return;
+    const f = this.fit(v);
+    if (f.dist > this.dist + .02) this.flyTo(f.focus, f.dist, dur);
+  }
   flyTo(target: Vector3, dist: number, dur: number, done?: () => void) {
     if (dur <= 0 || this.reducedMotion) { this.focus.copy(target); this.dist = dist; this.fly = null; done?.(); return; }
     const hop = this.focus.distanceTo(target);
@@ -548,7 +554,7 @@ export class World {
       const [x, y] = this.project(p.pos);
       p.el.style.display = ''; p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     }
-    if (this.path) this.path.visible = this.map && !this.homes && !this.drive;
+    if (this.path) this.path.visible = this.map && !this.homes && !this.drive && !this.peekAt; // at the ending tour's close range the dots are big ovals
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }

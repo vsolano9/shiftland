@@ -51,6 +51,13 @@ const hatch = canvas(128, 128, c => {
   for (let i = -128; i < 256; i += 36) { c.beginPath(); c.moveTo(i, 128); c.lineTo(i + 128, 0); c.stroke(); }
   c.lineWidth = 8; c.strokeStyle = 'rgba(255,255,255,.95)'; c.strokeRect(4, 4, 120, 120);
 });
+// land that would become a lake, not sea: the same hatch in the lake's green, since the two water kinds please different creatures
+const hatchLake = canvas(128, 128, c => {
+  c.fillStyle = 'rgba(40,190,120,.62)'; c.fillRect(0, 0, 128, 128);
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 9;
+  for (let i = -128; i < 256; i += 36) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i + 128, 128); c.stroke(); }
+  c.lineWidth = 8; c.strokeStyle = 'rgba(255,255,255,.95)'; c.strokeRect(4, 4, 120, 120);
+});
 
 let cache: ReturnType<typeof build> | undefined;
 function build() {
@@ -59,7 +66,7 @@ function build() {
   return {
     check: tex(canvas(128, 128, drawCheck)), cross: tex(canvas(128, 128, drawCross)),
     plus: tex(canvas(128, 128, drawPlus)), minus: tex(canvas(128, 128, drawMinus)),
-    chevrons: tex(chevrons), hatch: tex(hatch), bubbles,
+    chevrons: tex(chevrons), hatch: tex(hatch), hatchLake: tex(hatchLake), bubbles,
   };
 }
 export const sprites = () => (cache ??= build());

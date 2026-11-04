@@ -130,8 +130,11 @@ const FRAG_BODY = /* glsl */`
       top = mix(top, vec3(.97,.98,1.)*(.93+.08*n), snow*smoothstep(.2,.42,fbm(pw*2.7+9.)+.18));
       // ice terrain: pale glass with hairline cracks
       if (vFx.z > .5) {
-        float ic = smoothstep(.015,.0,abs(fbm(pw*4.)-.5));
-        top = mix(vec3(.72,.92,1.)*(.9+.2*n), vec3(.95,1.,1.), ic*.8);
+        // a clear blue next to white snow: the ice is what penguins and the melt rule are about, so it must not read as more snow
+        float ic = smoothstep(.02,.0,abs(fbm(pw*4.)-.5));
+        float streak = smoothstep(.55,.75,fbm(pw*vec2(1.3,5.)+4.));
+        top = mix(vec3(.36,.72,.95)*(.9+.2*n), vec3(.62,.88,1.), streak*.55);
+        top = mix(top, vec3(.93,1.,1.), ic*.9);
       }
       // subtle grid so cells can be counted
       vec2 gd = abs(uvC-.5);

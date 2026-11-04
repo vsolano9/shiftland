@@ -105,6 +105,15 @@ export const buoy = merge([
   { g: bell([[0.17, 0.18], [0.14, 0.23], [0.1, 0.275], [0.056, 0.31], [0.022, 0.325], [0, 0.327]]), c: '#e04238' },
   { g: tor(0.046, 0.015), c: '#d03a33', p: [0, 0.378, 0] },
 ]);
+// its mooring: a short chain to a stake, so a thing that never moves looks tied down (first-player playtest P3)
+export const buoyChain = merge([
+  { g: tor(0.03, 0.009), c: '#4a4e58', p: [0.15, 0.018, 0.06], r: [Math.PI / 2, 0.6, 0] },
+  { g: tor(0.03, 0.009), c: '#3a3d46', p: [0.2, 0.018, 0.08], r: [Math.PI / 2, 0, 0] },
+  { g: tor(0.03, 0.009), c: '#4a4e58', p: [0.25, 0.018, 0.1], r: [Math.PI / 2, 0.6, 0] },
+  { g: tor(0.03, 0.009), c: '#3a3d46', p: [0.3, 0.018, 0.12], r: [Math.PI / 2, 0, 0] },
+  { g: cyl(0.024, 0.032, 0.11, 6), c: '#2f3139', p: [0.35, 0.05, 0.14] },
+  { g: tor(0.026, 0.008), c: '#c9ccd4', p: [0.35, 0.09, 0.14], r: [Math.PI / 2, 0, 0] },
+]);
 export const fish = merge([
   { g: sph(0.05, 6, 4), c: '#5b7fa5', s: [1, 0.75, 1.9] },
   { g: cone(0.045, 0.07, 4), c: '#39597e', p: [0, 0, -0.11], r: [-Math.PI / 2, 0, 0] },

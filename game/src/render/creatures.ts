@@ -66,13 +66,13 @@ export class Creature {
       b.rotation.y = -0.4; // three-quarter to the fixed camera: facing it dead on hides the whole body behind the head
       this.head.userData.pivot = h;
     } else if (this.kind === 'village') {
-      for (const [dx, dz, rot] of [[-.2, -.18, .15], [.2, -.1, -.2], [-.04, .2, .05]] as const) {
+      for (const [dx, dz, rot] of [[-.15, -.15, .15], [.15, -.1, -.2], [-.03, .15, .05]] as const) {
         const g = new Group(); const m = mesh(M.house); const cr = mesh(M.houseCracks, false); cr.visible = false;
         g.add(m, cr); g.position.set(dx, 0, dz); g.rotation.y = rot;
         this.houses.push({ g, cracks: cr, dx, dz, rot }); b.add(g);
       }
       b.rotation.y = 0;
-      for (let i = 0; i < 3; i++) { const p = mesh(i === 0 ? peopleA : i === 1 ? peopleB : peopleC, false); p.visible = false; p.position.set(-.24 + i * .24, .0, .3 - i * .02); b.add(p); this.people.push(p); }
+      for (let i = 0; i < 3; i++) { const p = mesh(i === 0 ? peopleA : i === 1 ? peopleB : peopleC, false); p.visible = false; const at = ([[-.06, .29], [.12, .27], [.28, .1]] as const)[i]; p.position.set(at[0], 0, at[1]); b.add(p); this.people.push(p); } // on open ground in front of the houses, inside the cell
     } else if (this.kind === 'light') {
       b.add(mesh(M.lighthouse));
       const lampMesh = new Mesh(M.lamp, this.lampMat = new MeshBasicMaterial({ vertexColors: true, color: 0x555555 })); b.add(lampMesh);
@@ -86,6 +86,7 @@ export class Creature {
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {
       b.add(mesh(M.buoy));
+      this.root.add(mesh(M.buoyChain)); // on the root: the chain stays down when the buoy bobs or leans
       for (let i = 0; i < 2; i++) { const f = mesh(M.fish, false); f.visible = false; this.root.add(f); this.fish.push({ m: f, t: 9, a: Math.random() * 6 }); }
     } else if (this.kind === 'oasis') {
       for (const [dx, dz, s, r] of [[-.2, -.12, 1.05, .4], [.18, .08, .92, 2.8]] as const) {
@@ -246,8 +247,10 @@ export class Creature {
           const huddle = 1 - k, wa = ph * 3.4 + i * 2;
           const u = ((ph * .13 + i * .37) % 1 + 1) % 1, s = u < .3 ? Math.sin(u / .3 * Math.PI) : 0;
           const lie = Math.min(1, s * 3.2) * k, d = s * s * .3 * k;
-          p.g.position.x = p.x * (1 - huddle * .35) + Math.sin(p.a) * d;
-          p.g.position.z = p.z * (1 - huddle * .35) + Math.cos(p.a) * d;
+          // the slide stays on its own cell: scaled up, .22 is the cell's edge less a penguin's width (it used to end inside the next cliff)
+          const edge = .22 - lie * .05; // lying down it reaches further
+          p.g.position.x = Math.max(-edge, Math.min(edge, p.x * (1 - huddle * .35) + Math.sin(p.a) * d));
+          p.g.position.z = Math.max(-edge, Math.min(edge, p.z * (1 - huddle * .35) + Math.cos(p.a) * d));
           p.g.rotation.x = lie * 1.36;
           p.g.rotation.z = lie ? 0 : Math.sin(wa) * (.05 + k * .16 + huddle * .05);
           p.g.rotation.y = p.a + (lie ? 0 : Math.sin(ph * .7 + i) * k * .5);
