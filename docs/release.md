@@ -10,7 +10,7 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 |---|---|---|---|
 | R1 | Zip valid for itch HTML5 | see "Build" | `npm run pack:check` |
 | R2 | Relative paths | pass locally; the itch draft half waits on G0 | `npm run pack:check` |
-| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build | `a28.log` |
+| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build | `p8\a24.log` |
 | R4 | Levels pass the bar | pass, 24 of 24; count matches `itch-page.md` | `npm run levels:audit` |
 | R5 | Rules and tests | see "Build" | `npm test`, `npm run typecheck` |
 | R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real draft page **waits on G0** | `if\` |

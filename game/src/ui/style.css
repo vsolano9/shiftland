@@ -196,7 +196,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #tagline { left: 4vw; width: 44vw; transform: none; text-align: center; bottom: auto; top: calc(10vh + 14.7vw + 6px); margin-top: 0; }
   #play { left: 26vw; bottom: 9vh; top: auto; margin-top: 0; }
   #goals { left: 10px; right: auto; top: calc(70px + var(--safe-t)); bottom: auto; flex-direction: column; align-items: flex-start; padding: 0; }
-  #hint { bottom: calc(8px + var(--safe-b)); left: 60%; }
+  #hint { bottom: calc(8px + var(--safe-b)); left: 60%; max-width: 76vw; }
   #blurb { top: 6px; max-width: 42vw; font-size: 13px; }
   #stuck { top: auto; bottom: calc(8px + var(--safe-b)); }
   #card { top: 4px; } #card .big { font-size: 26px; } #card .small { font-size: 14px; }

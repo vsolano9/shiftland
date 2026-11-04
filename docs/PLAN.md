@@ -1,6 +1,6 @@
 # Game Off 2026 (SHIFT): plan
 
-Status 2026-11-04: the game ran far ahead of the schedule below in one long session: 28 islands, every biome, art, audio and ending are built and played end to end by real input; see `release.md` for what is checked and what still needs Victor (G0, G2, G3, G4, and his ears on the audio). The schedule stays as the record of the plan.
+Status 2026-11-04: the game ran far ahead of the schedule below in one long session: 24 islands, every biome, art, audio and ending are built and played end to end by real input; see `release.md` for what is checked and what still needs Victor (G0, G2, G3, G4, and his ears on the audio). The schedule stays as the record of the plan.
 
 Status 2026-11-03: **G1 done: Victor picked Plates** ("I pick Plates. You handle the rest."). The game is **Shiftland** (name chosen by the agent under that mandate; no itch.io or store game of that name found; "Fault Lines" is taken). Changeover is archived as the kill-gate fallback only. Next: G0 approvals, then the grey-box build on Nov 4. Research: `research.md`. Concepts, review and spikes: `concepts.md`. Design: `design-plates.md`. Concept images: `../concepts/` (internal references only, never shipped).
 

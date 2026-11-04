@@ -39,6 +39,6 @@ Source: `https://github.com/vsolano9/shiftland` (made public at submission, G0/G
 
 - Kind: HTML, "This file will be played in the browser"; viewport 1280×720, "Mobile friendly" on, fullscreen button on, "Automatically start on page load" off (audio unlock needs a click).
 - Genre: Puzzle. Tags: puzzle, tectonic, low-poly, relaxing, short, game-off-2026, browser.
-- Cover: 630×500 (`concepts/shiftland-cover.png` is the concept; the real cover is a render from the game).
-- Screenshots: 4 (a push with the preview, a level complete, the level map, the desert lake), plus a short GIF of a push raising a goat's peak.
+- Cover: `press/cover.png`, 1260×1000 for itch's 630×500 (`concepts/shiftland-cover.png` is the concept; this one is a render from the game).
+- Screenshots: `press/shot1-preview.png` (a push with its preview), `shot2-desert.png` and `shot3-tundra.png` (islands settled), `shot4-map.png` (the map), plus `push.gif` (a push raising a goat's peak).
 - Accessibility: colour-blind safe plate patterns, reduced-motion setting, no time pressure.
