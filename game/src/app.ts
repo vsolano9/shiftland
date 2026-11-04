@@ -60,6 +60,13 @@ const TOUR: [BiomeName, string][] = [
   ['meadow', 'The goats have their peaks'], ['coast', 'The lights reach the sea'], ['desert', 'The oases have their water'], ['tundra', 'The penguins kept their ice'], ['finale', 'And the land is at rest'],
 ];
 const ENDING_KEY = 'shiftland.ending.v1';
+/** Said on the first sight of each new land. The meadow has the opening instead. */
+const CHAPTER: Partial<Record<BiomeName, [string, string]>> = {
+  coast: ['The Coast', 'Now the water matters.'],
+  desert: ['The Desert', 'Every drop counts.'],
+  tundra: ['The Tundra', 'Mind the thin ice.'],
+  finale: ['The Last Islands', 'Everyone, all at once.'],
+};
 
 const parseMove = (m: string) => ({ plate: Number(m[1]), dir: DIR_NAME.indexOf(m[2] as 'N') as Dir });
 
@@ -109,7 +116,6 @@ class App {
   private pinEls: HTMLElement[] = [];
   private thumbs!: ReturnType<World['thumbs']>;
   private chips = new Map<CreatureKind, { el: HTMLElement; goals: number[]; delta: HTMLElement | null }>();
-  private hintTimer = 0;
   private firstMoveMade = false;
   private completeTimer = false;
   private handStart = 0;
@@ -356,6 +362,7 @@ class App {
     this.dropHint();
     this.view = this.world.views[i];
     const v = this.view, lv = v.lv;
+    clearTimeout(this.blurbTimer); $('blurb').classList.add('off'); // the last island's note has no place on this one's flight in
     this.show('level');
     $('done').classList.add('hidden');
     this.firstMoveMade = false; this.completeTimer = false;
@@ -389,9 +396,13 @@ class App {
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
-    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); 
+    // the first sight of a new land gets its name: the journey has chapters, and a new rule is coming
+    const biome = (v.lv.biome ?? 'meadow') as BiomeName, chapter = fly && !this.progress.solved(v.index) && !this.controller.session.moves && this.levels.findIndex(l => l.biome === biome) === v.index ? CHAPTER[biome] : undefined;
+    if (chapter) this.showCard(chapter[0], chapter[1], 3);
+    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false);
       if (this.view !== v) return;
-      this.showBlurb(11); // long enough to read it twice: it is the level's one clue (playtest 3 P6)
+      const say = () => { if (this.view === v && this.screen === 'level') this.showBlurb(11); }; // long enough to read it twice: it is the level's one clue (playtest 3 P6)
+      if (chapter) window.setTimeout(say, 1700); else say();
       // once, on the first island without a guiding hand: nothing on screen says creatures can be asked
       if (this.controller.index === 2) window.setTimeout(() => { if (this.view === v && this.screen === 'level' && !this.controller.session.solved && $('hint').classList.contains('off')) this.flashHint(`Not sure what someone wants? ${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} them and ask`, 5); }, 12000);
     });
@@ -413,11 +424,12 @@ class App {
   }
   private blurbTimer = 0;
   private setFlying(on: boolean) { this.busyUntil = on ? Infinity : 0; }
+  private cardTimer = 0;
   private showCard(big: string, small: string, sec = 3.4) {
     const c = $('card'); (c.children[0] as HTMLElement).textContent = big; (c.children[1] as HTMLElement).textContent = small;
     c.classList.add('show');
-    clearTimeout(this.hintTimer);
-    this.hintTimer = window.setTimeout(() => c.classList.remove('show'), sec * 1000);
+    clearTimeout(this.cardTimer);
+    this.cardTimer = window.setTimeout(() => c.classList.remove('show'), sec * 1000);
   }
 
   /**
