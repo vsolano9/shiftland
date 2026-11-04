@@ -29,6 +29,7 @@ export class Creature {
   root = new Group();       // positioned by the island view
   body = new Group();       // pose animation
   bubble?: Sprite; badge: Sprite;
+  private bubbleDots: Sprite[] = [];
   met = false;
   metK = 0;                 // eased 0..1
   celebrating = 0;
@@ -60,6 +61,8 @@ export class Creature {
       this.bubble = makeSprite(sprites().bubbles[wish], 0.62 / KIND_SCALE[kind], 21); // constant world size: root is scaled
       this.bubble.position.set(.28, HEAD_Y[kind] + .1, 0);
       this.root.add(this.bubble);
+      // dots from the head to the bubble: wherever placeBubbles has to put it on a crowded board, it still says whose it is (playtest 3 P3)
+      for (const size of [.13, .09, .06]) { const d = makeSprite(sprites().dot, size / KIND_SCALE[kind], 21); d.userData.size = size / KIND_SCALE[kind]; this.root.add(d); this.bubbleDots.push(d); }
     }
     this.phase += seed;
     this.build();
@@ -173,6 +176,13 @@ export class Creature {
       const q = this.bubble.position, r = Math.min(1, dt * 6) || 0, h = this.bubbleHome;
       this.bubbleAt[0] += (h[0] - this.bubbleAt[0]) * r; this.bubbleAt[1] += (h[1] - this.bubbleAt[1]) * r; this.bubbleAt[2] += (h[2] - this.bubbleAt[2]) * r;
       q.set(this.bubbleAt[0], HEAD_Y[this.kind] + this.bubbleAt[1] + Math.sin(t * 1.7 + this.phase) * .02, this.bubbleAt[2]);
+      const k = Math.min(1, s * KIND_SCALE[this.kind] / .54), hy = HEAD_Y[this.kind], n = this.bubbleDots.length;
+      this.bubbleDots.forEach((d, i) => {
+        const u = .78 - (i / n) * .62; // the big dot beside the bubble, the small one at the head
+        d.position.set(q.x * u, hy + (q.y - hy) * u, q.z * u);
+        d.scale.setScalar(Math.max(d.userData.size * k, .0001));
+        d.visible = this.bubble!.visible;
+      });
     }
     if (this.badge.visible) {
       this.badgeLife -= dt;

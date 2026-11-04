@@ -96,7 +96,7 @@ export class IslandView {
     // behind tall land a slider still shows, fainter: a plate behind a peak can be seen and grabbed (World.pick takes the slider first)
     const part = (g: BufferGeometry, c: Color | string, order: number, to: Object3D) => {
       const o = new Mesh(g, mat(c)); o.renderOrder = order; to.add(o);
-      const through = new Mesh(g, new MeshBasicMaterial({ color: c, transparent: true, opacity: .5, depthWrite: false, depthFunc: GreaterDepth })); through.renderOrder = order; o.add(through);
+      const through = new Mesh(g, new MeshBasicMaterial({ color: c, transparent: true, opacity: .85, depthWrite: false, depthFunc: GreaterDepth })); through.renderOrder = order; o.add(through);
       return o;
     };
     part(new BoxGeometry(2 * n * sp + .1, .004, .075), new Color('#3a2c22'), 6, m);
@@ -446,7 +446,7 @@ export class IslandView {
     const p = this.railPlate, P = this.railParts;
     this.rail.visible = p !== null && !(this.lv.pinned?.includes(p));
     if (p === null || !this.rail.visible) return;
-    const ax = this.lv.axis[p], mt = this.lv.maxTravel, [ax0, az0] = this.plateAnchor(p);
+    const ax = this.lv.axis[p], mt = this.lv.maxTravel, [ax0, az0] = this.railHome(p);
     const off = this.state.off ? this.state.off[p] : 0;
     const y = this.plateTop(p) + .07;
     const place = (o: Mesh, k: number) => { o.position.set(ax === 1 ? ax0 + k : ax0, y, ax === 1 ? az0 : az0 + k); };
@@ -615,13 +615,31 @@ export class IslandView {
   }
   /** Where a plate's rail anchor is in world space (for the tutorial hand). */
   railAnchor(p: number) {
-    const [x, z] = this.plateAnchor(p), off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p];
+    const [x, z] = this.railHome(p), off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p];
     return new Vector3(this.ox + x + (ax === 1 ? off : 0), this.plateTop(p) + .07, this.oz + z + (ax === 1 ? 0 : off));
   }
   /** The plate currently offset by a drag (it keeps easing home after release). */
   private dragPlateNow() { return this.dragPlate ?? this.lastDragPlate; }
   private lastDragPlate: number | null = null;
   noteDragEnd(p: number) { this.lastDragPlate = p; }
+
+  /** The column a plate's slider rides: its own, or the nearest one the plate still has once a neighbour has bitten that one away. */
+  private markCol(k: { plate: number; patX: number; patZ: number }) {
+    let best: (typeof this.cols)[number] | undefined, bd = Infinity;
+    for (const q of this.cols) {
+      if (q.plate !== k.plate || q.removing || q.dead) continue;
+      const d = (q.patX - k.patX) ** 2 + (q.patZ - k.patZ) ** 2;
+      if (d < bd) { bd = d; best = q; }
+    }
+    return best;
+  }
+  /** Where a plate's rail is counted from: at the plate's current offset it lies on land the plate still has (playtest 3: a hint rail floated out over the sea). */
+  private railHome(p: number): [number, number] {
+    const k = this.marks.find(m => m.plate === p), c = k && this.markCol(k);
+    if (!c) return this.plateAnchor(p);
+    const off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p] === 1;
+    return [c.x - (ax ? off : 0), c.z - (ax ? 0 : off)];
+  }
 
   private writeMatrices() {
     const dp = this.dragPlateNow();
@@ -645,7 +663,7 @@ export class IslandView {
     v.needsUpdate = true;
     for (const k of this.marks) {
       const hinted = this.railPlate !== null && this.railHint; // while a hint points at one plate, the others' sliders stay out of its way
-      const c = this.showMarks ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
+      const c = this.showMarks ? this.markCol(k) : undefined;
       k.m.visible = !!c && this.railPlate !== k.plate && !hinted;
       // hovering swaps a slider for its rail: it stays a grab target, or the plate under it steals the press that follows
       k.grab = !!c && (!hinted || this.railPlate === k.plate);

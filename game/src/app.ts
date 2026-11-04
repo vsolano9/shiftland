@@ -15,7 +15,7 @@ import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
-import { goalReason, hasSplitPlate } from './game/reasons.ts';
+import { goalReason, hasSplitPlate, moveWhy, stackReason } from './game/reasons.ts';
 import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
@@ -165,6 +165,7 @@ class App {
         </div>
         <div id="stuck" class="hidden-el">No way back from here. Undo?</div>
         <div id="hint" class="card off"></div>
+        <div id="chipwhy"></div>
         <div id="blurb" class="card off"></div>
         <div id="goals"></div>
         <div id="hand" class="hidden-el">${icon.hand}</div>
@@ -362,7 +363,7 @@ class App {
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
-    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); if (this.view === v) this.showBlurb(3.4); });
+    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); if (this.view === v) this.showBlurb(11); }); // long enough to read it twice: it is the level's one clue (playtest 3 P6)
     if (fly) this.audio.play('whoosh');
   }
   /** The level's name and line; shown on landing and whenever the name card is tapped. */
@@ -422,7 +423,7 @@ class App {
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
-    this.flashHint(gone ? togo : `${togo}. No star this run: Restart to win it back`, 4);
+    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${gone ? togo : `${togo}. No star this run: Restart to win it back`}`.trim(), 6);
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);
@@ -453,7 +454,8 @@ class App {
       box.style.maxWidth = `${Math.ceil(total / 2 + Math.max(...widths) + gap + 24)}px`; box.style.marginInline = 'auto'; // a reason can grow its chip mid-play: one chip's room to spare
     }
     $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`);
-    return box.offsetHeight;
+    // a phone's icon-only chips keep their reason in one line above them: the land stays clear of that as well
+    return box.offsetHeight + (getComputedStyle($('chipwhy')).display === 'none' ? 0 : 26);
   }
   private refreshChips() {
     const g = this.controller.session.goals;
@@ -472,6 +474,9 @@ class App {
       e.el.dataset.why = why ?? '';
       const cnt = e.el.querySelector('.count'); if (cnt) cnt.textContent = `${n}/${e.goals.length}`;
     }
+    // the same reasons for a phone's icon-only chips, which have no room for theirs (playtest 3 P5): the first creature still unhappy
+    const s = this.controller.session, first = s.moves > 0 ? [...this.chips].find(([, e]) => e.el.dataset.why) : undefined;
+    $('chipwhy').textContent = first ? `${GOAL_TEXT[first[0]][0]}: ${first[1].el.dataset.why}` : '';
   }
   private refreshHud() {
     const s = this.controller.session, par = s.par ?? 0;
@@ -508,8 +513,9 @@ class App {
       case 'moved': this.afterMove(e.plate); break;
       case 'blocked': {
         this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
-        const say = { rail: 'End of the rail', stack: "Two creatures can't share a cell", melt: 'That would melt the ice under them', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
-        if (e.why) this.flashHint(say[e.why]);
+        const say = { rail: 'End of the rail', stack: '', melt: 'That would melt the ice under them', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
+        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, this.controller.session.state, e.plate), 2.5);
+        else if (e.why) this.flashHint(say[e.why]);
         break;
       }
       case 'wrong-axis': this.audio.play('blocked'); this.flashHint('This plate slides the other way'); break;
@@ -524,10 +530,24 @@ class App {
       }
       case 'undone': this.afterUndo(); break;
       case 'solved': this.afterSolved(e.moves, e.par, e.stars); break;
-      case 'stuck': $('stuck').classList.toggle('hidden-el', !e.stuck); $('b-undo').classList.toggle('glow', e.stuck); if (e.stuck) this.audio.play('stuck'); break;
+      case 'stuck': this.stuckAnswered(e.stuck); break;
       case 'finished': this.toEnding(); break;
     }
   }
+  /**
+   * "No way back" waits: said at once, a player tests first moves until it stays quiet, and the search plays the level for them
+   * (playtest 3 P2). It comes after a few quiet seconds, or at once if they make another move from the dead end.
+   */
+  private stuckAnswered(stuck: boolean) {
+    clearTimeout(this.stuckTimer);
+    const show = (on: boolean) => { $('stuck').classList.toggle('hidden-el', !on); $('b-undo').classList.toggle('glow', on); if (on) this.audio.play('stuck'); };
+    if (!stuck) { show(false); return; }
+    const s = this.controller.session, moves = s.moves;
+    const again = moves === this.deadAt + 1 && s === this.deadSession;
+    this.deadAt = moves; this.deadSession = s;
+    if (again) show(true); else this.stuckTimer = window.setTimeout(() => { if (s === this.controller.session && s.stuck) show(true); }, 7000);
+  }
+  private stuckTimer = 0; private deadAt = -9; private deadSession: unknown = null;
   /** Why a locked island won't open: the island to solve first, by number. */
   private mapNote(i: number) {
     const need = this.levels.findIndex((_, k) => k < i && this.progress.unlocked(k) && !this.progress.solved(k));
@@ -553,7 +573,8 @@ class App {
     const v = this.view, s = this.controller.session;
     $('done').classList.add('hidden'); v.celebrate(false); v.setBloom(false); this.completeTimer = false;
     this.hintLevel = 0; v.showMarks = true; this.solveGen++;
-    this.world.frameActive('level', .5);
+    this.world.frameActive('level', .5); this.showBlurb(8); // a restart is when a player wants the clue again
+    clearTimeout(this.stuckTimer);
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     v.clearPreview(); v.setSelected(null);
     const prev = v.state;

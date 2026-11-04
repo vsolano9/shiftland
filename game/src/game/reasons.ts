@@ -1,6 +1,6 @@
 // Why a creature is unhappy, in the board's own words. A chip that flips with no reason teaches nothing
 // (second playtest P2: lake against sea and corners against sides stumped a player for 12 minutes).
-import { DX, DY, seaMask, type Level, type State } from '../rules/rules.ts';
+import { DX, DY, goalsMet, seaMask, shift, type Dir, type Kind, type Level, type State } from '../rules/rules.ts';
 
 const CORNERS = [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
 
@@ -25,6 +25,41 @@ export function beamRun(lv: Level, s: State, cell: number) {
     if (n > best) { best = n; dir = [dx, dy]; }
   }
   return { dir, run: best };
+}
+
+const NAME: Record<Kind, string> = { goat: 'goat', village: 'village', light: 'lighthouse', oasis: 'oasis', penguin: 'penguin' };
+
+/**
+ * What a move refused as 'stack' runs into, in words that fit the thing: "Two creatures can't share a cell" read oddly for a
+ * palm or a lighthouse (playtest 3 P7). Looks along the plate's rail both ways; `shift` allows one object per cell, so the hit
+ * is a stationary object just ahead of one that rides the plate.
+ */
+export function stackReason(lv: Level, s: State, p: number): string {
+  for (const d of (lv.axis[p] === 1 ? [1, 3] : [0, 2]) as Dir[]) {
+    const step = DX[d] + DY[d] * lv.w;
+    for (const a of s.objs) if (s.plate[a.cell] === p) {
+      const hit = s.objs.find(b => b.cell === a.cell + step && s.plate[b.cell] !== p);
+      if (hit) return `The ${NAME[hit.kind]} is in the way of the ${NAME[a.kind]}`;
+    }
+  }
+  return 'Something already stands there';
+}
+
+/**
+ * Why the hinted move is worth making, so the last hint teaches instead of only steering (playtest 3 P1). The order is what
+ * a player would say first: a goal it meets, then a bite (the one trick the board doesn't show), then what it opens up.
+ */
+export function moveWhy(lv: Level, s: State, p: number, d: Dir): string {
+  const next = shift(lv, s, p, d);
+  if (!next) return '';
+  const was = goalsMet(lv, s), now = goalsMet(lv, next), fresh = now.findIndex((m, i) => m && !was[i]);
+  if (fresh >= 0) return fresh < s.objs.length ? `It gives the ${NAME[s.objs[fresh].kind]} what it needs.` : 'It frees the buoy.';
+  const step = DX[d] + DY[d] * lv.w;
+  for (let i = 0; i < s.plate.length; i++) if (s.plate[i] === p && s.plate[i + step] >= 0 && s.plate[i + step] !== p)
+    return 'It bites its neighbour and keeps that land when it slides back.';
+  let wet = 0;
+  for (let i = 0; i < s.plate.length; i++) wet += (next.plate[i] < 0 ? 1 : 0) - (s.plate[i] < 0 ? 1 : 0);
+  return wet > 0 ? 'It opens water you need soon.' : wet < 0 ? 'It closes water that is in the way.' : 'It sets up the next move.';
 }
 
 /** True when some plate's cells no longer touch edge to edge (a plate that slid across a gap, or lost its middle). */

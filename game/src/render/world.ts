@@ -240,7 +240,8 @@ export class World {
     // screen limits in NDC: room for the title bar on top, a pin's half size all round, and whatever fills the bottom
     // (the ending's panel: a short landscape screen has no bottom to give, so the panel stands at the right)
     const short = innerHeight <= 560 && innerWidth > innerHeight, side = short && this.mapBottom > 0 ? .46 : 0;
-    const yHi = 1 - 2 * ((side ? 12 : 66) + 26) / innerHeight, yLo = -1 + 2 * ((side ? 0 : this.mapBottom) + 28 / innerHeight), xHi = 1 - 2 * 30 / innerWidth - 2 * side, xLo = -1 + 2 * 30 / innerWidth;
+    // (a label sits above its anchor, and a pin's badge beside it: playtest 3 saw both clipped at 1280x720)
+    const yHi = 1 - 2 * ((side ? 12 : 66) + 46) / innerHeight, yLo = -1 + 2 * ((side ? 0 : this.mapBottom) + 28 / innerHeight), xHi = 1 - 2 * 58 / innerWidth - 2 * side, xLo = -1 + 2 * 58 / innerWidth;
     const focus = new Vector3(); for (const v of this.views) focus.add(new Vector3(v.ox, 0, v.oz)); focus.divideScalar(this.views.length);
     let dist = 60;
     // perspective makes the fit depend on itself; a few rounds of projecting and correcting settle it
@@ -414,16 +415,31 @@ export class World {
       box.setAttribute('color', new BufferAttribute(col, 3));
       const ground = new InstancedMesh(box, new MeshLambertMaterial({ vertexColors: true }), gaps.length);
       ground.castShadow = ground.receiveShadow = true; ground.frustumCulled = false;
-      const m = new Matrix4(), c = new Color(), decor: Matrix4[] = [];
+      const m = new Matrix4(), c = new Color(), other = new Color(), decor: Matrix4[] = [];
+      // patches of lighter and darker ground and small tufts: playtest 3 read plain squares of one colour as unfinished
+      const patch = new InstancedMesh(new BoxGeometry(1, .03, 1), new MeshLambertMaterial(), gaps.length * 3), tuft = new BoxGeometry(1, 1, 1);
+      const tufts = new InstancedMesh(tuft, new MeshLambertMaterial(), gaps.length * 3);
+      patch.receiveShadow = true; patch.frustumCulled = false; tufts.castShadow = true; tufts.frustumCulled = false;
+      const y0 = topY(0), rnd = (h: number, k: number) => (((h >>> (k * 3)) * 2654435761) >>> 0) / 4294967296;
       gaps.forEach(([x, z], i) => {
-        let best = land[0], bd = Infinity;
-        for (const l of land) { const d = Math.abs(l.x - x) + Math.abs(l.z - z); if (d < bd) { bd = d; best = l; } }
+        // the colours of every near island, weighed by distance, so the biomes melt into each other in place of meeting in a line
+        let r = 0, gr = 0, b = 0, sum = 0;
+        for (const l of land) { const d = (l.x - x) ** 2 + (l.z - z) ** 2, wt = 1 / (1 + d * d); other.set(l.g); r += other.r * wt; gr += other.g * wt; b += other.b * wt; sum += wt; }
+        c.setRGB(r / sum, gr / sum, b / sum);
         const h = ((x * 73856093) ^ (z * 19349663)) >>> 0;
-        ground.setMatrixAt(i, m.makeTranslation(x, topY(0) - .7, z));
-        ground.setColorAt(i, c.set(best.g).multiplyScalar(.94 + (h % 10) * .012));
-        if (h % 7 === 0) decor.push(new Matrix4().makeScale(1.5, 1.5, 1.5).setPosition(x + (h % 5 - 2) * .1, topY(0), z + (h % 3 - 1) * .15));
+        ground.setMatrixAt(i, m.makeTranslation(x, y0 - .7, z));
+        ground.setColorAt(i, c.clone().multiplyScalar(.95 + (h % 10) * .01));
+        for (let k = 0; k < 3; k++) {
+          const sx = .3 + rnd(h, k) * .45, sz = .3 + rnd(h, k + 3) * .45, px = (rnd(h, k + 1) - .5) * (1 - sx), pz = (rnd(h, k + 4) - .5) * (1 - sz);
+          patch.setMatrixAt(i * 3 + k, m.makeScale(sx, 1, sz).setPosition(x + px, y0 + .012, z + pz));
+          patch.setColorAt(i * 3 + k, other.copy(c).multiplyScalar(k === 1 ? 1.07 : .9));
+          const t = .05 + rnd(h, k + 2) * .07, stone = (h >>> k) % 5 === 0;
+          tufts.setMatrixAt(i * 3 + k, m.makeScale(t * (stone ? 1.5 : .8), t * (stone ? 1 : 1.9), t * (stone ? 1.3 : .8)).setPosition(x + (rnd(h, k + 5) - .5) * .85, y0 + t * .8, z + (rnd(h, k + 6) - .5) * .85));
+          tufts.setColorAt(i * 3 + k, stone ? other.set('#a59c8e') : other.copy(c).multiplyScalar(.78));
+        }
+        if (h % 5 === 0) decor.push(new Matrix4().makeScale(1.5, 1.5, 1.5).setPosition(x + (h % 5 - 2) * .1, y0, z + (h % 3 - 1) * .15));
       });
-      g.add(ground);
+      g.add(ground, patch, tufts);
       if (decor.length) {
         const trees = new InstancedMesh(M.tree, MAT, decor.length);
         decor.forEach((d, i) => trees.setMatrixAt(i, d));

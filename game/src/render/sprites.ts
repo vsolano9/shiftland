@@ -24,7 +24,6 @@ function bubble(draw: (c: CanvasRenderingContext2D) => void) {
     const blob = (x: number, y: number, r: number) => { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); };
     c.shadowColor = 'rgba(30,40,60,.3)'; c.shadowBlur = 8; c.shadowOffsetY = 3;
     blob(96, 78, 58); blob(52, 86, 36); blob(140, 86, 36); blob(70, 48, 34); blob(122, 48, 34);
-    blob(62, 142, 12); blob(44, 166, 8);
     c.shadowColor = 'transparent';
     draw(c);
   });
@@ -73,6 +72,7 @@ function build() {
     check: tex(canvas(128, 128, drawCheck)), cross: tex(canvas(128, 128, drawCross)),
     plus: tex(canvas(128, 128, drawPlus)), minus: tex(canvas(128, 128, drawMinus)),
     chevrons: tex(chevrons), hatch: tex(hatch), hatchLake: tex(hatchLake), bubbles,
+    dot: tex(canvas(48, 48, c => { c.fillStyle = '#fffdf7'; c.shadowColor = 'rgba(30,40,60,.4)'; c.shadowBlur = 5; c.shadowOffsetY = 2; c.beginPath(); c.arc(24, 23, 15, 0, 7); c.fill(); })),
   };
 }
 export const sprites = () => (cache ??= build());

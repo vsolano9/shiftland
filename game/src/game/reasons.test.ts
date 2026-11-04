@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalsMet, type Level, type State, type Kind } from '../rules/rules.ts';
-import { beamDir, beamRun, goalReason, hasSplitPlate } from './reasons.ts';
+import { beamDir, beamRun, goalReason, hasSplitPlate, moveWhy, stackReason } from './reasons.ts';
 
 /** A 5x5 grid from rows: '#' land, '.' water; one creature at (x, y). */
 function board(rows: string[], kind: Kind, x: number, y: number, up = 1, buoys: number[] = [], ice = true) {
@@ -35,6 +35,30 @@ describe('beamRun', () => {
     expect(beamRun(channel.lv, channel.s, 1 + 2 * 5)).toEqual({ dir: [0, 1], run: 1 }); // one row of sea, then land
     const open = board(SOLID, 'light', 2, 1);
     expect(beamRun(open.lv, open.s, 2 + 1 * 5).run).toBeGreaterThanOrEqual(3); // the top row, then off the map
+  });
+});
+
+describe('moveWhy and stackReason', () => {
+  /** Two plates side by side on a 6x3 grid: 0 on the left, 1 on the right, both sliding east and west. */
+  function pair(objs: { kind: Kind; cell: number }[], gap = false) {
+    const w = 6, h = 3, plate = new Int8Array(w * h).fill(-1), elev = new Int8Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 1; x < 5; x++) { if (gap && x === 2) continue; plate[x + y * w] = x < 3 ? 0 : 1; elev[x + y * w] = 1; }
+    const start: State = { plate, elev, objs, off: new Int8Array(2) };
+    return { lv: { w, h, plates: 2, start, buoys: [], axis: [1, 1], maxTravel: 2 } as unknown as Level, s: start };
+  }
+  it('names a goal it meets first', () => {
+    const { lv, s } = pair([{ kind: 'goat', cell: 3 + 6 }]);
+    expect(moveWhy(lv, s, 0, 1)).toBe('It gives the goat what it needs.'); // plate 0 bites under the goat's plate edge
+  });
+  it('explains a bite that meets nothing yet', () => {
+    const { lv, s } = pair([{ kind: 'village', cell: 1 + 6 }, { kind: 'goat', cell: 4 + 6 }]);
+    expect(moveWhy(lv, s, 0, 1)).toBe('It bites its neighbour and keeps that land when it slides back.');
+  });
+  it('names what a refused move runs into', () => {
+    const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }]);
+    expect(stackReason(lv, s, 0)).toBe('The oasis is in the way of the goat');
+    const free = pair([{ kind: 'goat', cell: 1 }]);
+    expect(stackReason(free.lv, free.s, 0)).toBe('Something already stands there');
   });
 });
 
