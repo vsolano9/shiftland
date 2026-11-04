@@ -93,6 +93,67 @@ test('settings opened and closed five times cost nothing, and the next drag stil
   expect(errors).toEqual([]);
 });
 
+test('a nudge says drag further, a short confident drag moves, and a hint names its plate until Restart', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 8);
+  const drag = async (cells: number, back = false) => {
+    const pts = await page.evaluate(`(() => {
+      const a = ${SL}, m = a.controller.session.lv.sol[0], d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]], A = a.view.railAnchor(Number(m[1])), B = A.clone();
+      B.x += d[0] * ${cells}; B.z += d[1] * ${cells};
+      return [a.world.project(A), a.world.project(B)];
+    })()`) as number[][];
+    await page.mouse.move(pts[0][0], pts[0][1]);
+    await page.mouse.down();
+    await page.mouse.move(pts[1][0], pts[1][1], { steps: 6 });
+    if (back) await page.mouse.move(pts[0][0], pts[0][1], { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  };
+  const dismiss = () => page.evaluate(`document.getElementById('hint').classList.add('off')`);
+  await drag(.2);
+  let s = await state(page);
+  expect([s.moves, s.hintOff]).toEqual([0, false]);
+  expect(s.hint).toContain('Drag further');
+  await page.waitForTimeout(2500);
+  expect((await state(page)).hintOff).toBe(false); // still readable 2.6 s on
+  await dismiss();
+  await drag(.7, true); // out to a stop and back: a choice, not a failed nudge
+  s = await state(page);
+  expect(s.moves).toBe(0);
+  expect(s.hintOff).toBe(true);
+  await drag(.45);
+  await page.waitForTimeout(500);
+  expect((await state(page)).moves).toBe(1);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('h');
+  await page.waitForTimeout(1500);
+  s = await state(page);
+  expect(s.hintOff).toBe(false);
+  expect(s.hint).toMatch(/^Try the (coral|gold|violet|rust) plate with the (stripes|dots|zigzags|checks)\./);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(400);
+  expect((await state(page)).hintOff).toBe(true);
+  expect(await page.evaluate(`${SL}.view.railHint`)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('no two sliders sit side by side, and each knob grabs its own plate', async ({ page }) => {
+  const errors = await start(page);
+  const levels = await page.evaluate(`${SL}.levels.length`) as number;
+  for (let i = 0; i < levels; i++) {
+    await page.evaluate(`${SL}.controller.open(${i})`);
+    await page.waitForTimeout(350);
+    const bad = await page.evaluate(`(() => {
+      const a = ${SL}, v = a.view, w = a.world;
+      w.finishFly?.();
+      return v.marks.filter(k => k.grab).map(k => { const q = k.m.position.clone(); q.x += v.ox; q.z += v.oz; const [x, y] = w.project(q); return { plate: k.plate, picks: w.pick(x, y) }; }).filter(k => k.picks !== k.plate);
+    })()`);
+    expect(bad, `island ${i + 1}`).toEqual([]);
+  }
+  expect(errors).toEqual([]);
+});
+
 test('a creature answers when tapped and no move is spent', async ({ page }) => {
   const errors = await start(page);
   await open(page, 5); // High Pasture
