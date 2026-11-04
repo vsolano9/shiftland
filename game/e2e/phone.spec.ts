@@ -100,8 +100,12 @@ test('the map follows a turn of the phone, both ways, with every pin on its isla
   await check(844, 390);
   await page.tap('#m-back');
   await page.waitForTimeout(1800);
-  await page.tap('#btn-play');
+  await page.tap('#btn-play'); // nothing solved yet, so Play opens the first island
   await page.waitForTimeout(2200);
-  await check(844, 390);
+  await page.setViewportSize({ width: 390, height: 844 }); // turned while on an island, the map catches up when it opens
+  await page.waitForTimeout(500);
+  await page.tap('#b-map');
+  await page.waitForTimeout(2400);
+  await check(390, 844);
   expect(errors).toEqual([]);
 });
