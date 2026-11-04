@@ -105,7 +105,7 @@ describe('goalReason', () => {
   });
   it('buoys follow the objects in goal order', () => {
     const on = board(SOLID, 'goat', 1, 1, 2, [12]), pond = board(['#####', '#####', '##.##', '#####', '#####'], 'goat', 1, 1, 2, [12]), sea = board(POND, 'goat', 1, 1, 2, [0]);
-    expect(goalReason(on.lv, on.s, 1)).toBe('land on top of it');
+    expect(goalReason(on.lv, on.s, 1)).toBe('buried under land');
     expect(goalReason(pond.lv, pond.s, 1)).toBe('that water is a lake');
     expect(goalReason(sea.lv, sea.s, 1)).toBeNull();
   });

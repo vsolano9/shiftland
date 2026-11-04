@@ -89,7 +89,7 @@ export function goalReason(lv: Level, s: State, goal: number): string | null {
   const corner = (cell: number, f: (x: number, y: number) => boolean) => CORNERS.some(([a, b]) => f(cell % w + a, Math.floor(cell / w) + b));
   if (goal >= s.objs.length) {
     const b = lv.buoys[goal - s.objs.length];
-    if (s.plate[b] >= 0) return 'land on top of it';
+    if (s.plate[b] >= 0) return 'buried under land'; // "land on top of it" read as an instruction (critic T2, Sandbar)
     return sea[b] ? null : 'that water is a lake';
   }
   const { kind, cell } = s.objs[goal], up = s.elev[cell];

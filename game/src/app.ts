@@ -181,7 +181,7 @@ class App {
         <div class="set-row"><label for="s-reduced">Reduced motion</label><input type="checkbox" id="s-reduced"></div>
         <div class="set-row"><label for="s-assist">Show who a drag pleases</label><input type="checkbox" id="s-assist"></div>
         <div class="set-foot"><button class="btn" id="s-reset">Reset progress</button><button class="btn" id="s-full">Fullscreen</button><button class="btn primary" id="s-close">Close</button></div>
-        <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
+        <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next. Tap a creature to ask what it wants; tap the name card for the island's note.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
       </div></div>`;
     const click = (id: string, fn: () => void) => $(id).addEventListener('click', () => { this.audio.unlock(); this.audio.play('ui'); fn(); });
     click('btn-play', () => this.toMap(true));
@@ -363,7 +363,12 @@ class App {
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
-    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); if (this.view === v) this.showBlurb(11); }); // long enough to read it twice: it is the level's one clue (playtest 3 P6)
+    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); 
+      if (this.view !== v) return;
+      this.showBlurb(11); // long enough to read it twice: it is the level's one clue (playtest 3 P6)
+      // once, on the first island without a guiding hand: nothing on screen says creatures can be asked
+      if (this.controller.index === 2) window.setTimeout(() => { if (this.view === v && this.screen === 'level' && !this.controller.session.solved && $('hint').classList.contains('off')) this.flashHint('Not sure what someone wants? Tap them and ask', 5); }, 12000);
+    });
     if (fly) this.audio.play('whoosh');
   }
   /** The level's name and line; shown on landing and whenever the name card is tapped. */
