@@ -19,7 +19,7 @@ A small island is cut into tectonic plates. Slide one along its rail:
 
 Goats want peaks. Villages want to stay low and whole. Lighthouses want a coast. Buoys want open sea. Oases want a still lake, and penguins want a floe by the water. Make them all happy at once in as few shifts as you can.
 
-- 20 islands across meadow, coast, desert, tundra and a finale
+- 24 islands across meadow, coast, desert, tundra and a finale
 - every level is solver-checked: it can always be solved, and par is the true minimum
 - free undo and restart; a live preview shows what a shift will do before you let go
 - stars for finishing at par without seeing a move, never required

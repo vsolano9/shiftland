@@ -92,7 +92,7 @@ export const lighthouse = merge([
   { g: cyl(0.1, 0.1, 0.022, 10), c: '#3b3b44', p: [0, 0.71, 0] },
   { g: cone(0.125, 0.11, 10), c: '#d43d35', p: [0, 0.775, 0] },
   { g: sph(0.022), c: '#ffcf5c', p: [0, 0.84, 0] },
-  { g: box(0.06, 0.085, 0.03), c: '#6e4227', p: [0, 0.092, 0.15] },
+  { g: box(0.06, 0.085, 0.05), c: '#6e4227', p: [0, 0.092, 0.152] }, // proud of the sloped wall: flush, its top edge came out jagged
 ]);
 export const lamp = merge([{ g: cyl(0.075, 0.075, 0.125, 10), c: '#ffe894', p: [0, 0.645, 0] }]);
 
@@ -156,9 +156,10 @@ export const palm = merge([
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
-  seg(0.02, 0.06, 0.35, 0.05, 0.07, 0.14, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.044, 0.052, 0.14, '#7d5431'), seg(0.214, 0.198, 1.6, 0.038, 0.046, 0.14, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.03, 0.04, 0.11, '#7d5431'),
-  // limp, straw-coloured leaves splayed on the sand: thin enough that it reads as a dead palm, not a green umbrella
-  ...fronds(0.36, 0.14, '#a7a044', '#8f8f3c', 7, .8, .75, 1.05, 0),
+  // slim and low, as on the sheet: a thick high arch beside the crown read as a sausage, not a tired tree
+  seg(0.016, 0.05, 0.4, 0.033, 0.046, 0.115, '#8c5f39'), seg(0.074, 0.122, 1, 0.029, 0.034, 0.115, '#7d5431'), seg(0.168, 0.148, 1.62, 0.025, 0.03, 0.115, '#8c5f39'), seg(0.256, 0.12, 2.2, 0.02, 0.026, 0.09, '#7d5431'),
+  // limp leaves splayed on the sand, a tired green gone yellow: still a palm, just not a happy one
+  ...fronds(0.29, 0.09, '#8fa640', '#71923a', 8, .9, .55, 1.1, 0),
 ]);
 
 // PENGUIN
