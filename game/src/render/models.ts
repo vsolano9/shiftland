@@ -152,14 +152,14 @@ const fronds = (ox: number, oy: number, cA: string, cB: string, n = 8, w = 1, dr
 };
 export const palm = merge([
   seg(0.004, 0.07, 0.08, 0.036, 0.052, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.03, 0.037, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.026, 0.031, 0.13, '#8c5f39'),
-  ...fronds(0.085, 0.385, '#58b04a', '#3f923c', 11, 1.4, .9, 1, 5),
+  ...fronds(0.085, 0.385, '#58b04a', '#3f923c', 13, 1.6, .9, 1, 6),
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
   // slim and low, as on the sheet: a thick high arch beside the crown read as a sausage, not a tired tree
   seg(0.016, 0.05, 0.4, 0.033, 0.046, 0.115, '#8c5f39'), seg(0.074, 0.122, 1, 0.029, 0.034, 0.115, '#7d5431'), seg(0.168, 0.148, 1.62, 0.025, 0.03, 0.115, '#8c5f39'), seg(0.256, 0.12, 2.2, 0.02, 0.026, 0.09, '#7d5431'),
-  // limp leaves splayed on the sand, a tired green gone yellow: still a palm, just not a happy one
-  ...fronds(0.29, 0.09, '#8fa640', '#71923a', 8, .9, .55, 1.1, 0),
+  // limp leaves splayed on the sand, gone dry and straw-coloured so they stand off green grass (critic T5): a full heap, not a star
+  ...fronds(0.29, 0.1, '#c2a544', '#a3873a', 13, 1.45, .6, 1.05, 4),
 ]);
 
 // PENGUIN

@@ -59,7 +59,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 /* one line of reason, only where chips hide theirs (the phone block below turns it on) */
 #chipwhy { display: none; }
 /* tall phones: the next island lies right under the chips and reads as part of the board (playtest 3 P5) */
-@media (max-aspect-ratio: 3/4) { #s-level::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; pointer-events: none; background: linear-gradient(to top, rgba(20,62,112,.97) 55%, rgba(20,62,112,0)); } }
+@media (max-aspect-ratio: 3/4) { #s-level::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; pointer-events: none; background: linear-gradient(to top, rgb(20,62,112) 62%, rgba(20,62,112,0)); } }
 #s-level:has(~ #done:not(.hidden)) #blurb { opacity: 0; }
 #stuck { position: absolute; left: 16px; top: calc(92px + var(--safe-t)); background: #ffd9d3; color: #a12a20; font-weight: 600; font-size: 17px; border-radius: 13px; padding: 8px 16px; box-shadow: var(--sh); animation: slide .3s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes slide { from { transform: translateY(-14px); opacity: 0; } }

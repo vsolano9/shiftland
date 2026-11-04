@@ -10,7 +10,7 @@ import { Controller, type GameEvent } from './game/controller.ts';
 import { keyAction } from './game/keys.ts';
 import { browserStorage, Progress, tutorialCount } from './game/progress.ts';
 import raw from './levels/levels.json';
-import type { CreatureKind } from './render/creatures.ts';
+import { HEAD_Y, KIND_SCALE, type CreatureKind } from './render/creatures.ts';
 import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
@@ -438,7 +438,11 @@ class App {
       const [a, b] = GOAL_TEXT[c.kind];
       el.innerHTML = `<img alt="" src="${this.thumbs[c.kind].sad}"><div class="tx"><b>${a}</b><span>${b}</span></div><div class="badge">${icon.cross}</div>`;
       el.title = GOAL_RULE[c.kind];
-      el.addEventListener('click', () => { this.audio.play('ui'); const why = el.dataset.why; this.flashHint(why ? `Now: ${why}. ${GOAL_RULE[c.kind]}` : GOAL_RULE[c.kind], 6); });
+      el.addEventListener('click', () => {
+        this.audio.play('ui'); const why = el.dataset.why; this.flashHint(why ? `Now: ${why}. ${GOAL_RULE[c.kind]}` : GOAL_RULE[c.kind], 6);
+        this.hopOwners(c.kind);
+      });
+      el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') this.hopOwners(c.kind); });
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
@@ -456,6 +460,23 @@ class App {
     $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`);
     // a phone's icon-only chips keep their reason in one line above them: the land stays clear of that as well
     return box.offsetHeight + (getComputedStyle($('chipwhy')).display === 'none' ? 0 : 26);
+  }
+  /** Chip to board: whoever the chip means gives a little hop, since on a dense board "Goat" can stand anywhere. */
+  private hopOwners(kind: CreatureKind) { for (const c of this.view.creatures) if (c.kind === kind) c.pop = 1; }
+  /** Board to rule: a tap on a creature asks it what it wants, the first thing a stuck player tries. True if one answered. */
+  private askCreature(x: number, y: number) {
+    const v = this.view, s = this.controller.session, at = new Vector3();
+    let best: (typeof v.creatures)[number] | null = null, bd = 44 * 44;
+    for (const c of v.creatures) {
+      c.root.getWorldPosition(at); at.y += HEAD_Y[c.kind] * KIND_SCALE[c.kind] * .5;
+      const [px, py] = this.world.project(at), d = (px - x) ** 2 + (py - y) ** 2;
+      if (d < bd) { bd = d; best = c; }
+    }
+    if (!best) return false;
+    best.pop = 1; this.audio.play('ui');
+    const why = goalReason(s.lv, s.state, best.goalIndex), rule = GOAL_RULE[best.kind];
+    this.flashHint(why ? `Now: ${why}. ${rule}` : `Happy. ${rule}`, 6);
+    return true;
   }
   private refreshChips() {
     const g = this.controller.session.goals;
@@ -475,7 +496,7 @@ class App {
       const cnt = e.el.querySelector('.count'); if (cnt) cnt.textContent = `${n}/${e.goals.length}`;
     }
     // the same reasons for a phone's icon-only chips, which have no room for theirs (playtest 3 P5): the first creature still unhappy
-    const s = this.controller.session, first = s.moves > 0 ? [...this.chips].find(([, e]) => e.el.dataset.why) : undefined;
+    const first = [...this.chips].find(([, e]) => e.el.dataset.why);
     $('chipwhy').textContent = first ? `${GOAL_TEXT[first[0]][0]}: ${first[1].el.dataset.why}` : '';
   }
   private refreshHud() {
@@ -832,9 +853,9 @@ class App {
     let plate = this.world.pick(e.clientX, e.clientY);
     // a touch on the water or another spot keeps working on the selected plate (tap, then swipe anywhere)
     if (plate === null) plate = this.controller.selected;
-    if (plate === null) return;
+    if (plate === null) { this.askCreature(e.clientX, e.clientY); return; } // a buoy out on the water
     const v = this.view, y = v.plateTop(plate);
-    if (v.lv.pinned?.includes(plate)) { this.audio.play('blocked'); this.flashHint('Anchored by the rock. This plate stays put'); return; }
+    if (v.lv.pinned?.includes(plate)) { if (!this.askCreature(e.clientX, e.clientY)) { this.audio.play('blocked'); this.flashHint('Anchored by the rock. This plate stays put'); } return; }
     const start = this.world.groundPoint(e.clientX, e.clientY, y);
     if (!start) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -873,13 +894,14 @@ class App {
   }
   private pointerUp(e: PointerEvent) {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
-    const p = this.drag.plate, across = this.drag.across;
+    const p = this.drag.plate, across = this.drag.across, tapped = !this.drag.moved;
     this.drag = null; this.dragging = false;
     this.view.setQuiet(false);
     this.view.noteDragEnd(p);
     this.view.setDrag(null);
     const before = this.controller.session.moves;
     this.controller.release();
+    if (tapped && this.controller.session.moves === before) this.askCreature(e.clientX, e.clientY);
     // dragged clean across the rail: say so, or the plate just looks broken
     if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }
     (e.target as HTMLElement).style.cursor = 'default';
