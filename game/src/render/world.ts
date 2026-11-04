@@ -58,7 +58,7 @@ export class World {
   goalsHeight = () => 0;
   private padKind: PadKind = 'level';
   private path: Mesh | InstancedMesh | null = null;
-  pins: { el: HTMLElement; pos: Vector3; hide?: () => boolean }[] = [];
+  pins: { el: HTMLElement; pos: Vector3; hide?: () => boolean; label?: boolean; hw?: number; hh?: number }[] = [];
 
   /** The title loop's sounds; silent until the audio is unlocked by a first touch. */
   heroSfx?: (s: 'slide' | 'uplift', o: { plate?: number; intensity?: number }) => void;
@@ -679,10 +679,15 @@ export class World {
     // sun follows the view so shadows stay crisp
     const sc = this.map ? (this.peekAt ?? this.mapCenter()) : (this.active ? new Vector3(this.active.ox, 0, this.active.oz) : focus);
     this.sun.target.position.copy(sc); this.sun.position.copy(sc).add(this.sunFrom);
+    // Pins come first in the list. A biome label that lands on something already placed steps aside: on a small phone the map's rows close up, and a pin matters more than its region's name.
+    const placed: { x: number; y: number; hw: number; hh: number }[] = [];
     for (const p of this.pins) {
       if (p.hide?.()) { p.el.style.display = 'none'; continue; }
       const [x, y] = this.project(p.pos);
       p.el.style.display = ''; p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      const hw = (p.hw ??= p.el.offsetWidth / 2), hh = (p.hh ??= p.el.offsetHeight / 2);
+      if (p.label) p.el.style.visibility = placed.some(q => Math.abs(q.x - x) < q.hw + hw && Math.abs(q.y - y) < q.hh + hh) ? 'hidden' : '';
+      if (!p.el.style.visibility) placed.push({ x, y, hw, hh });
     }
     if (this.path) this.path.visible = this.map && !this.homes && !this.drive && !this.peekAt; // at the ending tour's close range the dots are big ovals
     updateVisibleMatrices(this.scene);

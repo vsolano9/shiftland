@@ -241,7 +241,7 @@ class App {
       $('s-map').appendChild(el);
       const pos = this.world.mapAnchors(this.world.views[i]).label;
       this.mapMarks.push({ pos, i, kind: 'label' });
-      this.world.pins.push({ el, pos, hide: () => this.screen !== 'map' });
+      this.world.pins.push({ el, pos, label: true, hide: () => this.screen !== 'map' });
     });
     this.syncMuteIcon();
     // logo: the two halves slide along their faults, then settle
@@ -884,7 +884,10 @@ class App {
     cv.addEventListener('wheel', e => e.preventDefault(), { passive: false });
     window.addEventListener('pointerdown', () => this.audio.unlock(), { capture: true });
     for (const k of ['pointerup', 'pointercancel'] as const) window.addEventListener(k, e => this.fingers.delete(e.pointerId), { capture: true });
-    window.addEventListener('resize', () => { if (this.screen === 'map' && !this.world.flying) { this.fitArchipelago(); this.world.resize(); this.refreshIslands(); } });
+    window.addEventListener('resize', () => {
+      if (this.screen === 'map' && !this.world.flying) { this.fitArchipelago(); this.world.resize(); this.refreshIslands(); }
+      $('blurb').classList.add('off'); // placed for the old shape, it could run off the new one (phone playtest PH13)
+    });
     window.addEventListener('blur', () => this.fingers.clear());
     window.addEventListener('keydown', () => this.audio.unlock(), { capture: true });
   }

@@ -216,10 +216,11 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #b-undo { right: 14px; } #b-restart { left: 14px; } #b-hint { left: calc(50% - 24px); }
   #hud-tl { max-width: calc(100vw - 142px); }
   #hint { bottom: calc(var(--goals-h, 40px) + 74px + var(--safe-b)); }
-  #s-level:has(#goals.many) #chipwhy { bottom: calc(var(--goals-h, 40px) + 26px + var(--safe-b)); max-width: calc(100vw - 220px); white-space: normal; text-align: center; }
+  #s-level:has(#goals.many) #chipwhy { bottom: calc(var(--goals-h, 40px) + 72px + var(--safe-b)); }
   /* the next island along lies under the top row as well, and reads as part of the board */
   #s-level::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 15vh; pointer-events: none; z-index: -1; background: linear-gradient(to bottom, rgb(20,62,112) 45%, rgba(20,62,112,0)); }
 }
+@media (max-width: 400px) { #map-title { left: 64px; transform: none; font-size: 17px; padding: 6px 11px; } }
 @media (pointer: coarse) { #credits .keys { display: none; } }
 /* A big screen: the same HUD at a size that reads from a chair. world.ts pads() keeps its numbers in step (top bar, panel width). */
 @media (min-width: 1600px) and (min-height: 900px) {
