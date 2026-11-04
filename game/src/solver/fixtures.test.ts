@@ -123,20 +123,6 @@ describe('bite and retreat (playtest 3 P1: the technique nothing taught)', () =>
     const counts = ['P1E', 'P1E P0S', 'P1E P0S P0N'].map(l => goalsMet(lv, applyAll(lv, lv.start, l.split(' '))!).filter(Boolean).length);
     expect(counts).toEqual([2, 1, 3]);
   });
-  it('Backwater: the plain bite and retreat floats the buoy, and the chip says the water is the sea', () => {
-    const lv = byName('Backwater'), s = applyAll(lv, lv.start, ['P1S', 'P1N'])!;
-    expect(goalsMet(lv, s)).toEqual([false, true]);
-    expect(goalReason(lv, s, 0)).toBe('that water reaches the sea');
-    expect(solve(lv, 9, s)!.min).toBeGreaterThan(lv.par!);
-  });
-  it('Backwater: the solved pond meets the sea only at a corner', () => {
-    const lv = byName('Backwater'), end = applyAll(lv, lv.start, ['P2E', 'P1S', 'P1N'])!, sea = seaMask(lv, end);
-    const pond = 4 + 3 * lv.w, strip = 5 + 4 * lv.w; // the strip one east, one south: their corner faces the camera
-    expect(end.plate[pond]).toBeLessThan(0);
-    expect(sea[pond]).toBe(0);
-    expect(end.plate[strip]).toBeLessThan(0);
-    expect(sea[strip]).toBe(1);
-  });
   it('Wishing Well: the same slide twice flips which of the two is unhappy', () => {
     const lv = byName('Wishing Well');
     const one = applyAll(lv, lv.start, ['P0E'])!, two = applyAll(lv, lv.start, ['P0E', 'P0E'])!;
@@ -146,7 +132,7 @@ describe('bite and retreat (playtest 3 P1: the technique nothing taught)', () =>
     expect(goalReason(lv, two, 1)).toBe('that water reaches the sea');
   });
   it('some islands cannot be solved at any length without a retreat: an exhaustive search finds no line', () => {
-    for (const n of ['Good Neighbours', 'Harbour Row', 'Low Tide', 'Mirage']) expect(solveWithoutRetreat(byName(n)), n).toBeNull();
+    for (const n of ['Good Neighbours', 'Low Tide', 'Mirage']) expect(solveWithoutRetreat(byName(n)), n).toBeNull();
   });
   it('Mirage proves the same claim on its aha', () => {
     expect(spec('Mirage').fixture!.aha.shows).toContain('carries');

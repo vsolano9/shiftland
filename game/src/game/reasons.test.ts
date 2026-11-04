@@ -53,7 +53,7 @@ describe('moveWhy and stackReason', () => {
   });
   it('explains a bite that meets nothing yet', () => {
     const { lv, s } = pair([{ kind: 'village', cell: 1 + 6 }, { kind: 'goat', cell: 4 + 6 }]);
-    expect(moveWhy(lv, s, 0, 1)).toBe('It bites its neighbour and keeps that land when it slides back.');
+    expect(moveWhy(lv, s, 0, 1)).toBe("It bites its neighbour: that land is this plate's now.");
   });
   it('names what a refused move runs into', () => {
     const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }]);

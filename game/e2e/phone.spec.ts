@@ -49,7 +49,7 @@ test('a pinch spends no move, and a one-finger drag still works after it', async
 
 test('Restart stands apart from Undo, and Undo takes it back', async ({ page, context }) => {
   const errors = await start(page);
-  await page.evaluate(`${SL}.controller.open(6)`); // two goals, several moves
+  await page.evaluate(`${SL}.controller.open(8)`); // two goals, several moves
   await page.waitForTimeout(2500);
   const cdp = await context.newCDPSession(page);
   const boxes = await page.evaluate(`['b-restart', 'b-undo', 'b-hint'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom]; })`) as number[][];
@@ -70,7 +70,7 @@ test('Restart stands apart from Undo, and Undo takes it back', async ({ page, co
 
 test('a swipe on the water is not a move, even just after one', async ({ page, context }) => {
   const errors = await start(page);
-  await page.evaluate(`${SL}.controller.open(6)`);
+  await page.evaluate(`${SL}.controller.open(8)`);
   await page.waitForTimeout(2500);
   const cdp = await context.newCDPSession(page);
   const r = await railOf(page, await firstMove(page));
@@ -83,7 +83,7 @@ test('a swipe on the water is not a move, even just after one', async ({ page, c
 test('a reload puts the player back on the same board', async ({ page, context }) => {
   const errors = await start(page);
   const cdp = await context.newCDPSession(page);
-  await page.evaluate(`${SL}.controller.open(6)`);
+  await page.evaluate(`${SL}.controller.open(8)`);
   await page.waitForTimeout(2500);
   const r = await railOf(page, await firstMove(page));
   await swipe(cdp, page, r.a, r.b);
@@ -97,7 +97,7 @@ test('a reload puts the player back on the same board', async ({ page, context }
   await page.evaluate(`document.querySelector('.pin[data-level="6"]').click()`);
   await page.waitForTimeout(2200);
   await expect(page.locator('#hint')).toContainText('where you left off');
-  expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([6, 1]);
+  expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([8, 1]);
   expect(await page.evaluate(`[...${SL}.controller.session.state.plate].join()`)).toBe(before);
   expect(errors).toEqual([]);
 });

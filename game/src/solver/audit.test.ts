@@ -10,7 +10,7 @@ const all = (levels as LevelJson[]).map(fromJson);
 const puzzles = all.filter(l => l.role === 'puzzle');
 
 describe('quality bar on the exported puzzles', () => {
-  it('has 19 puzzles', () => expect(puzzles.length).toBe(19));
+  it('has 15 puzzles', () => expect(puzzles.length).toBe(15));
   for (const lv of puzzles) {
     it(`${lv.name} passes (par ${lv.par})`, () => {
       const a = audit(lv, lv.par! + 2)!;
@@ -97,11 +97,10 @@ describe('effort: the moves a player tries without reading the board (the ramp)'
   it('no puzzle falls within 30 tries (Ice Dam at 22 fell to following ticks in the Nov 4 playtest)', () => {
     for (const l of puzzles) expect(effort.get(l.name!), l.name).toBeGreaterThanOrEqual(30);
   });
-  it('the Meadow climbs through its three puzzles, and the first aha comes well before the desert', () => {
-    const [a, b, c] = puzzles.slice(0, 3).map(l => effort.get(l.name!)!);
+  it('the Meadow climbs through its two puzzles, and a big search comes before the desert', () => {
+    const [a, b] = puzzles.slice(0, 2).map(l => effort.get(l.name!)!);
     expect(a).toBeLessThan(b);
-    expect(b).toBeLessThan(c);
-    expect(all.findIndex(l => effort.get(l.name!)! >= 100)).toBeLessThan(7);
+    expect(all.findIndex(l => effort.get(l.name!)! >= 100)).toBeLessThan(all.findIndex(l => l.biome === 'desert'));
   });
   it('par never falls inside a biome, and no puzzle is more than 3x the hardest before it (the first aha excepted)', () => {
     let hardest = 0, seen = false;

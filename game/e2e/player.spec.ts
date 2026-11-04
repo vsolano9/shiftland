@@ -28,7 +28,7 @@ async function open(page: Page, i: number) {
 
 test('keys alone solve an island, then restart, undo, hint and map', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 8); // Harbour Row
+  await open(page, 8); // Salt Point
   const { sol } = await state(page);
   const arrow: Record<string, string> = { N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' };
   for (const m of sol) {
@@ -200,7 +200,7 @@ test('a newer message is not cut short by an older one, and the note comes back'
 test('a dead end warns after a quiet wait, and Undo clears it', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = await start(page);
-  await open(page, 20); // Anchor Rock: P0E is a proven dead end
+  await open(page, 17); // Anchor Rock: P0E is a proven dead end
   await page.evaluate(`${SL}.controller.move(0, 1)`);
   await page.waitForTimeout(2500);
   expect((await state(page)).stuck).toBe(false); // proved by now, and still quiet

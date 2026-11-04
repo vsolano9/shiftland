@@ -291,6 +291,8 @@ class App {
   }
   private toMap(fromTitle = false) {
     if (fromTitle && !this.progress.solved(0)) { this.pickLevel(0); return; } // first play: straight into the first island
+    // a run left unfinished: Play goes back to it, which is what the game says it does (playtest 5 P5-12)
+    if (fromTitle && this.controller.session.moves > 0 && !this.controller.session.solved) { this.pickLevel(this.controller.index); return; }
     this.show('map');
     this.world.setActive(null);
     this.fitArchipelago();
@@ -956,7 +958,8 @@ class App {
     const r = v.legalRange(plate);
     let o = along;
     const rub = (over: number) => Math.tanh(over * 2) * .16;
-    if (o > r.pos) o = r.pos + rub(o - r.pos); else if (o < -r.neg) o = -r.neg - rub(-r.neg - o);
+    const pos = Math.min(r.pos, 1), neg = Math.min(r.neg, 1); // one drag, one stop
+    if (o > pos) o = pos + rub(o - pos); else if (o < -neg) o = -neg - rub(-neg - o);
     v.setDrag(plate, ax === 1 ? o : 0, ax === 1 ? 0 : o);
     this.controller.drag(plate, dx, dz);
     this.handStart = 0;

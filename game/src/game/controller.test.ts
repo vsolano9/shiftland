@@ -14,7 +14,7 @@ const make = (storage = mem()) => {
 const DIRS: Record<string, Dir> = { N: 0, E: 1, S: 2, W: 3 };
 describe('a run survives a reload', () => {
   const unlockedTo = (storage: StorageLike, i: number) => { const a = make(storage).c; for (let k = 0; k < i; k++) { a.open(k); playSolution(a); } };
-  const at = "Shepherd's Hill", index = all.findIndex(l => l.name === at);
+  const at = 'Good Neighbours', index = all.findIndex(l => l.name === at);
   it('comes back on the same island with its moves, undo and hint', () => {
     const storage = mem();
     unlockedTo(storage, index);
@@ -143,14 +143,21 @@ describe('Controller', () => {
     for (const [dx, dy] of [[0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]]) { c.drag(0, dx, dy); c.release(); }
     expect(c.session.moves).toBe(0);
   });
-  it('drag past the last legal stop strains: one shake per push, preview stays at the legal stops', () => {
+  it('one drag is one stop, however long', () => {
     const { c, events } = make(); events.length = 0;
-    c.drag(0, -2.4, 0);                                               // asks two stops W; only one is legal
+    c.drag(0, -2.4, 0);
     const prev = events.find(e => e.kind === 'preview');
     expect(prev && prev.kind === 'preview' && prev.steps).toBe(1);
-    for (let i = 0; i < 10; i++) c.drag(0, -2.4 - i * 0.01, 0);     // held against the rail end: no shake per frame
+    expect(events.filter(e => e.kind === 'blocked').length).toBe(0);
+    c.release();
+    expect(c.session.moves).toBe(1);
+  });
+  it('a drag the rail refuses strains: one shake per push, not per frame', () => {
+    const { c, events } = make();
+    c.act({ kind: 'move', plate: 0, dir: 3 }); events.length = 0;    // only one stop was legal west
+    for (let i = 0; i < 10; i++) c.drag(0, -.8 - i * 0.01, 0);      // held against the rail end
     expect(events.filter(e => e.kind === 'blocked').length).toBe(1);
-    c.drag(0, -0.8, 0); c.drag(0, -1.8, 0);                          // eased off, pushed again: one more shake
+    c.drag(0, -.2, 0); c.drag(0, -.8, 0);                            // eased off, pushed again: one more shake
     expect(events.filter(e => e.kind === 'blocked').length).toBe(2);
     c.release();
     expect(c.session.moves).toBe(1);

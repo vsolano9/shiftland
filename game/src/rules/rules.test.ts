@@ -130,7 +130,7 @@ describe('canFinish (the "no way back" warning)', () => {
     expect(performance.now() - t).toBeLessThan(200);
   });
   it('does not call a far-but-solvable state a dead end (Codex chain 3 regression)', () => {
-    expect(play("Shepherd's Hill", 'P0W P1W P1E P0E P2N P2S P0W P1W')).toBe(true); // eight moves in, six still to go
+    expect(play('The Summit', 'P0E')).toBe(true); // the trap: eight moves still to go, past par
   });
 });
 

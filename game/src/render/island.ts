@@ -426,7 +426,7 @@ export class IslandView {
     const stopG = new CylinderGeometry(.075, .075, .02, 16), stops: Mesh[] = [];
     for (let i = 0; i < 2 * this.lv.maxTravel + 1; i++) { const s = new Mesh(stopG, new MeshBasicMaterial({ color: '#d7cdbd', transparent: true, depthTest: false, depthWrite: false })); s.renderOrder = 12; stops.push(s); this.rail.add(s); }
     const knob = new Mesh(new TorusGeometry(.13, .04, 8, 24), new MeshBasicMaterial({ color: '#30e5ff', transparent: true, depthTest: false, depthWrite: false })); knob.rotation.x = Math.PI / 2; knob.renderOrder = 13; this.rail.add(knob);
-    const arrowG = new ConeGeometry(.11, .22, 3); const arrows = [0, 1].map(() => { const a = new Mesh(arrowG, new MeshBasicMaterial({ color: '#ffffff', transparent: true, depthTest: false, depthWrite: false })); a.renderOrder = 13; this.rail.add(a); return a; });
+    const arrowG = new ConeGeometry(.17, .34, 3); const arrows = [0, 1].map(() => { const a = new Mesh(arrowG, new MeshBasicMaterial({ color: '#ffffff', transparent: true, depthTest: false, depthWrite: false })); a.renderOrder = 13; this.rail.add(a); return a; });
     this.rail.visible = false;
     this.group.add(this.rail);
     return { tube, caps, stops, knob, arrows };
@@ -491,7 +491,8 @@ export class IslandView {
     P.arrows.forEach((a, i) => {
       const sign = i ? 1 : -1, ok = (i ? range.pos > 0 : range.neg > 0) && (!dir || dir === sign);
       a.visible = ok;
-      place(a, off + sign * .34);
+      // on the stop it points at, tip past the end: beside the ring it read as a funnel, and playtest 5 followed it the wrong way (P5-1)
+      place(a, off + sign * .9);
       a.rotation.set(Math.PI / 2, 0, ax === 1 ? -sign * Math.PI / 2 : (sign > 0 ? 0 : Math.PI)); // outward, the way it goes
       a.userData.base = a.position.clone(); a.userData.sign = sign; a.userData.ax = ax;
     });

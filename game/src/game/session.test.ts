@@ -48,9 +48,9 @@ describe('Session', () => {
   });
 
   it('undo and restart return to earlier states', () => {
-    const lv = byName("Shepherd's Hill");
+    const lv = byName('Good Neighbours');
     const s = new Session(lv);
-    expect(play(s, 'P0W P1W').every(r => r.ok)).toBe(true);
+    expect(play(s, 'P0W P1N').every(r => r.ok)).toBe(true);
     expect(s.moves).toBe(2);
     expect(s.undo()).toBe(true);
     expect(s.moves).toBe(1);

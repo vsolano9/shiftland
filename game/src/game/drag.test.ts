@@ -13,10 +13,9 @@ describe('dragStops', () => {
     expect(dragStops(0, 0, 0.6)).toEqual({ dir: 2, n: 1 });
     expect(dragStops(0, 0, -0.6)).toEqual({ dir: 0, n: 1 });
   });
-  it('counts stops along a long drag', () => {
-    expect(dragStops(1, 1.35, 0)).toEqual({ dir: 1, n: 1 });
-    expect(dragStops(1, 1.36, 0)).toEqual({ dir: 1, n: 2 });
-    expect(dragStops(1, -2.3, 0)).toEqual({ dir: 3, n: 2 });
+  it('a long drag still asks for one stop', () => {
+    expect(dragStops(1, 1.36, 0)).toEqual({ dir: 1, n: 1 });
+    expect(dragStops(1, -2.3, 0)).toEqual({ dir: 3, n: 1 });
   });
   it('ignores movement across the rail (a sloppy diagonal on touch still slides along it)', () => {
     expect(dragStops(1, 0.2, 3)).toBeNull();

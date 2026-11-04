@@ -94,7 +94,7 @@ const DESERT: Spec[] = [
   },
   {
     name: 'Breakwater', biome: 'desert', teaches: 'open a rift, then cap its end: a channel to the sea becomes a lake, and the cap is the plate that carries the oasis to it', axis: '|--', expectPar: 2,
-    blurb: "Close a rift's open end and its sea becomes a lake.",
+    blurb: 'Bring the palms to the pond, and shut the sea out.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
       ~  c0 c0 c0O c1V b0 ~  ~
@@ -118,20 +118,6 @@ const DESERT: Spec[] = [
       ~  ~  ~  ~  ~  ~  ~  ~`,
     fixture: { intended: 'P0W P2N P1W', trap: { move: 'P2N', finish: 4, why: "the buoy floats at once, but c has bitten a's north shore too soon: a's slide would now open the rift at both ends, and one cap cannot close both" },
       aha: { move: 'P1W', says: 'b slides over the open end: the west half of the rift is shut in as a lake, and the stub of c keeps the east half open to the sea', shows: ['seals'] } },
-  },
-  {
-    name: 'Twin Palms', biome: 'desert', role: 'puzzle', teaches: 'give up a tick to get two: the plate that spoils the first pond also carries both oases off, and each leaves a pond of its own in the wake', axis: '|-|', expectPar: 3,
-    blurb: 'What a plate bites, it can carry off.',
-    map: `
-      ~  ~  ~  ~  ~  ~  ~  ~
-      ~  a0 a0 a0 a0 a0 a0 ~
-      ~  a0 c0 c0 a0 b0O b0 ~
-      ~  c0O c0 c0 c0 b0L b0 ~
-      ~  c0 c0 c0 c0 c0 b0 ~
-      ~  ~  ~  c0 c0 c0 b0 ~
-      ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P1E P0S P0N', trap: { move: 'P0N', finish: 5, why: 'a backs off and the first oasis has a pond at once, but it took nothing with it: the second oasis is still on the shore, and the lamp still has no sea' },
-      aha: { move: 'P0N', says: 'a comes down and spoils the good pond, then goes home with both oases aboard, and the cells it bit leave water behind: a pond beside each palm', shows: ['returns', 'carries', 'ticks2'] } },
   },
   {
     name: 'Two Waters', biome: 'desert', role: 'puzzle', teaches: 'lake or sea is decided by what walls it: make one hole of each, side by side', axis: '|--', expectPar: 3,
@@ -165,6 +151,21 @@ const DESERT: Spec[] = [
     fixture: { intended: 'P2E P1S P1N', trap: { move: 'P1S', finish: 6, why: 'the obvious bite: b comes home with the oasis and the buoy floats, but all three holes are one strip open to the east, and the chip says so; putting that right takes six moves in all' },
       aha: { move: 'P1N', says: 'the same retreat as ever, but a cell of it came from c: that cell leaves its own hole beside the oasis, walled on all four sides, and only its corner touches the strip that reaches the sea', shows: ['returns', 'carries', 'ticks2', 'lake'] } },
   },
+  // after Two Waters, not before: playtest 5 hit a wall at this island when it came straight after Oxbow (P5-4)
+  {
+    name: 'Twin Palms', biome: 'desert', role: 'puzzle', teaches: 'give up a tick to get two: the plate that spoils the first pond also carries both oases off, and each leaves a pond of its own in the wake', axis: '|-|', expectPar: 3,
+    blurb: 'What a plate bites, it can carry off.',
+    map: `
+      ~  ~  ~  ~  ~  ~  ~  ~
+      ~  a0 a0 a0 a0 a0 a0 ~
+      ~  a0 c0 c0 a0 b0O b0 ~
+      ~  c0O c0 c0 c0 b0L b0 ~
+      ~  c0 c0 c0 c0 c0 b0 ~
+      ~  ~  ~  c0 c0 c0 b0 ~
+      ~  ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P1E P0S P0N', trap: { move: 'P0N', finish: 5, why: 'a backs off and the first oasis has a pond at once, but it took nothing with it: the second oasis is still on the shore, and the lamp still has no sea' },
+      aha: { move: 'P0N', says: 'a comes down and spoils the good pond, then goes home with both oases aboard, and the cells it bit leave water behind: a pond beside each palm', shows: ['returns', 'carries', 'ticks2'] } },
+  },
   {
     name: 'Wishing Well', biome: 'desert', role: 'puzzle', teaches: 'one slide makes the oasis happy and the lamp sulk, the next flips them: the same water cannot be both, so the two need separate holes, and every tick has to be given back on the way there', axis: '-|', expectPar: 5,
     blurb: 'The same water cannot be both a lake and the sea.',
@@ -183,7 +184,7 @@ const DESERT: Spec[] = [
 const TUNDRA: Spec[] = [
   {
     name: 'Thin Ice', biome: 'tundra', teaches: 'ice melts at height 2, not before: the first push only lifts the wall, the second carries it on and it melts right in front of the penguin riding behind it', axis: '-|', expectPar: 2,
-    blurb: 'Ice raised to height 2 melts; penguins want ice by the sea.',
+    blurb: 'Ice lifted to rock melts; penguins want ice by the sea.',
     // Playtest 4 half solved the old map by accident: b's slides cost nothing there, so random play fell into the answer 26% of
     // the time. Here they cost two moves each and it is 11%. The wall only lines up after the first push, which is the moment to see.
     map: `
@@ -321,4 +322,8 @@ const FINALE: Spec[] = [
   },
 ];
 
-export const CAMPAIGN: Spec[] = [...TUTORIAL, ...COAST, ...DESERT, ...TUNDRA, ...FINALE];
+// Cut after playtest 5: too many islands for the game's ideas, and each of these repeats a neighbour's thought.
+// Their maps stay here so one can come back, and `npm run levels:audit` no longer sees them.
+const SHELVED = new Set(["Shepherd's Hill", 'Harbour Row', 'Backwater', 'Thaw']);
+
+export const CAMPAIGN: Spec[] = [...TUTORIAL, ...COAST, ...DESERT, ...TUNDRA, ...FINALE].filter(s => !SHELVED.has(s.name!));
