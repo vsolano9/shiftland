@@ -99,10 +99,14 @@ Neither solved. Frost Line: about 8 minutes, best 6 moves with 3 of 4 wants. The
 | Id | Finding | Result |
 |---|---|---|
 | P9-1 | Nothing said that a plate sliding over land takes that land: a village and penguins changed plate | Fixed in the village's explanation: "A plate that slides over land takes it, and what stands on it." Two Waters' note says it from the other side |
-| P9-2 | "Rose too high" doesn't say what raised the village | Partly: the explanation names the rule; the chip doesn't name the cause. Open |
-| P9-3 | The oasis chip doesn't point at the gap | Open, a tapped chip already marks the wrong water on the board (e2e "a chip about the wrong water") |
-| P9-4 | The Summit's tip names no plate | Open: naming it spends the puzzle's last idea; left as a taste call |
-| P9-5 | Lighthouse and palm overlap in one Summit state (`playtest9\sG-05`) | Open, off-par state |
+| P9-2 | "Rose too high" doesn't say what raised the village | Kept: tapping names the rule, and the land just moved on the player's own last slide. Worth rechecking with a person |
+| P9-3 | The oasis chip doesn't point at the gap | Kept: a tapped chip marks the wrong water on the board (e2e "a chip about the wrong water"); this tester judged from the text and shots |
+| P9-4 | The Summit's tip names no plate | Kept: naming it spends the last island's last idea; hints exist for that |
+| P9-5 | Lighthouse and palm overlap in one Summit state (`playtest9\sG-05-0E.png`) | Kept: an off-par state after 5 moves. Both still read by their bubbles and chips, and tapping answers |
+
+### Device stand-ins, final build (`p12\proxy.log`, `p12\proxy\`)
+
+Not the real devices: this PC has none, and the itch page waits on G0. WebKit with iPhone emulation: loads, opens island 1, 0 errors, 14 fps without GPU (Windows WebKit, not a phone's number); the low fps stepped quality down and the island vanished from the screen. Traced (`p12\wk\`): the GL buffer still holds the island's colours after the step, and six lines of raw WebGL with none of the game's code do the same on Playwright's Windows WebKit when the canvas buffer shrinks (`r-webkit-after.png` blue, Chromium stays red). So it is that browser build's compositing, not the game. With quality held at 0 the island draws there at phone and desktop sizes. Real Safari is still untested, and a pixel ratio step or a phone rotation there is the first thing to look at. Chromium with Pixel emulation at 6x CPU throttle: 60 fps on island 1. 1366x768 at 4x: 60 fps. Firefox: 0 errors. Cross-origin iframe with itch's allow list at 1024x640: reaches a level, 0 errors.
 
 ### Phone board blurred for the whole session (Nov 4, critic T20)
 
