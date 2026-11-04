@@ -162,8 +162,8 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #goals { gap: 6px; bottom: calc(8px + var(--safe-b)); }
   .chip { padding: 3px 8px 3px 4px; font-size: 13px; gap: 5px; border-radius: 12px; }
   #goals.many .chip .tx { display: none; } #goals.many .chip { padding-right: 6px; }
-  #s-level:has(#goals.many) #chipwhy { display: block; position: absolute; left: 50%; bottom: calc(var(--goals-h, 40px) + 12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: 94vw; padding: 2px 10px; border-radius: 10px; background: rgba(255,253,247,.86); color: #b63a30; font-size: 13px; font-weight: 500; pointer-events: none; transition: opacity .2s; }
-  #s-level:has(#goals.many) #chipwhy:empty, #s-level:has(#hint:not(.off)) #chipwhy, #s-level:has(~ #done:not(.hidden)) #chipwhy { opacity: 0; }
+  #s-level:has(#goals.many) #chipwhy { display: block; position: absolute; left: 50%; bottom: calc(var(--goals-h, 40px) + 12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: 94vw; padding: 2px 10px; border-radius: 10px; background: rgba(255,253,247,.86); color: #b63a30; font-size: 13px; font-weight: 500; pointer-events: none; transition: opacity .2s .3s; } /* waits for the note to fade (playtest 7 P7-8) */
+  #s-level:has(#goals.many) #chipwhy:empty, #s-level:has(#hint:not(.off)) #chipwhy, #s-level:has(~ #done:not(.hidden)) #chipwhy { opacity: 0; transition: opacity .1s; }
   .chip img { width: 32px; height: 32px; } .chip .tx { min-width: 0; } .chip .tx span { font-size: 12px; }
   .badge { width: 22px; height: 22px; } .badge svg { width: 13px; height: 13px; }
   #hint { font-size: 15px; padding: 6px 13px; bottom: calc(var(--goals-h, 40px) + 16px + var(--safe-b)); }

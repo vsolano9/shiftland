@@ -79,7 +79,7 @@ Verdict from the tester: not proven. Three real solves, Frost Line and The Summi
 | P7-5 | "No star this run: Restart to win it back" repeated at Moves 0, and the raised panel clipped Undo | Fixed: it now says "Restart with no hint"; a raised panel sits below the buttons too (`p7.mjs`: top 76, buttons end 68) |
 | P7-6 | A rail drew on and the drag answered "No room that way" | Accepted: the far end's stop is the red one in `i13-s3.png`; a long drag counts one step by design |
 | P7-7 | An oasis bubble slid under Undo on Two Waters after 5 moves | Accepted: off-par state only, tapping the chip or creature still answers |
-| P7-8 | The phone reason line overlaps the note during its crossfade | Accepted, brief |
+| P7-8 | The phone reason line overlaps the note during its crossfade | Fixed: it leaves at once and comes back after the note has faded |
 
 ### Phone board blurred for the whole session (Nov 4, critic T20)
 
