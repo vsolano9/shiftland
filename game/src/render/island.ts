@@ -28,6 +28,7 @@ interface Column {
 }
 
 const mat4 = new Matrix4();
+const MARK_STEP = .19; // cells between two stops on a plate's inlaid slider
 const PINNED_BAND = new Color('#59606b');
 const hashN = (a: number, b: number, c: number) => { const v = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return v - Math.floor(v); };
 
@@ -81,7 +82,21 @@ export class IslandView {
   railPlate: number | null = null;
   railHint = 0;
   private anchors: Mesh[] = [];
-  private marks: { m: Mesh; plate: number; patX: number; patZ: number }[] = [];
+  private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number }[] = [];
+  /**
+   * A small slider set into each free plate: a groove, one stud per stop, and a glowing peg at the stop it is on.
+   * Without touching anything it says which way the plate runs and how far it has left each way.
+   */
+  private buildMark(p: number) {
+    const m = new Group(), n = this.lv.maxTravel, sp = MARK_STEP, flat = (o: Mesh, order: number) => { o.renderOrder = order; m.add(o); return o; };
+    const mat = (color: Color | string) => new MeshBasicMaterial({ color, transparent: true, depthWrite: false });
+    flat(new Mesh(new BoxGeometry(2 * n * sp + .1, .004, .075), mat(new Color('#3a2c22'))), 6);
+    for (let k = -n; k <= n; k++) { const st = flat(new Mesh(new CylinderGeometry(.052, .052, .006, 14), mat('#fff7e6')), 7); st.position.x = k * sp; }
+    const knob = new Mesh(new CylinderGeometry(.092, .092, .01, 20), mat(plateBand(p))); knob.renderOrder = 8; m.add(knob);
+    const core = new Mesh(new CylinderGeometry(.05, .05, .012, 16), mat('#ffffff')); core.renderOrder = 9; knob.add(core);
+    m.rotation.y = this.lv.axis[p] === 1 ? 0 : -Math.PI / 2; m.visible = false; // -90 deg: local +x is world +z, the way the offset counts
+    return { m, knob };
+  }
   /** Axis marks show on the island being played, until it is solved. */
   showMarks = false;
   /** Bubbles step aside while a plate is dragged. */
@@ -143,10 +158,9 @@ export class IslandView {
     // a faint double arrow on every free plate: a plan can be read without touching anything
     for (let p = 0; p < lv.plates; p++) {
       if (lv.pinned?.includes(p)) continue;
-      // in the plate's own band colour: it reads on any ground, and says whose rail this is
-      const m = new Mesh(M.axisMark, new MeshBasicMaterial({ color: plateBand(p), transparent: true, opacity: .92, depthWrite: false })); m.rotation.y = lv.axis[p] === 1 ? 0 : Math.PI / 2; m.renderOrder = 6; m.visible = false;
+      const { m, knob } = this.buildMark(p);
       const [x, z] = this.plateAnchor(p), s = lv.start, cell = (x + (lv.w - 1) / 2) + (z + (lv.h - 1) / 2) * lv.w, [patX, patZ] = this.patOf(s, p, cell);
-      this.marks.push({ m, plate: p, patX, patZ }); this.group.add(m);
+      this.marks.push({ m, knob, plate: p, patX, patZ }); this.group.add(m);
     }
     this.reconcile(lv.start, false);
     this.finishTweens();
@@ -349,10 +363,10 @@ export class IslandView {
   private buildRail() {
     const tubeM = new MeshBasicMaterial({ color: '#fff7e6', transparent: true, opacity: .95, depthTest: false, depthWrite: false });
     const darkM = new MeshBasicMaterial({ color: '#403830', transparent: true, opacity: .55, depthTest: false, depthWrite: false });
-    const tube = new Mesh(new BoxGeometry(1, .03, .05), tubeM); tube.renderOrder = 11;
-    const shadow = new Mesh(new BoxGeometry(1, .03, .085), darkM); shadow.renderOrder = 10; tube.userData.shadow = shadow; this.rail.add(shadow);
+    const tube = new Mesh(new BoxGeometry(1, .02, .03), tubeM); tube.renderOrder = 11;
+    const shadow = new Mesh(new BoxGeometry(1, .02, .055), darkM); shadow.renderOrder = 10; tube.userData.shadow = shadow; this.rail.add(shadow);
     this.rail.add(tube);
-    const capsG = new BoxGeometry(.08, .1, .2);
+    const capsG = new BoxGeometry(.05, .02, .16);
     const caps = [new Mesh(capsG, tubeM), new Mesh(capsG, tubeM)]; caps.forEach(c => { c.renderOrder = 12; this.rail.add(c); });
     const stopG = new CylinderGeometry(.075, .075, .02, 16), stops: Mesh[] = [];
     for (let i = 0; i < 2 * this.lv.maxTravel + 1; i++) { const s = new Mesh(stopG, new MeshBasicMaterial({ color: '#d7cdbd', transparent: true, depthTest: false, depthWrite: false })); s.renderOrder = 12; stops.push(s); this.rail.add(s); }
@@ -584,7 +598,10 @@ export class IslandView {
     for (const k of this.marks) {
       const c = this.showMarks && this.railPlate !== k.plate ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
       k.m.visible = !!c;
-      if (c) { const d = c.plate === dp; k.m.position.set(c.x + (d ? this.dragNow.x : 0), c.y + this.lift[c.plate] + .012, c.z + (d ? this.dragNow.z : 0)); }
+      if (c) {
+        const d = c.plate === dp; k.m.position.set(c.x + (d ? this.dragNow.x : 0), c.y + this.lift[c.plate] + .014, c.z + (d ? this.dragNow.z : 0));
+        k.knob.position.x = (this.state.off?.[k.plate] ?? 0) * MARK_STEP;
+      }
     }
   }
 
@@ -619,8 +636,8 @@ export class IslandView {
     const objs = new Set(s.objs.map(o => o.cell));
     for (let i = 0; i < s.plate.length; i++) {
       const p = s.plate[i]; if (p < 0) continue;
-      const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .45, ax = lv.axis[p] === 1;
-      const top = topY(s.elev[i]) + (objs.has(i) ? 1.1 : .1);
+      const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .15, ax = lv.axis[p] === 1;
+      const top = topY(s.elev[i]) + (objs.has(i) ? .7 : .05);
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         const px = x + sx * (.5 + (ax ? slide : 0)), pz = z + sz * (.5 + (ax ? 0 : slide));
         pts.push(new Vector3(px, -.05, pz), new Vector3(px, top, pz));

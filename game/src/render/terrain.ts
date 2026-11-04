@@ -97,10 +97,11 @@ const FRAG_HEAD = /* glsl */`
   float fbm(vec2 p){ return .55*vnoise(p)+.3*vnoise(p*2.1+7.)+.15*vnoise(p*4.3+13.); }
   float aa(float e, float x){ float w = fwidth(x)+1e-4; return smoothstep(e-w, e+w, x); }
   float patternMask(vec2 p, float kind){
-    if (kind < .5) { float s = fract((p.x + p.y) * 2.2); return aa(.5, s) ; }                        // diagonal stripes
-    if (kind < 1.5) { vec2 q = p*2.1; q.x += .5*floor(q.y); vec2 g = fract(q)-.5; return 1. - aa(.25, length(g)); } // round dots
-    if (kind < 2.5) { float z = abs(fract(p.x*2.)-.5); float s = fract(p.y*2. + z); return aa(.5, s); } // chevrons
-    vec2 c = floor(p*1.5); return mod(c.x+c.y, 2.);                                                   // checks
+    // bold dark marks on the plate's ground, as on concepts/shiftland-biomes.png: the pattern alone tells one plate from another
+    if (kind < .5) { float s = fract((p.x + p.y) * 1.5); return aa(.7, s); }                           // diagonal stripes
+    if (kind < 1.5) { vec2 q = p*1.7; q.x += .5*floor(q.y); vec2 g = fract(q)-.5; return 1. - aa(.2, length(g)); } // round dots
+    if (kind < 2.5) { float z = abs(fract(p.x*1.25)-.5); float s = fract(p.y*1.5 + z); return aa(.72, s); } // chevrons
+    vec2 c = floor(p*2.); return mod(c.x+c.y, 2.)*.7;                                                  // checks
   }
 `;
 const FRAG_BODY = /* glsl */`
@@ -115,7 +116,7 @@ const FRAG_BODY = /* glsl */`
       vec3 top = vTint * (.93 + .14*n);
       top *= 1. + .05*min(level,1.);                                       // raised ground is a touch lighter
       float pm = patternMask(pw, vMisc.z);
-      top = mix(top, top*.87, pm);
+      top = mix(top, top*.64, pm);
       // an anchored plate has gone to stone, but keeps a hint of its colour
       if (vFx.w > .5) { float g0 = dot(top, vec3(.3,.59,.11)); top = mix(top, vec3(g0)*vec3(.82,.84,.88), .72); }
       // peaks: bare rock from height 2 (goat happy, village crushed), snow at 3; never mistaken for ground
@@ -133,8 +134,8 @@ const FRAG_BODY = /* glsl */`
       }
       // subtle grid so cells can be counted
       vec2 gd = abs(uvC-.5);
-      float gl = smoothstep(.47,.5,max(gd.x,gd.y));
-      top *= 1. - gl*.1;
+      float gl = smoothstep(.485,.5,max(gd.x,gd.y));
+      top *= 1. - gl*.07;
       // contact shadow beside a taller neighbour
       float ao = 0.;
       ao = max(ao, vAO.x*smoothstep(.34,.0,uvC.y));
@@ -179,14 +180,23 @@ const FRAG_BODY = /* glsl */`
       vec2 sideCoord = abs(vN.x) > .5 ? vec2(pw.y, vLocal.y) : vec2(pw.x, vLocal.y);
       float wob = .05*sin(sideCoord.x*6.1)+.035*sin(sideCoord.x*13.7+1.3)+.02*sin(sideCoord.x*29.);
       float dep = -vLocal.y + wob;
-      vec3 s = uStrata0;
-      s = mix(s, uStrata1, aa(.34, dep));
-      s = mix(s, uStrata0*.92, aa(.56, dep));
-      s = mix(s, uStrata1*.9, aa(.78, dep));
-      s = mix(s, uStrata2, aa(1.02, dep));
-      s = mix(s, uStrata2*.82, aa(1.5, dep));
-      s *= .9+.2*fbm(vec2(sideCoord.x*3., dep*7.));
-      s *= 1.-.16*smoothstep(.45,.5,abs(fract(sideCoord.x*1.5+fbm(vec2(sideCoord.x,dep))*.4)-.5)+.1);
+      // a layer cake in crisp flat bands: pale topsoil, orange, rust, grey bedrock (concepts/shiftland-biomes.png)
+      vec3 s = mix(vec3(.9,.72,.46), vTint, .12);
+      s = mix(s, uStrata0, aa(.27, dep));
+      s = mix(s, uStrata1, aa(.46, dep));
+      s = mix(s, uStrata2, aa(.68, dep));
+      s = mix(s, uStrata2*.8, aa(1.25, dep));
+      s *= .97+.06*fbm(vec2(sideCoord.x*3., dep*5.));
+      // snow and ice stand on cold rock: pale, slate, deep blue (a warm cake under a white top looks like a dessert)
+      float coldRock = step(.62, min(vTint.r, min(vTint.g, vTint.b)));
+      if (coldRock > .5) {
+        vec3 c = vec3(.86,.9,.95);
+        c = mix(c, vec3(.42,.56,.72), aa(.27, dep));
+        c = mix(c, vec3(.2,.3,.46), aa(.46, dep));
+        c = mix(c, vec3(.11,.14,.24), aa(.68, dep));
+        c = mix(c, vec3(.08,.1,.18), aa(1.25, dep));
+        s = c * (.97+.06*fbm(vec2(sideCoord.x*3., dep*5.)));
+      }
       // lip of the plate's colour at the very top
       float lipEdge = .085 + wob*.35;
       vec3 lip = mix(vBandC, vTint, .15);
@@ -196,9 +206,9 @@ const FRAG_BODY = /* glsl */`
       col = s;
       col += vFx.x*vBandC*.08;
     }
-    // a locked island reads as asleep: desaturated and paler
+    // a locked island reads as asleep: muted and hazy, with its biome still showing so the map promises what is ahead
     float g = dot(col, vec3(.3,.59,.11));
-    col = mix(col, vec3(g)*vec3(.88,.92,.98)*.95+.06, vFx.y);
+    col = mix(col, mix(col, vec3(g), .62)*.8+vec3(.03,.05,.07), vFx.y);
     diffuseColor.rgb = col;
   }
 `;
@@ -210,9 +220,9 @@ export function makeTerrainMaterial(time: { value: number }): MeshLambertMateria
   m.onBeforeCompile = shader => {
     shader.uniforms.uTime = time;
     shader.uniforms.uRock = { value: new Vector3(0.28, 0.27, 0.26) };
-    shader.uniforms.uStrata0 = { value: new Vector3(0.62, 0.3, 0.1) };
-    shader.uniforms.uStrata1 = { value: new Vector3(0.82, 0.5, 0.22) };
-    shader.uniforms.uStrata2 = { value: new Vector3(0.23, 0.2, 0.2) };
+    shader.uniforms.uStrata0 = { value: new Vector3(0.83, 0.33, 0.06) };
+    shader.uniforms.uStrata1 = { value: new Vector3(0.54, 0.14, 0.04) };
+    shader.uniforms.uStrata2 = { value: new Vector3(0.2, 0.18, 0.2) };
     shader.vertexShader = VERT_HEAD + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERT_BODY}`);
     shader.fragmentShader = FRAG_HEAD + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\n${FRAG_BODY}`);
   };

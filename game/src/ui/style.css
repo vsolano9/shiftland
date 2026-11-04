@@ -51,6 +51,9 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 @keyframes pop { from { transform: scale(0); } }
 #hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; width: max-content; max-width: min(640px, 94vw); transition: opacity .3s; pointer-events: none; }
 #hint.off { opacity: 0; }
+#blurb { position: absolute; left: 50%; top: calc(16px + var(--safe-t)); transform: translateX(-50%); padding: 8px 20px; font-size: 18px; font-weight: 500; text-align: center; width: max-content; max-width: min(560px, 62vw); transition: opacity .35s; pointer-events: none; }
+#blurb.off { opacity: 0; }
+#s-level:has(~ #done:not(.hidden)) #blurb { opacity: 0; }
 #stuck { position: absolute; left: 16px; top: calc(92px + var(--safe-t)); background: #ffd9d3; color: #a12a20; font-weight: 600; font-size: 17px; border-radius: 13px; padding: 8px 16px; box-shadow: var(--sh); animation: slide .3s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes slide { from { transform: translateY(-14px); opacity: 0; } }
 #card { position: absolute; left: 50%; top: 2.5%; transform: translateX(-50%); text-align: center; color: #fff; text-shadow: 0 3px 0 rgba(4, 55, 85, .55), 0 4px 18px rgba(4, 40, 70, .6); transition: opacity .4s, transform .4s; opacity: 0; white-space: nowrap; }
@@ -135,6 +138,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   .chip img { width: 32px; height: 32px; } .chip .tx { min-width: 0; } .chip .tx span { font-size: 12px; }
   .badge { width: 22px; height: 22px; } .badge svg { width: 13px; height: 13px; }
   #hint { font-size: 15px; padding: 6px 13px; bottom: calc(var(--goals-h, 40px) + 16px + var(--safe-b)); }
+  #blurb { top: calc(66px + var(--safe-t)); font-size: 14px; padding: 5px 12px; max-width: 92vw; }
   #stuck { top: calc(70px + var(--safe-t)); left: 10px; font-size: 14px; padding: 6px 11px; }
   .pin { width: 28px; height: 28px; font-size: 14px; } .pin svg.st { width: 16px; height: 16px; right: -8px; top: -8px; }
   .pin.locked { width: 24px; height: 24px; } .pin svg.lock { width: 14px; height: 14px; }
@@ -149,12 +153,19 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   #hud-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 /* Short landscape phones: the UI moves to the sides, so the island gets the height */
+/* a wide screen sets the logo beside the island: stacked, the island gets a third of the height */
+@media (min-aspect-ratio: 13/10) {
+  #logo { left: 3vw; transform: none; width: 46vw; top: 50%; margin-top: calc(-7.67vw - 72px); }
+  #tagline { left: 3vw; width: 46vw; transform: none; text-align: center; bottom: auto; top: 50%; margin-top: calc(7.67vw - 58px); }
+  #play { left: 26vw; bottom: auto; top: 50%; margin-top: calc(7.67vw - 14px); }
+}
 @media (max-height: 560px) and (orientation: landscape) {
-  #logo { left: 4vw; transform: none; width: 44vw; top: 10vh; }
-  #tagline { left: 4vw; width: 44vw; transform: none; text-align: center; bottom: auto; top: calc(10vh + 14.7vw + 6px); }
-  #play { left: 26vw; bottom: 9vh; }
+  #logo { left: 4vw; transform: none; width: 44vw; top: 10vh; margin-top: 0; }
+  #tagline { left: 4vw; width: 44vw; transform: none; text-align: center; bottom: auto; top: calc(10vh + 14.7vw + 6px); margin-top: 0; }
+  #play { left: 26vw; bottom: 9vh; top: auto; margin-top: 0; }
   #goals { left: 10px; right: auto; top: calc(70px + var(--safe-t)); bottom: auto; flex-direction: column; align-items: flex-start; padding: 0; }
   #hint { bottom: calc(8px + var(--safe-b)); left: 60%; }
+  #blurb { top: 6px; max-width: 42vw; font-size: 13px; }
   #stuck { top: auto; bottom: calc(8px + var(--safe-b)); }
   #card { top: 4px; } #card .big { font-size: 26px; } #card .small { font-size: 14px; }
   #done { align-items: center; justify-content: flex-end; padding: 0 14px 0 0; }

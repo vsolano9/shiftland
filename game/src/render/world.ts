@@ -2,6 +2,7 @@
 // select is simply the camera pulled back over the real archipelago, and each island shows its real level.
 import { AmbientLight, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import { goalsMet, type Level } from '../rules/rules.ts';
+import { heroLevel } from './hero.ts';
 import { IslandView } from './island.ts';
 import * as M from './models.ts';
 import { Mask, Ocean } from './ocean.ts';
@@ -64,6 +65,12 @@ export class World {
     // world bounds for the static mask
     let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
     for (const [x, z] of positions) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    // the title's island sits out at sea off the map's far corner: only the title ever sees it
+    this.hero = new IslandView(heroLevel(), -1, x1 + 34, z0 - 34, host);
+    this.hero.goalsFn = goalsMet;
+    this.hero.applyGoals(goalsMet(this.hero.lv, this.hero.lv.start), false);
+    this.hero.group.visible = false;
+    this.scene.add(this.hero.group);
     const pad = 12; x0 -= pad; x1 += pad; z0 -= pad; z1 += pad;
     this.aabb = { x0, x1, z0, z1 };
     const sw = x1 - x0, sh = z1 - z0, ppu = 5;
@@ -108,9 +115,9 @@ export class World {
   private buildPath(positions: [number, number][]) {
     if (positions.length < 2) return;
     const curve = new CatmullRomCurve3(positions.map(([x, z]) => new Vector3(x, .05, z)), false, 'catmullrom', .5);
-    const dots: Vector3[] = [], n = Math.ceil(curve.getLength() / 1.5);
+    const dots: Vector3[] = [], n = Math.ceil(curve.getLength() / .95);
     for (const p of curve.getSpacedPoints(n)) if (this.views.every(v => Math.hypot(p.x - v.ox, p.z - v.oz) > v.span * .62 + .4)) dots.push(p);
-    const mesh = new InstancedMesh(new CylinderGeometry(.27, .27, .02, 12), new MeshBasicMaterial({ color: '#fff7e6' }), dots.length);
+    const mesh = new InstancedMesh(new CylinderGeometry(.23, .23, .02, 12), new MeshBasicMaterial({ color: '#fff7e6' }), dots.length);
     dots.forEach((p, i) => mesh.setMatrixAt(i, new Matrix4().makeTranslation(p.x, p.y, p.z)));
     mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.visible = false;
     this.scene.add(mesh); this.path = mesh;
@@ -159,8 +166,8 @@ export class World {
   private pads(kind: PadKind): Pad {
     const w = innerWidth, h = innerHeight, short = h <= 560 && w > h;
     if (kind === 'title') {
-      if (short) return { top: .04, bottom: .04, left: .5, right: .02 };
-      return { top: (.03 * h + Math.min(780, .92 * w) / 3) / h * .92, bottom: (.055 * h + 128) / h, left: 0, right: 0 };
+      if (short || w / h >= 1.3) return { top: .05, bottom: .05, left: .48, right: .02 };
+      return { top: (.03 * h + Math.min(780, .92 * w) / 3 + 24) / h, bottom: (.055 * h + 128) / h, left: 0, right: 0 };
     }
     if (kind === 'solved') {
       if (short) return { top: .04, bottom: .04, left: .02, right: .46 };
@@ -229,9 +236,11 @@ export class World {
     this.setShadowSpan(70);
     this.flyTo(this.mapCenter(), this.mapDistance(), dur, done);
   }
-  /** A title framing: the given island large in the frame, offset to leave room for the logo. */
-  focusTitle(i: number, dur = 0) {
-    const v = this.views[i];
+  hero: IslandView;
+  /** The title framing: the hero island large in the frame, offset to leave room for the logo. */
+  focusTitle(dur = 0) {
+    const v = this.hero;
+    v.group.visible = true;
     this.map = false;
     this.setActive(v);
     this.padKind = 'title'; this.hudPad = this.pads('title');
@@ -356,6 +365,7 @@ export class World {
     for (let i = this.timers.length - 1; i >= 0; i--) if (this.timers[i].at <= t) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     this.frameHook?.(dt, t);
     for (const v of this.views) { v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
+    if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));

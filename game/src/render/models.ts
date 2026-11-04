@@ -1,6 +1,6 @@
 // Low-poly creature and prop models, built from primitives with vertex colours (shipped art is code: docs/PLAN.md).
 // Reference: concepts/shiftland-creatures.png, shiftland-biomes.png. All sizes in cell units (a cell is 1 x 1).
-import { BufferGeometry, Color, ConeGeometry, CylinderGeometry, DodecahedronGeometry, BoxGeometry, Float32BufferAttribute, IcosahedronGeometry, Matrix4, Quaternion, SphereGeometry, TorusGeometry, Vector3, Euler, ExtrudeGeometry, Shape } from 'three';
+import { BufferGeometry, Color, ConeGeometry, CylinderGeometry, DodecahedronGeometry, BoxGeometry, Float32BufferAttribute, IcosahedronGeometry, LatheGeometry, Matrix4, Quaternion, SphereGeometry, TorusGeometry, Vector2, Vector3, Euler, ExtrudeGeometry, Shape } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 type P = { g: BufferGeometry; c: string; p?: [number, number, number]; r?: [number, number, number]; s?: [number, number, number] };
@@ -97,12 +97,13 @@ export const lighthouse = merge([
 export const lamp = merge([{ g: cyl(0.075, 0.075, 0.125, 10), c: '#ffe894', p: [0, 0.645, 0] }]);
 
 // BUOY: faces any way; origin at its waterline.
+// A bell turned on a lathe: skirt, white belt, red shoulder; round and solid, like the sheet's.
+const bell = (pts: [number, number][]) => new LatheGeometry(pts.map(([r, y]) => new Vector2(r, y)), 20);
 export const buoy = merge([
-  { g: cyl(0.16, 0.2, 0.08, 16), c: '#e04238', p: [0, 0.03, 0] },
-  { g: cone(0.17, 0.28, 16), c: '#f6f0e6', p: [0, 0.2, 0] },
-  { g: cyl(0.095, 0.135, 0.07, 16), c: '#e04238', p: [0, 0.18, 0] },
-  { g: cyl(0.03, 0.05, 0.05, 16), c: '#e04238', p: [0, 0.32, 0] },
-  { g: tor(0.042, 0.012), c: '#d03a33', p: [0, 0.385, 0] },
+  { g: bell([[0, -0.01], [0.17, -0.01], [0.215, 0.025], [0.222, 0.06], [0.212, 0.095]]), c: '#e04238' },
+  { g: bell([[0.212, 0.095], [0.196, 0.135], [0.17, 0.18]]), c: '#f8f3ea' },
+  { g: bell([[0.17, 0.18], [0.14, 0.23], [0.1, 0.275], [0.056, 0.31], [0.022, 0.325], [0, 0.327]]), c: '#e04238' },
+  { g: tor(0.046, 0.015), c: '#d03a33', p: [0, 0.378, 0] },
 ]);
 export const fish = merge([
   { g: sph(0.05, 6, 4), c: '#5b7fa5', s: [1, 0.75, 1.9] },
@@ -115,8 +116,8 @@ const seg = (x: number, y: number, tilt: number, top: number, bottom: number, le
 // Two segments per frond, so each one arcs out and droops like a palm leaf and not a propeller blade.
 const fronds = (ox: number, oy: number, up: number, cA: string, cB: string) => {
   const out: P[] = [];
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + 0.3, c = i % 2 ? cA : cB;
     const t1 = up, t2 = up + 0.72, ca = Math.cos(a), sa = Math.sin(a);
     const d1 = [Math.cos(t1) * ca, -Math.sin(t1), Math.cos(t1) * sa], d2 = [Math.cos(t2) * ca, -Math.sin(t2), Math.cos(t2) * sa];
     out.push({ g: box(0.15, 0.018, 0.09), c, p: [ox + d1[0] * 0.075, oy + d1[1] * 0.075, d1[2] * 0.075], r: [0, -a, -t1] });
@@ -125,12 +126,12 @@ const fronds = (ox: number, oy: number, up: number, cA: string, cB: string) => {
   return out;
 };
 export const palm = merge([
-  seg(0.004, 0.07, 0.08, 0.026, 0.038, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.021, 0.027, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.018, 0.022, 0.13, '#8c5f39'),
+  seg(0.004, 0.07, 0.08, 0.036, 0.052, 0.14, '#8c5f39'), seg(0.022, 0.2, 0.2, 0.03, 0.037, 0.14, '#7d5431'), seg(0.058, 0.325, 0.36, 0.026, 0.031, 0.13, '#8c5f39'),
   ...fronds(0.085, 0.395, -0.28, '#4ea344', '#3d8c3a'),
 ]);
 // Unhappy: the trunk bows over until its crown lies on the sand (concepts/shiftland-creatures.png).
 export const palmWilt = merge([
-  seg(0.02, 0.06, 0.35, 0.026, 0.038, 0.13, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.021, 0.027, 0.13, '#7d5431'), seg(0.214, 0.198, 1.6, 0.019, 0.022, 0.13, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.016, 0.02, 0.1, '#7d5431'),
+  seg(0.02, 0.06, 0.35, 0.036, 0.052, 0.13, '#8c5f39'), seg(0.096, 0.16, 0.95, 0.03, 0.037, 0.13, '#7d5431'), seg(0.214, 0.198, 1.6, 0.027, 0.031, 0.13, '#8c5f39'), seg(0.318, 0.168, 2.2, 0.022, 0.028, 0.1, '#7d5431'),
   ...fronds(0.355, 0.135, 0.55, '#7f9a3f', '#94a64a'),
 ]);
 

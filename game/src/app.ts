@@ -119,10 +119,9 @@ class App {
     this.thumbs = this.world.thumbs();
     this.controller = new Controller(this.levels, this.progress, this.stuck, e => this.onEvent(e));
     this.refreshIslands();
-    this.world.focusTitle(this.controller.index);
+    this.world.focusTitle();
     this.view = this.world.views[this.controller.index];
     this.view.reconcile(this.view.lv.start, false);
-    this.world.setActive(this.view);
     this.bindInput(canvas);
     this.world.onFrame((dt, t) => this.frame(dt, t));
     this.ready = true;
@@ -155,6 +154,7 @@ class App {
         </div>
         <div id="stuck" class="hidden-el">No way back from here. Undo?</div>
         <div id="hint" class="card off"></div>
+        <div id="blurb" class="card off"></div>
         <div id="goals"></div>
         <div id="hand" class="hidden-el">${icon.hand}</div>
         <div id="card"><div class="big"></div><div class="small"></div></div>
@@ -251,7 +251,7 @@ class App {
   private toTitle() {
     this.show('title');
     this.audio.setMusic('title'); this.audio.setOcean(.7);
-    this.world.focusTitle(this.controller.index, 1);
+    this.world.focusTitle(1);
   }
   private toMap(fromTitle = false) {
     if (fromTitle && !this.progress.solved(0)) { this.openLevel(0); return; } // first play: straight into the first island
@@ -347,9 +347,13 @@ class App {
   }
   /** The level's name and line; shown on landing and whenever the name card is tapped. */
   private showBlurb(sec = 3.4) {
-    const lv = this.view.lv;
-    this.showCard(lv.name!, lv.blurb ?? BIOMES[(lv.biome ?? 'meadow') as BiomeName].label, sec);
+    const lv = this.view.lv, c = $('blurb');
+    c.textContent = lv.blurb ?? BIOMES[(lv.biome ?? 'meadow') as BiomeName].label;
+    c.classList.remove('off');
+    clearTimeout(this.blurbTimer);
+    this.blurbTimer = window.setTimeout(() => c.classList.add('off'), sec * 1000);
   }
+  private blurbTimer = 0;
   private setFlying(on: boolean) { this.busyUntil = on ? Infinity : 0; }
   private showCard(big: string, small: string, sec = 3.4) {
     const c = $('card'); (c.children[0] as HTMLElement).textContent = big; (c.children[1] as HTMLElement).textContent = small;

@@ -1,6 +1,6 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { BoxGeometry, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
+import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
@@ -63,7 +63,7 @@ export class Creature {
       this.legs = mesh(M.goatLegs); this.legs.position.y = M.GOAT_HIP; b.add(this.legs);
       const h = new Group(); this.head = mesh(M.goatHead); this.brows = mesh(M.goatBrows, false);
       h.add(this.head, this.brows); h.position.set(...M.GOAT_HEAD); b.add(h);
-      b.rotation.y = 0.45;
+      b.rotation.y = -0.4; // three-quarter to the fixed camera: facing it dead on hides the whole body behind the head
       this.head.userData.pivot = h;
     } else if (this.kind === 'village') {
       for (const [dx, dz, rot] of [[-.2, -.18, .15], [.2, -.1, -.2], [-.04, .2, .05]] as const) {
@@ -77,7 +77,12 @@ export class Creature {
       b.add(mesh(M.lighthouse));
       const lampMesh = new Mesh(M.lamp, this.lampMat = new MeshBasicMaterial({ vertexColors: true, color: 0x555555 })); b.add(lampMesh);
       const cone = new ConeGeometry(.42, 2, 16, 1, true); cone.translate(0, -1, 0); cone.rotateZ(Math.PI / 2 + 0.08);
-      this.beam = new Mesh(cone, new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false }));
+      // brightest at the lamp and gone by the far end: a flat cone laid over the land reads as a wedge of fog
+      const beamMat = new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, vertexColors: true, blending: AdditiveBlending });
+      const lp = cone.attributes.position, cols = new Float32Array(lp.count * 3);
+      for (let i = 0; i < lp.count; i++) { const f = Math.max(0, 1 - lp.getX(i) / 2); for (let c = 0; c < 3; c++) cols[i * 3 + c] = f * f; }
+      cone.setAttribute('color', new BufferAttribute(cols, 3));
+      this.beam = new Mesh(cone, beamMat);
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {
       b.add(mesh(M.buoy));
@@ -157,16 +162,17 @@ export class Creature {
     switch (this.kind) {
       case 'goat': {
         const pivot = this.head!.userData.pivot as Group;
-        // unhappy: flopped flat on its side, legs folded, head on the ground, sighing (concepts/shiftland-creatures.png);
+        // unhappy: sulking on its belly, legs tucked, chin down, sighing; a goat that fell over reads as a dead goat.
         // happy: up on all fours, chin high, a little hop
-        const sad = 1 - k, ry = this.body.rotation.y, dx = sad * .2;
-        this.body.rotation.z = sad * 1.36;
-        this.legs!.scale.y = 1 - sad * .42;
-        this.body.position.set(Math.cos(ry) * dx, sad * .012 + hop * .2 + pulse * .22 * k, -Math.sin(ry) * dx);
-        pivot.rotation.x = sad * .28 + k * (Math.sin(ph * .8) * .08 - .1) + sad * Math.sin(ph * .8) * .03;
-        pivot.rotation.z = sad * -1.02;
+        const sad = 1 - k;
+        this.legs!.scale.y = 1 - sad * .72;
+        this.body.position.set(0, -sad * .138 + hop * .2 + pulse * .22 * k, 0);
+        this.body.rotation.x = sad * .07; // haunches up a touch, chest on the ground
+        pivot.rotation.x = sad * .62 + k * (Math.sin(ph * .8) * .08 - .1) + sad * Math.sin(ph * .8) * .04;
+        pivot.rotation.z = 0;
+        pivot.position.y = M.GOAT_HEAD[1] - sad * .05;
         this.brows!.visible = k < .5;
-        this.body.scale.setScalar((1 - sad * .14) * (1 + pulse * .08)); // lying down it is long: keep it on its cell
+        this.body.scale.setScalar(1 + pulse * .08);
         if (this.next < 0) {
           this.next = 5 + Math.random() * 6;
           if (this.metK > .5) { this.pop = Math.max(this.pop, .9); } else { const [x, y, z] = this.world(.05, .36, .25); this.fx.sigh(x, y, z); }
@@ -197,7 +203,7 @@ export class Creature {
       case 'light': {
         this.lampMat!.color.setRGB(.33 + k * .9, .33 + k * .85, .34 + k * .6);
         this.beam!.visible = !this.far;
-        (this.beam!.material as MeshBasicMaterial).opacity = k * (.2 + .03 * Math.sin(ph * 2.3));
+        (this.beam!.material as MeshBasicMaterial).opacity = k * (.3 + .04 * Math.sin(ph * 2.3));
         this.beam!.rotation.y = ph * .55;
         // away from the sea it leans over, dark, like the sheet's unhappy tower
         this.body.rotation.z = (1 - k) * (.27 + Math.sin(ph * 1.4) * .012) + pulse * .04;
