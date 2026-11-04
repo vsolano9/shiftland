@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canFinish, fromJson, goalsMet, railMoves, seaMask, shift, solve, solved, stateKey, type Level, type LevelJson, type Obj } from './rules';
+import { canFinish, fromJson, goalsMet, railMoves, refusal, seaMask, shift, solve, solved, stateKey, type Level, type LevelJson, type Obj } from './rules';
 import { previewDiff } from './diff';
 import levels from '../levels/levels.json';
 
@@ -115,10 +115,10 @@ describe('canFinish (the "no way back" warning)', () => {
   };
   it('answers fast in breadth-first order (Codex chain 4: depth-first wandered to the 200k cap for 2+ s)', () => {
     let t = performance.now();
-    expect(play('The Summit', 'P2W')).toBe(true); // the longest level, a first move on its solution: a far finish, still found
+    expect(play('The Summit', 'P0S')).toBe(true); // the longest level, a first move on its solution: a far finish, still found
     expect(performance.now() - t).toBeLessThan(5000);
     t = performance.now();
-    expect(play('The Door', 'P0E')).toBe(false); // the door plate is swallowed: a dead end proven by search, not by a lost village
+    expect(play('Mirage', 'P2W')).toBe(false); // the bite comes too soon: a dead end proven by search, not by a lost village
     expect(performance.now() - t).toBeLessThan(5000);
   });
   it('proves a real dead end (Mind the Village after the crushing push)', () => {
@@ -141,6 +141,68 @@ describe('solver speed', () => {
     const at = performance.now();
     expect(solve(summit, 9, t)?.min).toBe(7);
     expect(performance.now() - at).toBeLessThan(5000);
+  });
+});
+
+describe('refusal: the reason shift says no, for the UI', () => {
+  const all = (levels as LevelJson[]).map(fromJson);
+  const named = (n: string) => all.find(l => l.name === n)!;
+  const DIRS = [0, 1, 2, 3] as const;
+  /** Every state the player can reach in one move, plus the start: enough to meet each kind of refusal. */
+  const reach = (lv: Level) => [lv.start, ...railMoves(lv).map(([p, d]) => shift(lv, lv.start, p, d)).filter((t): t is NonNullable<typeof t> => !!t)];
+
+  it('agrees with shift on every plate and direction, from the start and every first move of every level', () => {
+    let refused = 0, legal = 0;
+    for (const lv of all) for (const s of reach(lv)) for (let p = 0; p < lv.plates; p++) for (const d of DIRS) {
+      const r = refusal(lv, s, p, d);
+      expect(r === null, `${lv.name} P${p}${'NESW'[d]}`).toBe(shift(lv, s, p, d) !== null);
+      if (r) refused++; else legal++;
+    }
+    expect(refused).toBeGreaterThan(0);
+    expect(legal).toBeGreaterThan(0);
+  });
+  it('rail: the travel limit', () => {
+    const lv = named('First Peak');
+    const two = shift(lv, shift(lv, lv.start, 0, 1)!, 0, 1)!; // two steps east: the most the plate may travel
+    expect(refusal(lv, two, 0, 1)).toBe('rail');
+    expect(refusal(lv, two, 0, 3)).toBeNull();
+    const edge = shift(lv, lv.start, 0, 3)!; // one step west leaves no room on the grid: that is not the rail
+    expect(refusal(lv, edge, 0, 3)).toBe('other');
+  });
+  it('melt: Step Aside refuses both pushes until the floe has somewhere to go', () => {
+    const lv = named('Step Aside');
+    expect(refusal(lv, lv.start, 0, 1)).toBe('melt'); // P0E would melt the floe under the penguin
+    expect(refusal(lv, lv.start, 1, 2)).toBe('melt'); // P1S would too, against c
+    const cleared = shift(lv, lv.start, 2, 3)!; // P2W: c gets out of the way
+    expect(refusal(lv, cleared, 1, 2)).toBeNull();
+    const stepped = shift(lv, cleared, 1, 2)!;
+    expect(refusal(lv, stepped, 0, 1)).toBeNull();
+  });
+  it('stack: two creatures forced onto one cell', () => {
+    const lv: Level = {
+      w: 5, h: 3, plates: 2, axis: [1, 1], maxTravel: 2, buoys: [], biome: 'meadow',
+      start: { plate: Int8Array.from([-1, -1, -1, -1, -1, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1]), elev: new Int8Array(15), objs: [{ kind: 'goat', cell: 6 }, { kind: 'goat', cell: 8 }] },
+    };
+    const onto = shift(lv, lv.start, 0, 1)!; // the goat on a now stands on the cell a took from b
+    expect(refusal(lv, onto, 0, 1)).toBe('stack');
+  });
+  it('pinned: the anchor rock', () => {
+    const lv = named('Anchor Rock');
+    expect(refusal(lv, lv.start, 1, 0)).toBe('pinned');
+    expect(refusal(lv, lv.start, 1, 2)).toBe('pinned');
+  });
+  it('other: the wrong axis', () => {
+    const lv = named('First Peak');
+    expect(refusal(lv, lv.start, 0, 0)).toBe('other'); // plate a rides E/W only
+  });
+  it('the shipped campaign can hit every reason a player will see', () => {
+    const seen = new Set<string>();
+    for (const lv of all) {
+      const once = reach(lv);
+      for (const s of [...once, ...once.flatMap(t => railMoves(lv).map(([p, d]) => shift(lv, t, p, d)).filter((u): u is NonNullable<typeof u> => !!u))])
+        for (const [p, d] of railMoves(lv)) { const r = refusal(lv, s, p, d); if (r) seen.add(r); }
+    }
+    expect([...seen].sort()).toEqual(expect.arrayContaining(['melt', 'rail', 'stack']));
   });
 });
 

@@ -80,7 +80,8 @@ export function parse(spec: Spec): Level {
   return lv;
 }
 
-/** Meadow: the first six levels, one verb or one creature each. The rest of the campaign is in levels/campaign.ts. */
+/** Meadow: the first six levels: one verb or one creature each, with the first real aha at slot 5 (most raters see about
+ *  five levels). The rest of the campaign is in levels/campaign.ts. */
 export const TUTORIAL: Spec[] = [
   {
     name: 'First Peak', teaches: 'push a plate into another: the seam rises; a goat wants a peak', axis: '--', expectPar: 1,
@@ -98,11 +99,11 @@ export const TUTORIAL: Spec[] = [
     blurb: 'Pull plates apart. The gap becomes sea.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 a0 b0 ~  ~
+      ~  ~  a0 ~  b0 ~  ~
       ~  a0 a0 a0* b0 b0 ~
-      ~  ~  a0 a0 b0 b0 ~
+      ~  ~  a0 ~  b0 b0 ~
       ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P0W', trap: { move: 'P1E', finish: 2, why: 'the gap opens beside the buoy, not under it: the buoy rides the other plate' },
+    fixture: { intended: 'P0W', trap: { move: 'P1E', finish: 2, why: 'the gap opens beside the buoy, not under it: a buoy marks one spot on the map, and that spot is still land' },
       aha: { move: 'P0W', says: 'the plate under the buoy backs away and the buoy floats', shows: ['floods'] } },
   },
   {
@@ -110,7 +111,7 @@ export const TUTORIAL: Spec[] = [
     blurb: 'Goats want peaks. A village on a peak breaks.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 b0 b0 ~  ~
+      ~  ~  a0 ~  b0 ~  ~
       ~  a0 a0 b1G b0 b0 ~
       ~  a0 a0 b1V b0 ~  ~
       ~  ~  ~  ~  ~  ~  ~`,
@@ -118,16 +119,30 @@ export const TUTORIAL: Spec[] = [
       aha: { move: 'P1S', says: 'first slide the goat down to the row the village stood on: the village steps out past the seam', shows: ['quiet'] } },
   },
   {
-    name: 'Two Wishes', teaches: 'a plate has a front and a back: its front lifts land, its back opens sea, in the same move', axis: '--|', expectPar: 1, expectTempting: true,
-    blurb: 'A plate has a front and a back. Both count.',
+    name: 'Stolen Peak', teaches: 'land remembers: push in, pull back, and the plate keeps the peak and leaves open water', axis: '-|', expectPar: 2,
+    blurb: 'Land remembers. A plate keeps the peak it raised.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
-      ~  a0 a0 a0 b0 b0 ~
-      ~  a0 a0 b1G b0 b0 ~
-      ~  a0 c0 c0* c0 ~  ~
+      ~  ~  a0 a0 b1G b0 ~
+      ~  a0 a0 a0 b0* ~  ~
+      ~  ~  a0 ~  b0 b0 ~
+      ~  ~  a0 ~  ~  ~  ~
       ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P2N', trap: { move: 'P0E', finish: 2, why: 'the plain push lifts the goat and leaves the buoy on land' },
-      aha: { move: 'P2N', says: 'one slide: its front lifts the goat, its back opens sea under the buoy', shows: ['ticks2', 'lifts'] } },
+    fixture: { intended: 'P0E P0W', trap: { move: 'P1S', finish: 3, why: "sliding b only brings its next row under the buoy: the spot is still land, and the bite is still to do" },
+      aha: { move: 'P0W', says: 'pull back and the plate carries the goat on its stolen peak, leaving open sea under the buoy', shows: ['returns'] } },
+  },
+  {
+    name: 'Good Neighbours', role: 'puzzle', teaches: 'a plate cannot climb itself: let the neighbour take the cell in front of the goat, then you have something to hit', axis: '-|', expectPar: 3,
+    blurb: 'A plate cannot climb itself.',
+    map: `
+      ~  ~  ~  ~  ~  ~  ~
+      ~  ~  a0 a0 b0 ~  ~
+      ~  a0 a1G a0* b0 b0 ~
+      ~  a0 a0 b0 b0 b0 ~
+      ~  ~  a0 ~  b0 ~  ~
+      ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P1N P0E P0W', trap: { move: 'P0W', finish: 5, why: 'backing off floats the buoy at once, but the goat still faces its own plate and has nothing to climb' },
+      aha: { move: 'P1N', says: 'the neighbour slides in and takes the cell in front of the goat: now the goat faces someone else', shows: ['quiet'] } },
   },
   {
     name: 'Far One First', teaches: 'two goats, two pushes: the order decides, because a move leaves water behind', axis: '|--', expectPar: 2, expectTempting: true,
@@ -136,21 +151,9 @@ export const TUTORIAL: Spec[] = [
       ~  ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 a0 b1G b0 c1G ~
       ~  a0 a0 a0 b0 b0 c0 ~
-      ~  ~  a0 a0 b0 b0 c0 ~
+      ~  ~  a0 ~  b0 ~  c0 ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
     fixture: { intended: 'P2W P1W', trap: { move: 'P1W', finish: 3, why: 'the near goat rises, but b has backed away from c: c now pushes into water and lifts nothing' },
       aha: { move: 'P2W', says: 'the far goat goes first, while its neighbour is still there to push against', shows: ['lifts'] } },
-  },
-  {
-    name: 'Stolen Peak', teaches: 'land remembers: push in, pull back, and the plate keeps the peak and leaves a bay', axis: '-|', expectPar: 2,
-    blurb: 'Land remembers. A plate keeps the peak it raised.',
-    map: `
-      ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 a0 b1G b0 ~
-      ~  a0 a0 a0 b0* b0 ~
-      ~  ~  a0 a0 b0 b0 ~
-      ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P0E P0W', trap: { move: 'P1N', finish: 4, why: "sliding b looks like it clears the buoy, but b's next row slides in under it and the goat sails away from the seam" },
-      aha: { move: 'P0W', says: 'pull back and the plate carries the goat on its stolen peak, leaving open sea under the buoy', shows: ['returns'] } },
   },
 ];

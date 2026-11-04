@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromJson, type Level, type LevelJson } from '../rules/rules';
+import { canFinish, fromJson, goalsMet, seaMask, type Level, type LevelJson } from '../rules/rules';
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
@@ -32,6 +32,43 @@ describe('a fixture that stops being true fails', () => {
     const summit = spec('The Summit');
     expect(problems(withFix(summit, { trap: { move: 'P0N', finish: 'dead', why: '' } }), byName('The Summit'))).toMatch(/fixture says dead/);
   });
+  it('a part that changes nothing is a decoy', () => {
+    const open = byName('Open Water');
+    const spare = [...open.start.plate.keys()].find(i => open.start.plate[i] === 0 && i !== open.buoys[0])!;
+    const decoyed = { ...open, start: { ...open.start, objs: [...open.start.objs, { kind: 'village' as const, cell: spare }] } };
+    expect(problems(spec('Open Water'), decoyed)).toMatch(/decoy: without the village/);
+  });
+  it('a puzzle that falls to greedy play fails, a teacher may', () => {
+    const still = byName('Still Water');
+    expect(checkFixture(spec('Still Water'), still).greedy).toBe(1);
+    expect(problems(spec('Still Water'), still)).not.toMatch(/greedy/);
+    expect(problems(spec('Still Water'), { ...still, role: 'puzzle' })).toMatch(/greedy play solves it 100%/);
+  });
+});
+
+describe('the moments the finale is built on', () => {
+  const play = (name: string, moves: string[]) => { const lv = byName(name); return { lv, s: applyAll(lv, lv.start, moves)! }; };
+  const met = (name: string, moves: string[]) => { const { lv, s } = play(name, moves); return goalsMet(lv, s).filter(Boolean).length; };
+  it('The Summit: five of six in two moves, and the slide for the sixth breaks the village', () => {
+    expect(met('The Summit', ['P0S', 'P2W'])).toBe(5);
+    const { lv, s } = play('The Summit', ['P0S', 'P2W', 'P1S']);
+    expect(canFinish(lv, s)).toBe(false);
+  });
+  it('The Summit: the last slide ticks the last two at once', () => {
+    expect(met('The Summit', ['P0S', 'P2W', 'P0S', 'P2E', 'P2E'])).toBe(4);
+    expect(met('The Summit', ['P0S', 'P2W', 'P0S', 'P2E', 'P2E', 'P1S'])).toBe(6);
+  });
+  it('Give and Take: the pond is opened, filled, then opened again', () => {
+    const oasis = (moves: string[]) => { const { lv, s } = play('Give and Take', moves); return goalsMet(lv, s)[0]; };
+    expect([oasis([]), oasis(['P0W']), oasis(['P0W', 'P1W']), oasis(['P0W', 'P1W', 'P0E', 'P0W'])]).toEqual([false, true, false, true]);
+  });
+  it('Two Waters: the pond and the open sea end up touching only at a corner, side by side from the camera', () => {
+    const { lv, s } = play('Two Waters', ['P1E', 'P2E', 'P0N']);
+    const sea = seaMask(lv, s), buoy = lv.buoys[0];
+    const ponds = [...s.plate.keys()].filter(i => s.plate[i] < 0 && !sea[i]);
+    expect(ponds).toHaveLength(1);
+    expect(ponds[0] - buoy).toBe(1 - lv.w); // one east, one north: a screen-horizontal neighbour for a camera at +x,+z
+  });
 });
 
 describe('claims', () => {
@@ -42,14 +79,14 @@ describe('claims', () => {
   it('lifts', () => expect(claims('First Peak', [], 'P0E')).toContain('lifts'));
   it('floods', () => expect(claims('Open Water', [], 'P0W')).toContain('floods'));
   it('quiet', () => expect(claims('Mind the Village', [], 'P1S')).toContain('quiet'));
-  it('ticks2', () => expect(claims('Two Wishes', [], 'P2N')).toContain('ticks2'));
+  it('ticks2', () => expect(claims('The Long Pier', [], 'P1E')).toContain('ticks2'));
   it('returns', () => expect(claims('Stolen Peak', ['P0E'], 'P0W')).toContain('returns'));
-  it('reclaims', () => expect(claims('The Long Pier', [], 'P2N')).toContain('reclaims'));
+  it('reclaims', () => expect(claims('The Long Pier', [], 'P1E')).toContain('reclaims'));
   it('lake', () => expect(claims('Still Water', [], 'P1E')).toContain('lake'));
-  it('seals', () => expect(claims('The Door', [], 'P1N')).toContain('seals'));
+  it('seals', () => expect(claims('Mirage', ['P1E', 'P0E', 'P2W'], 'P2E')).toContain('seals'));
   it('melts', () => expect(claims('Thin Ice', [], 'P0E')).toContain('melts'));
-  it('hitsrock', () => expect(claims('Anchor Rock', [], 'P2S')).toContain('hitsrock'));
-  it('unticks', () => expect(claims('The Summit', ['P2W'], 'P0S')).toContain('unticks'));
+  it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P2S')).toContain('hitsrock'));
+  it('unticks', () => expect(claims('The Summit', ['P0S', 'P2W', 'P0S'], 'P2E')).toContain('unticks'));
   it('opens', () => {
     const lv = byName('Breakwater');
     const sealed = applyAll(lv, lv.start, ['P1E', 'P2E'])!;

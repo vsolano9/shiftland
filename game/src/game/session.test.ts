@@ -36,8 +36,8 @@ describe('Session', () => {
   });
 
   it('solving over par gives no star', () => {
-    const s = new Session(byName('Two Wishes')); // par 1 via P2N; P0E then P2N finishes in 2
-    play(s, 'P0E P2N');
+    const s = new Session(byName('Open Water')); // par 1 via P0W; its trap P1E, then P0W, finishes in 2
+    play(s, 'P1E P0W');
     expect([s.solved, s.moves, s.stars]).toEqual([true, 2, 0]);
   });
 
