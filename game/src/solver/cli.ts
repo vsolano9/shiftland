@@ -3,7 +3,7 @@
 //   node src/solver/cli.ts audit [levels.json]     audit every level and its fixture; exit 1 if any fails
 //   node src/solver/cli.ts random [walks]          random-play solve rate per level: walks of 3x par moves
 //   node src/solver/cli.ts inspect <name|number>   map, every shortest solution and what each first move costs
-//   node src/solver/cli.ts table                   the level table for docs/design-plates.md
+//   node src/solver/cli.ts table [--write]         the level table; --write puts it into docs/design-plates.md
 //   node src/solver/cli.ts gen <seed> [count] [--desert]   generate and audit candidates (--desert adds an oasis)
 // Each level's `role` picks the bar (audit.ts shipCheck): tutorials are exempt from the 3-move, order and tempting-move
 // checks but must still solve at par; puzzles (and levels without a role) get the full bar. The default file also
@@ -71,11 +71,20 @@ if (cmd === 'export') {
   console.log(`  random ${(randomSolveRate(lv) * 100).toFixed(1)}%  greedy ${(greedySolveRate(lv) * 100).toFixed(0)}%`);
   for (const p of partsOf(lv)) console.log(`  without the ${p.what}: ${p.effect}${p.par === null ? '' : ` (par ${p.par}, ${p.ways} shortest)`}`);
 } else if (cmd === 'table') {
-  console.log('| # | Name | Biome | Role | Par | Effort | Blurb | Idea | Trap | Random solve | Greedy solve |\n|---|---|---|---|---|---|---|---|---|---|---|');
+  const rows = ['| # | Name | Biome | Role | Par | Effort | Blurb | Idea | Trap | Random solve | Greedy solve |', '|---|---|---|---|---|---|---|---|---|---|---|'];
   for (const [i, lv] of shipped().entries()) {
     const s = specOf(lv.name)!;
-    console.log(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.role} | ${lv.par} | ${effortOf(lv).effort} | ${lv.blurb ?? ''} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% | ${(greedySolveRate(lv) * 100).toFixed(0)}% |`);
+    rows.push(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.role} | ${lv.par} | ${effortOf(lv).effort} | ${lv.blurb ?? ''} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% | ${(greedySolveRate(lv) * 100).toFixed(0)}% |`);
   }
+  if (flags.has('--write')) {
+    // puts the table into the design doc in place, so it can't drift from the campaign
+    const path = '../docs/design-plates.md', doc = readFileSync(path, 'utf8'), nl = doc.includes('\r\n') ? '\r\n' : '\n', lines = doc.split(nl);
+    const at = lines.findIndex(l => l.startsWith('| # | Name | Biome |'));
+    let end = at; while (lines[end]?.startsWith('|')) end++;
+    if (at < 0) throw new Error('no level table in the design doc');
+    lines.splice(at, end - at, ...rows);
+    writeFileSync(path, lines.join(nl));
+  } else console.log(rows.join('\n'));
 } else if (cmd === 'gen') {
   const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = flags.has('--desert');
   const unknown = [...flags].filter(f => f !== '--desert');
