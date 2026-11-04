@@ -47,6 +47,8 @@ Measured with a playtest running on the same PC (`p12\perf.log`). Load about 3 s
 
 ## Known limits
 
+- Repo and license, Victor on Nov 4: "no open source then if not needed ... you can make it public if needed next run." The jam needs a public repo but no open-source license, so going public is approved for the next run when it is needed. `LICENSE` is still MIT, which is open source: replace it with all rights reserved before the repo goes public. The itch page and submission are not covered by this approval.
+
 - Testing is browser-only on this PC, by Victor's decision on Nov 4 ("focus on just testing here on the browser"): real phones, iOS and laptops are not a to-do for agents.
 
 - Real Safari and iOS are untested. WebKit in Playwright solved the first island; WebKit on Windows stops showing the canvas when its buffer changes size: proven not ours by a bare WebGL page that does the same (`p12\wk\`, `qa.md`). On a real iPhone, check a rotation and a slow-device quality step first.
