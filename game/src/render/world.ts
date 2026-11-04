@@ -637,7 +637,9 @@ export class World {
     this.frameHook?.(dt, t);
     this.driveFrame(raw);
     if (this.fillK !== this.fillGoal) { this.fillK = this.fillGoal > this.fillK ? Math.min(1, this.fillK + raw / 1.2) : Math.max(0, this.fillK - raw / .5); this.placeFill(); }
-    for (const v of this.views) { v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
+    // settled on a board, the neighbours go: all a player ever saw of them was a dark corner under the HUD's shade (critic T16). A long flight shows them again
+    const alone = !this.map && !this.homes && !this.drive && !this.peekAt && !!this.active && this.active !== this.hero && (!this.fly || this.fly.arc < 6);
+    for (const v of this.views) { v.group.visible = !alone || v === this.active; v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
     this.heroBeat(dt);
     if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);

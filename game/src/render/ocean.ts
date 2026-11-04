@@ -58,22 +58,23 @@ export class Mask {
       const step = y === 0 || y === h - 1 ? 1 : w - 1, wz = this.z0 + (y + .5) / sz;
       for (let x = 0; x < w; x += step) {
         const wx = this.x0 + (x + .5) / sx; let d = dist[x + y * w];
-        for (const r of past) d = Math.min(d, Math.hypot(Math.max(r.x0 - wx, 0, wx - r.x1), Math.max(r.z0 - wz, 0, wz - r.z1)) * sx);
+        for (const r of past) d = Math.min(d, Math.hypot(Math.max(r.x0 - wx, 0, wx - r.x1), Math.max(r.z0 - wz, 0, wz - r.z1)));
         dist[x + y * w] = d;
       }
     }
-    // chamfer distance (3-4 metric), in pixels
-    const A = 1, B = Math.SQRT2;
+    // chamfer distance in world units: the map's pixels aren't always square (its size changes with the layout, its resolution has a cap),
+    // and counting pixels there made its shallows wider than the active mask's, with a line where they met
+    const A = 1 / sx, C = 1 / sz, B = Math.hypot(A, C);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = x + y * w; let d = dist[i];
       if (x > 0) d = Math.min(d, dist[i - 1] + A);
-      if (y > 0) { d = Math.min(d, dist[i - w] + A); if (x > 0) d = Math.min(d, dist[i - w - 1] + B); if (x < w - 1) d = Math.min(d, dist[i - w + 1] + B); }
+      if (y > 0) { d = Math.min(d, dist[i - w] + C); if (x > 0) d = Math.min(d, dist[i - w - 1] + B); if (x < w - 1) d = Math.min(d, dist[i - w + 1] + B); }
       dist[i] = d;
     }
     for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
       const i = x + y * w; let d = dist[i];
       if (x < w - 1) d = Math.min(d, dist[i + 1] + A);
-      if (y < h - 1) { d = Math.min(d, dist[i + w] + A); if (x < w - 1) d = Math.min(d, dist[i + w + 1] + B); if (x > 0) d = Math.min(d, dist[i + w - 1] + B); }
+      if (y < h - 1) { d = Math.min(d, dist[i + w] + C); if (x < w - 1) d = Math.min(d, dist[i + w + 1] + B); if (x > 0) d = Math.min(d, dist[i + w - 1] + B); }
       dist[i] = d;
     }
     // rounded contours for the active island: the chamfer metric alone draws angular "map contour" foam lines
@@ -82,7 +83,7 @@ export class Mask {
       for (let y = 0; y < h; y++) { let s = 0; for (let x = -R; x <= R; x++) s += dist[Math.max(0, x) + y * w]; for (let x = 0; x < w; x++) { b[x + y * w] = s; s += dist[Math.min(w - 1, x + R + 1) + y * w] - dist[Math.max(0, x - R) + y * w]; } }
       for (let x = 0; x < w; x++) { let s = 0; for (let y = -R; y <= R; y++) s += b[x + Math.max(0, y) * w]; for (let y = 0; y < h; y++) { const i = x + y * w; dist[i] = dist[i] === 0 ? 0 : s / 49; s += b[x + Math.min(h - 1, y + R + 1) * w] - b[x + Math.max(0, y - R) * w]; } }
     }
-    const data = this.tex.image.data as Uint8Array, toByte = 255 / (MASK_RANGE * sx);
+    const data = this.tex.image.data as Uint8Array, toByte = 255 / MASK_RANGE;
     for (let i = 0; i < w * h; i++) {
       data[i * 4] = Math.min(255, dist[i] * toByte); data[i * 4 + 1] = 0; data[i * 4 + 2] = 0; data[i * 4 + 3] = 255;
     }
@@ -130,10 +131,11 @@ const FRAG = /* glsl */`
   void main(){
     float t = uTime;
     vec2 p = vW.xz;
-    vec4 m;
+    vec2 us = (p-uStaticB.xy)/uStaticB.zw;
+    vec4 m = (us.x>0. && us.y>0. && us.x<1. && us.y<1.) ? texture2D(uStatic, us) : vec4(1.,0.,0.,1.);
     vec2 ua = (p-uActiveB.xy)/uActiveB.zw;
-    if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = texture2D(uActive, ua);
-    else { vec2 us = (p-uStaticB.xy)/uStaticB.zw; m = (us.x>0. && us.y>0. && us.x<1. && us.y<1.) ? texture2D(uStatic, us) : vec4(1.,0.,0.,1.); }
+    // the two masks are drawn at different sharpness: the fine one fades in over its border, or a neighbour's shallows show a straight seam
+    if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = mix(m, texture2D(uActive, ua), smoothstep(0.,.1,min(min(ua.x,ua.y),min(1.-ua.x,1.-ua.y))));
     float dist = m.r*uRange;
     float wob = (fbm(p*1.4+vec2(t*.05,-t*.04))-.5);
     float d = dist + wob*.1;
@@ -169,7 +171,8 @@ const FRAG = /* glsl */`
     // wet and dark, half sea already: bright sand laid on the water looks like a sheet of cardboard
     vec3 flr = mix(uFloor*(.42+.3*fbm(p*4.)), col, .2)*mix(.7,1.,smoothstep(0.,.3,dist));
     col = mix(col, flr, m.b);
-    float fm = max(foam, ring*.5)*(1.-m.b);
+    // under land nobody sees water, except where a hidden neighbour stands: there it must be plain sea, not a raft of foam
+    float fm = max(foam, ring*.5)*(1.-m.b)*smoothstep(0.,.04,dist);
     col = mix(col, vec3(.96,.99,1.), fm*(1.-.35*m.g));
     gl_FragColor = vec4(col,1.);
     #include <colorspace_fragment>
