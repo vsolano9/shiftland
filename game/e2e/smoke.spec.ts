@@ -30,6 +30,26 @@ async function drag(page: Page, m: string) {
   await page.waitForTimeout(650);
 }
 
+test('a hint from a dead end never freezes the game, and a move cancels it', async ({ page }) => {
+  const errors = errorsOf(page);
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  await page.click('#btn-play');
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { (window.__shiftland as unknown as { controller: { open(i: number): void } }).controller.open(5); });
+  await page.waitForTimeout(2200);
+  await drag(page, 'P0S');
+  const gap = await page.evaluate(() => new Promise<number>(done => {
+    let last = performance.now(), worst = 0, n = 0;
+    document.getElementById('b-hint')!.click();
+    const tick = () => { const t = performance.now(); worst = Math.max(worst, t - last); last = t; if (++n < 120) requestAnimationFrame(tick); else done(worst); };
+    requestAnimationFrame(tick);
+  }));
+  expect(gap).toBeLessThan(500); // the search took 4.3 s on the main thread before it moved to a worker
+  await expect(page.locator('#hint')).toContainText(/Undo|plate|Thinking/, { timeout: 15000 });
+  expect(errors).toEqual([]);
+});
+
 test('title, first island by drag, level complete, next, map, reload keeps progress', async ({ page }) => {
   const errors = errorsOf(page);
   await page.goto('./');
