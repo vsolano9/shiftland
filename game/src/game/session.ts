@@ -40,6 +40,7 @@ export class Session {
     const next = shift(this.lv, this.state, p, d);
     if (!next) return { ok: false, reason: 'blocked' };
     this.history.push(next);
+    this.log.push(p * 4 + d);
     this.lastRun = null;
     this.afterChange();
     return { ok: true, solved: this.solved };
@@ -48,22 +49,41 @@ export class Session {
   undo(): boolean {
     if (this.history.length <= 1) {
       if (!this.lastRun) return false;
-      this.history = this.lastRun.history; this.hinted = this.lastRun.hinted; this.lastRun = null;
+      this.history = this.lastRun.history; this.log = this.lastRun.log; this.hinted = this.lastRun.hinted; this.lastRun = null;
       this.afterChange();
       return true;
     }
     this.history.pop();
+    this.log.pop();
     this.afterChange();
     return true;
   }
 
-  private lastRun: { history: State[]; hinted: boolean } | null = null;
+  private lastRun: { history: State[]; log: number[]; hinted: boolean } | null = null;
   get canUndo() { return this.history.length > 1 || this.lastRun !== null; }
+
+  /** The run so far, as plate * 4 + direction per move: what a reload needs to bring it back. */
+  log: number[] = [];
+  /** Replays a saved run. Anything that no longer plays (the level changed since), or that already finishes it, leaves a fresh start and returns false. */
+  resume(log: number[], hinted: boolean): boolean {
+    let s = this.lv.start;
+    const history = [s];
+    for (const m of log) {
+      const next = Number.isInteger(m) && m >= 0 ? shift(this.lv, s, m >> 2, (m & 3) as Dir) : null;
+      if (!next) return false;
+      history.push(s = next);
+    }
+    if (log.length === 0 || solved(this.lv, s)) return false;
+    this.history = history; this.log = [...log]; this.hinted = hinted;
+    this.afterChange();
+    return true;
+  }
 
   restart() {
     // a solved run is finished, and an empty one has nothing to bring back
-    this.lastRun = this.moves > 0 && !this.solved ? { history: this.history, hinted: this.hinted } : null;
+    this.lastRun = this.moves > 0 && !this.solved ? { history: this.history, log: this.log, hinted: this.hinted } : null;
     this.history = [this.lv.start];
+    this.log = [];
     this.stuck = false;
     this.hinted = false;
     this.stuckPort?.cancel();

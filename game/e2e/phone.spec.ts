@@ -80,6 +80,27 @@ test('a swipe on the water is not a move, even just after one', async ({ page, c
   expect(errors).toEqual([]);
 });
 
+test('a reload puts the player back on the same board', async ({ page, context }) => {
+  const errors = await start(page);
+  const cdp = await context.newCDPSession(page);
+  await page.evaluate(`${SL}.controller.open(6)`);
+  await page.waitForTimeout(2500);
+  const r = await railOf(page, await firstMove(page));
+  await swipe(cdp, page, r.a, r.b);
+  const before = await page.evaluate(`[...${SL}.controller.session.state.plate].join()`);
+  await page.reload();
+  await page.waitForFunction(`${SL} && ${SL}.world.frames > 5`, undefined, { timeout: 60_000 });
+  await page.evaluate(`${SL}.progress.unlocked = () => true`);
+  await page.tap('#btn-play');
+  await page.waitForTimeout(2200);
+  await page.evaluate(`document.querySelector('.pin[data-level="6"]').click()`);
+  await page.waitForTimeout(2200);
+  await expect(page.locator('#hint')).toContainText('where you left off');
+  expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([6, 1]);
+  expect(await page.evaluate(`[...${SL}.controller.session.state.plate].join()`)).toBe(before);
+  expect(errors).toEqual([]);
+});
+
 test('the map follows a turn of the phone, both ways, with every pin on its island', async ({ page }) => {
   const errors = await start(page);
   await page.tap('#b-map');

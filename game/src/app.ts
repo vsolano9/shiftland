@@ -284,7 +284,7 @@ class App {
     this.world.focusTitle(1);
   }
   private toMap(fromTitle = false) {
-    if (fromTitle && !this.progress.solved(0)) { this.openLevel(0); return; } // first play: straight into the first island
+    if (fromTitle && !this.progress.solved(0)) { this.pickLevel(0); return; } // first play: straight into the first island
     this.show('map');
     this.world.setActive(null);
     this.fitArchipelago();
@@ -383,6 +383,7 @@ class App {
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
+    if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     const note = this.progress.solved(i) || s.moves ? '' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
   }
@@ -456,6 +457,7 @@ class App {
       return;
     }
     s.hinted = true;
+    this.controller.saveRun();
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;

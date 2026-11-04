@@ -12,6 +12,43 @@ const make = (storage = mem()) => {
   return { c, events, storage };
 };
 const DIRS: Record<string, Dir> = { N: 0, E: 1, S: 2, W: 3 };
+describe('a run survives a reload', () => {
+  const unlockedTo = (storage: StorageLike, i: number) => { const a = make(storage).c; for (let k = 0; k < i; k++) { a.open(k); playSolution(a); } };
+  const at = "Shepherd's Hill", index = all.findIndex(l => l.name === at);
+  it('comes back on the same island with its moves, undo and hint', () => {
+    const storage = mem();
+    unlockedTo(storage, index);
+    const a = make(storage).c;
+    a.open(index);
+    a.session.hinted = true;
+    a.act({ kind: 'move', plate: 0, dir: 3 });
+    const b = make(storage).c;
+    expect([b.index, b.session.moves, b.session.hinted, b.resumed]).toEqual([index, 1, true, true]);
+    expect(b.session.state.plate).toEqual(a.session.state.plate);
+    b.act({ kind: 'undo' });
+    expect(make(storage).c.session.moves).toBe(0);
+  });
+  it('is forgotten on Restart, on a solve, and when it no longer plays', () => {
+    const storage = mem();
+    unlockedTo(storage, index);
+    const a = make(storage).c;
+    a.open(index);
+    a.act({ kind: 'move', plate: 0, dir: 3 });
+    a.act({ kind: 'restart' });
+    expect(make(storage).c.resumed).toBe(false);
+    a.act({ kind: 'undo' }); // Restart taken back: the run is back too
+    expect(make(storage).c.session.moves).toBe(1);
+    const c = make(storage).c;
+    c.progress.saveRun({ name: at, log: [99 * 4], hinted: false });
+    const d = make(storage).c;
+    expect([d.resumed, d.session.moves]).toEqual([false, 0]);
+    d.open(index);
+    playSolution(d);
+    const e = make(storage).c;
+    expect(e.resumed).toBe(false);
+  });
+});
+
 const playSolution = (c: Controller) => {
   for (const m of solve(c.session.lv, 7)!.firstSolution) c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
 };

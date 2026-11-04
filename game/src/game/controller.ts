@@ -6,7 +6,7 @@ import { previewDiff, type MoveDiff } from '../rules/diff.ts';
 import { refusal, shift, solved, type Dir, type Refusal, type State } from '../rules/rules.ts';
 import { dragStops } from './drag.ts';
 import type { KeyAction } from './keys.ts';
-import type { Progress } from './progress.ts';
+import type { Progress, SavedRun } from './progress.ts';
 import { Session, type StuckPort } from './session.ts';
 
 export type GameEvent =
@@ -29,7 +29,17 @@ export class Controller {
 
   constructor(readonly levels: Level[], readonly progress: Progress, private stuck?: StuckPort,
               private emit: (e: GameEvent) => void = () => {}) {
+    // back where the player left off, if that island still plays the same way; otherwise the first unsolved one
+    const run = progress.savedRun(), at = run ? levels.findIndex(l => l.name === run.name) : -1;
+    if (run && at >= 0 && !progress.solved(at) && this.open(at, run)) return;
     this.open(progress.next());
+  }
+  /** Set when the session came back from a saved run, until the screen has said so. */
+  resumed = false;
+  /** Call after anything that changes the run outside `move` (a hint taken). */
+  saveRun() {
+    const s = this.session;
+    this.progress.saveRun(s.moves > 0 && !s.solved ? { name: s.lv.name!, log: s.log, hinted: s.hinted } : null);
   }
 
   /**
@@ -43,12 +53,14 @@ export class Controller {
   }
 
   /** Open level i if it is unlocked; returns false for a locked level. */
-  open(i: number): boolean {
+  open(i: number, run?: SavedRun): boolean {
     if (i < 0 || i >= this.levels.length || !this.progress.unlocked(i)) return false;
     this.cancelDrag();
     this.index = i;
     this.completedNow = false;
     this.session = new Session(this.levels[i], this.stuck);
+    this.resumed = run ? this.session.resume(run.log, run.hinted) : false;
+    this.saveRun();
     this.selected = null;
     this.emit({ kind: 'level', index: i });
     return true;
@@ -64,8 +76,8 @@ export class Controller {
       case 'wrong-axis': this.select(a.plate); this.emit({ kind: 'wrong-axis', plate: a.plate }); break;
       // a key move during a drag drops the drag's preview: it was computed for the old board (Codex chain 6 round 2)
       case 'move': this.cancelDrag(); this.select(a.plate); this.move(a.plate, a.dir); break;
-      case 'undo': this.cancelDrag(); if (this.session.undo()) { this.emit({ kind: 'undone' }); this.unstuck(was); } break;
-      case 'restart': this.cancelDrag(); this.session.restart(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
+      case 'undo': this.cancelDrag(); if (this.session.undo()) { this.saveRun(); this.emit({ kind: 'undone' }); this.unstuck(was); } break;
+      case 'restart': this.cancelDrag(); this.session.restart(); this.saveRun(); this.selected = null; this.emit({ kind: 'level', index: this.index }); this.unstuck(was); break;
       case 'next':
         if (!this.session.solved) break;
       {
@@ -141,6 +153,7 @@ export class Controller {
     const at = this.session.state, why = refusal(this.levels[this.index], at, p, d);
     const r = this.session.move(p, d);
     if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p, why, dir: d, at }); return false; }
+    this.saveRun();
     this.emit({ kind: 'moved', plate: p });
     this.unstuck(was);
     if (r.solved) {

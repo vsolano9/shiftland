@@ -13,6 +13,8 @@ export interface LevelRecord { solved: boolean; best: number; stars: number }
 interface Saved { v: 1; levels: Record<string, LevelRecord> }
 
 export const KEY = 'shiftland.progress.v1';
+const RUN_KEY = 'shiftland.run.v1';
+export interface SavedRun { name: string; log: number[]; hinted: boolean }
 
 export class Progress {
   private data: Saved = { v: 1, levels: {} };
@@ -58,7 +60,18 @@ export class Progress {
     this.save();
   }
 
-  reset() { this.data = { v: 1, levels: {} }; this.save(); }
+  reset() { this.data = { v: 1, levels: {} }; this.save(); this.saveRun(null); }
+
+  /** The unfinished island's moves, so a phone that drops the page in the background brings the player back to the same board. */
+  saveRun(run: SavedRun | null) {
+    try { this.storage?.setItem(RUN_KEY, run ? JSON.stringify(run) : ''); } catch { /* the game plays on; only this comfort is lost */ }
+  }
+  savedRun(): SavedRun | null {
+    try {
+      const r = JSON.parse(this.storage?.getItem(RUN_KEY) || 'null');
+      return r && typeof r.name === 'string' && Array.isArray(r.log) ? { name: r.name, log: r.log, hinted: r.hinted === true } : null;
+    } catch { return null; }
+  }
 
   private save() {
     if (!this.storage) return;
