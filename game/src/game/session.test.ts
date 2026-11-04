@@ -63,7 +63,7 @@ describe('Session', () => {
   it('preview does not commit and returns the diff', () => {
     const s = new Session(byName('First Peak'));
     const p = s.preview(1, 1)!;
-    expect(p.diff.moved).toEqual([[0, 9, 10]]);
+    expect(p.diff.moved).toEqual([[0, 17, 18]]);
     expect(s.moves).toBe(0);
     expect(s.preview(0, 0)).toBeNull();
   });

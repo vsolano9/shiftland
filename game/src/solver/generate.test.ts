@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fromJson, goalsMet, shift, type LevelJson } from '../rules/rules';
 import { audit } from './audit';
 import { generate } from './generate';
-import levels from '../levels/levels.json';
+import spike from '../../../spikes/plates/levels.json';
 
 describe('generator', () => {
   it('oasis option adds exactly one oasis on free land and leaves the rest of the seed unchanged', () => {
@@ -21,9 +21,9 @@ describe('generator', () => {
     expect(generate(7, { place: true })).toEqual(generate(7, { place: true }));
   });
 
-  it('matches the spike: the exported generated levels regenerate cell for cell', () => {
-    // Dip and Return is seed 56, 6x5, 2 plates, seam placement (spikes/plates/tutorial.ts)
-    const dip = (levels as LevelJson[]).find(l => l.name === 'Dip and Return')!;
+  it("matches the spike: the spike's generated level regenerates cell for cell", () => {
+    // The spike's Dip and Return was seed 56, 6x5, 2 plates, seam placement (spikes/plates/tutorial.ts); the campaign has its own.
+    const dip = (spike as unknown as LevelJson[]).find(l => l.name === 'Dip and Return')!;
     const g = generate(56, { w: 6, h: 5, plates: 2, place: true });
     expect(Array.from(g.start.plate)).toEqual(dip.plate);
     expect(Array.from(g.start.elev)).toEqual(dip.elev);
