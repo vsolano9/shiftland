@@ -48,9 +48,9 @@ describe('Session', () => {
   });
 
   it('undo and restart return to earlier states', () => {
-    const lv = byName('Far One First');
+    const lv = byName("Shepherd's Hill");
     const s = new Session(lv);
-    expect(play(s, 'P0S P1W').every(r => r.ok)).toBe(true); // the start of the rules.test canFinish sequence
+    expect(play(s, 'P0W P1W').every(r => r.ok)).toBe(true);
     expect(s.moves).toBe(2);
     expect(s.undo()).toBe(true);
     expect(s.moves).toBe(1);
@@ -70,7 +70,7 @@ describe('Session', () => {
 
   it('asks the stuck checker after each change, warns on a proven dead end, clears on undo', () => {
     const port = new SyncStuck();
-    const s = new Session(byName('Mind the Village'), port); port.session = s;
+    const s = new Session(byName('Village Green'), port); port.session = s;
     s.move(0, 1); // the crushing push
     expect(s.stuck).toBe(true);
     s.undo();

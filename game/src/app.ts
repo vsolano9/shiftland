@@ -73,8 +73,14 @@ function archipelago(levels: Level[], aspect: number): [number, number][] {
   const AZ = .72, right = [Math.cos(AZ), -Math.sin(AZ)], fwd = [-Math.sin(AZ), -Math.cos(AZ)];
   const out: [number, number][] = [];
   // rows that suit the screen's shape, so the whole sea fills it and each island stays big enough to read and tap
-  const perRow = aspect < .9 ? 3 : aspect > 1.95 ? 7 : 5;
-  const rows = Math.ceil(levels.length / perRow), du = perRow === 3 ? 13 : 13.5, dv = perRow === 3 ? 13.5 : 14.5;
+  // (depth on screen is foreshortened by the camera's tilt, about .73)
+  const du0 = 13.5, dv0 = 14.5;
+  let perRow = 5, bestFit = Infinity;
+  for (let n = 3; n <= 8; n++) {
+    const shape = (n * du0) / (Math.ceil(levels.length / n) * dv0 * .73), miss = Math.abs(Math.log(shape / aspect));
+    if (miss < bestFit) { bestFit = miss; perRow = n; }
+  }
+  const rows = Math.ceil(levels.length / perRow), du = perRow === 3 ? 13 : du0, dv = perRow === 3 ? 13.5 : dv0;
   levels.forEach((_, i) => {
     const r = Math.floor(i / perRow), k = i - r * perRow;
     const u = (r % 2 ? perRow - 1 - k : k) * du - (perRow - 1) * du / 2 + Math.sin(i * 1.7) * 1.4;

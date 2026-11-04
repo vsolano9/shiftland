@@ -141,9 +141,9 @@ describe('Controller', () => {
   it('stuck warning: on from the checker, off again on undo, one event per change', () => {
     const c = new Controller(all, new Progress(all.map(l => l.name!), mem()));
     const events: GameEvent[] = [];
-    // open Mind the Village (index 2) by solving the first two
+    // open Village Green (index 2) by solving the first two
     playSolution(c); c.act({ kind: 'next' }); playSolution(c); c.act({ kind: 'next' });
-    expect(c.session.lv.name).toBe('Mind the Village');
+    expect(c.session.lv.name).toBe('Village Green');
     (c as unknown as { emit: (e: GameEvent) => void }).emit = e => events.push(e);
     c.act({ kind: 'move', plate: 0, dir: 1 });   // the crushing push
     c.stuckAnswer(true); c.stuckAnswer(true);    // a repeat answer is not a change

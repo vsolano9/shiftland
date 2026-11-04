@@ -8,6 +8,8 @@ import { IslandView } from './island.ts';
 import * as M from './models.ts';
 import { Mask, MASK_RANGE, Ocean, type LandRect } from './ocean.ts';
 import { BIOMES, DAYLIGHT, type DayLight, MORNING, topY } from './palette.ts';
+import { SeaLife } from './sealife.ts';
+import { toUV } from './seaway.ts';
 import { Particles } from './particles.ts';
 import { makeTerrainMaterial } from './terrain.ts';
 import { MAT, Creature, type CreatureKind } from './creatures.ts';
@@ -37,6 +39,7 @@ export class World {
   private shake = 0;
   private drift = 0;
   private map = true;
+  private seaLife!: SeaLife;
   private clouds: { o: Mesh; v: number }[] = [];
   private gulls: { g: Group; a: number; r: number; c: Vector3; s: number; flap: number }[] = [];
   private frameHook: ((dt: number, t: number) => void) | null = null;
@@ -103,6 +106,9 @@ export class World {
       this.scene.add(g); this.gulls.push({ g, a: Math.random() * 6.28, r: 3 + Math.random() * 5, c: new Vector3(x0 + Math.random() * sw, 3 + Math.random() * 2.5, z0 + Math.random() * sh), s: .25 + Math.random() * .2, flap: 0 });
     }
     this.buildPath(positions);
+    const reefs = this.views.map(v => { const b = v.frameBox(); return { x: v.ox + b.cx, z: v.oz + b.cz, r: Math.hypot(b.hx, b.hz) + 2 }; });
+    const uv = positions.map(([x, z]) => toUV(x, z, .72)), us = uv.map(p => p[0]), vs = uv.map(p => p[1]);
+    this.seaLife = new SeaLife(this.scene, reefs, { u0: Math.min(...us) - 3, u1: Math.max(...us) + 3, v0: Math.min(...vs) - 3, v1: Math.max(...vs) + 3, az: .72 }, this.fx, (x, y, z) => this.fx.smoke(x, y, z));
     this.resize();
     addEventListener('resize', () => this.resize());
     this.writeStatic();
@@ -527,6 +533,7 @@ export class World {
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
     this.easeDay(dt);
+    this.seaLife.update(dt, t, this.map);
     // clouds pass by on a flight, then clear: nothing may hide an island on the map
     const cm = this.clouds[0].o.material as MeshLambertMaterial;
     cm.opacity += ((this.fly ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5);

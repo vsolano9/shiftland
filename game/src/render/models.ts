@@ -226,6 +226,28 @@ export const axisMark = (() => {
   s.lineTo(L - N, -H); s.lineTo(L - N, -W); s.lineTo(-L + N, -W); s.lineTo(-L + N, -H); s.closePath();
   return new ExtrudeGeometry(s, { depth: .004, bevelEnabled: false }).rotateX(-Math.PI / 2);
 })();
+// SAILBOAT: a little ketch for the open sea on the map. Faces +z. Big, because it is seen from far up.
+export const boat = merge([
+  { g: box(0.34, 0.14, 0.86), c: '#fbf3e2', p: [0, 0.07, 0] },
+  { g: cone(0.24, 0.34, 4), c: '#fbf3e2', p: [0, 0.07, 0.56], r: [Math.PI / 2, Math.PI / 4, 0], s: [1, 1, 0.46] },
+  { g: box(0.36, 0.035, 0.88), c: '#d8574a', p: [0, 0.02, 0] },
+  { g: box(0.2, 0.09, 0.3), c: '#c07a43', p: [0, 0.18, -0.12] },
+  { g: cyl(0.016, 0.022, 1.0, 5), c: '#6e4227', p: [0, 0.6, 0.08] },
+  { g: new ConeGeometry(0.42, 0.86, 3), c: '#fffaf0', p: [0.015, 0.68, -0.13], s: [0.08, 1, 0.75] },
+  { g: new ConeGeometry(0.24, 0.62, 3), c: '#ee5a4f', p: [-0.01, 0.56, 0.31], s: [0.08, 1, 0.6] },
+]);
+// WHALE: back and head rise first, then the flukes wave as it dives. Faces +z; origin at the waterline.
+export const whaleBack = merge([
+  { g: sph(0.5, 9, 7), c: '#39597e', p: [0, 0, 0], s: [0.78, 0.62, 1.9] },
+  { g: sph(0.42, 8, 6), c: '#dfe7ec', p: [0, -0.1, 0.32], s: [0.72, 0.5, 1.5] },
+  { g: box(0.04, 0.16, 0.2), c: '#2c4663', p: [0, 0.34, -0.3], r: [-0.45, 0, 0] },
+]);
+export const whaleTail = merge([
+  { g: cyl(0.1, 0.17, 0.56, 7), c: '#39597e', p: [0, 0.26, 0] },
+  { g: sph(0.3, 6, 4), c: '#2c4663', p: [0.26, 0.58, 0], s: [1.15, 0.2, 0.62], r: [0, 0, 0.3] },
+  { g: sph(0.3, 6, 4), c: '#2c4663', p: [-0.26, 0.58, 0], s: [1.15, 0.2, 0.62], r: [0, 0, -0.3] },
+]);
+
 // GULL: a spindle body, and wings hinged at the shoulder so they flap (world.ts). Faces +z.
 export const gullBody = merge([
   { g: sph(0.045, 7, 5), c: '#ffffff', s: [0.85, 0.8, 2.3] },
