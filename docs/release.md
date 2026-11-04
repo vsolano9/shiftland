@@ -47,6 +47,8 @@ Measured with a playtest running on the same PC (`p12\perf.log`). Load about 3 s
 
 ## Known limits
 
+- Testing is browser-only on this PC, by Victor's decision on Nov 4 ("focus on just testing here on the browser"): real phones, iOS and laptops are not a to-do for agents.
+
 - Real Safari and iOS are untested. WebKit in Playwright solved the first island; WebKit on Windows stops showing the canvas when its buffer changes size: proven not ours by a bare WebGL page that does the same (`p12\wk\`, `qa.md`). On a real iPhone, check a rotation and a slow-device quality step first.
 - "About an hour" on the itch page is an estimate from agent play: playtest 6 finished everything in 51 minutes, reading a text dump of the board, so a person is likely slower. Par is the solver's true minimum.
 - The hard end isn't proven fair for a cold player. Playtest 7 got stuck on Two Waters without hints; playtest 8 solved it at par but needed hints after 7 minutes; playtest 9 failed Frost Line and The Summit in 13 minutes without hints, reaching 3 of 4 and 5 of 6 wants. The bite-and-carry trick is the wall. See `qa.md`.
