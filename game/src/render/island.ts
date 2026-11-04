@@ -506,8 +506,8 @@ export class IslandView {
     if (p === null || !this.rail.visible) return;
     const ax = this.lv.axis[p], mt = this.lv.maxTravel, [ax0, az0] = this.railHome(p);
     const off = this.state.off ? this.state.off[p] : 0;
-    const y = this.plateTop(p) + .07;
-    const place = (o: Mesh, k: number) => { o.position.set(ax === 1 ? ax0 + k : ax0, y, ax === 1 ? az0 : az0 + k); };
+    const y = this.railY(p);
+    const place =(o: Mesh, k: number) => { o.position.set(ax === 1 ? ax0 + k : ax0, y, ax === 1 ? az0 : az0 + k); };
     const range = this.legalRange(p);
     // the rail shows what matters: every legal stop, plus one red stop past each end when something (not the rail's end) refuses it
     // Never further than two stops from the plate (a full rail runs off over the sea, through whoever stands in line),
@@ -678,7 +678,7 @@ export class IslandView {
   /** Where a plate's rail anchor is in world space (for the tutorial hand). */
   railAnchor(p: number) {
     const [x, z] = this.railHome(p), off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p];
-    return new Vector3(this.ox + x + (ax === 1 ? off : 0), this.plateTop(p) + .07, this.oz + z + (ax === 1 ? 0 : off));
+    return new Vector3(this.ox + x + (ax === 1 ? off : 0), this.railY(p), this.oz + z + (ax === 1 ? 0 : off));
   }
   /** The plate currently offset by a drag (it keeps easing home after release). */
   private dragPlateNow() { return this.dragPlate ?? this.lastDragPlate; }
@@ -697,9 +697,15 @@ export class IslandView {
     }
     return best;
   }
+  private railCol(p: number) {
+    const k = this.marks.find(m => m.plate === p);
+    return k && (k.at && k.at.plate === p && !k.at.dead && !k.at.removing ? k.at : this.markCol(k));
+  }
+  /** The height the rail rides at: the slider's own cell, not the plate's highest (playtest 6, a hint rail and its hand floated over the water beside a low cell). */
+  private railY(p: number) { const c = this.railCol(p); return (c ? c.ty : this.plateTop(p)) + .07; }
   /** Where a plate's rail is counted from: at the plate's current offset it lies on land the plate still has (playtest 3: a hint rail floated out over the sea). */
   private railHome(p: number): [number, number] {
-    const k = this.marks.find(m => m.plate === p), c = k && (k.at && k.at.plate === p && !k.at.dead && !k.at.removing ? k.at : this.markCol(k)); // the rail replaces the slider, in the same place
+    const c = this.railCol(p); // the rail replaces the slider, in the same place
     if (!c) return this.plateAnchor(p);
     const off = this.state.off ? this.state.off[p] : 0, ax = this.lv.axis[p] === 1;
     // where it is going, not where it is mid-slide: the rail is refreshed once, at the start of the move
@@ -818,7 +824,7 @@ export class IslandView {
       // the plate whose rail is showing is the one the player is looking at: it wins a close call, and the dots
       // out at the rail's ends grab it too, a little more tightly so they don't steal the plate next door
       seg(-half, half, shown ? 26 : 16);
-      if (shown) { const y = this.plateTop(k.plate) + .07; seg(-1.15, 1.15, 12, y); seg(-1, -1, 26, y); seg(1, 1, 26, y); seg(0, 0, 26, y); } // the rail rides above the slider's cell
+      if (shown) { const y = this.railY(k.plate); seg(-1.15, 1.15, 12, y); seg(-1, -1, 26, y); seg(1, 1, 26, y); seg(0, 0, 26, y); } // the rail rides above the slider's cell
     }
     return out;
   }

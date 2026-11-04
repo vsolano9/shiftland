@@ -513,7 +513,9 @@ class App {
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
-    box.classList.toggle('many', this.chips.size > 4); // a phone can't hold six labelled chips: icons only there (tap one for its rule)
+    // a phone can't hold many labelled chips: icons only there (tap one for its rule). Four went to a third row once reasons
+    // grew them, right over the Hint button, and the line above the chips now turns through every reason anyway.
+    box.classList.toggle('many', this.chips.size > 3);
     for (const [, e] of this.chips) if (e.goals.length > 1) { const n = document.createElement('div'); n.className = 'count'; e.el.appendChild(n); }
   }
   /** Two even rows and not five chips and a straggler; returns how tall they stand, and the hint sits above that. */
@@ -570,6 +572,8 @@ class App {
       e.el.dataset.why = why ?? '';
       const cnt = e.el.querySelector('.count'); if (cnt) cnt.textContent = `${n}/${e.goals.length}`;
     }
+    // a reason can add a row: the buttons that stand on the chips keep clear of it
+    if (this.screen === 'level') $('s-level').style.setProperty('--goals-h', `${$('goals').offsetHeight}px`);
     // the same reasons for a phone's icon-only chips, which have no room for theirs (playtest 3 P5): each unhappy creature in turn,
     // since one line hid every reason but the first (playtest 6 P6-6)
     this.whyLines = [...this.chips].filter(([, e]) => e.el.dataset.why).map(([kind, e]) => `${GOAL_TEXT[kind][0]}: ${e.el.dataset.why}`);
