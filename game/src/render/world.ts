@@ -122,9 +122,8 @@ export class World {
       this.scene.add(g); this.gulls.push({ g, a: Math.random() * 6.28, r: 3 + Math.random() * 5, c: new Vector3(x0 + Math.random() * sw, 3 + Math.random() * 2.5, z0 + Math.random() * sh), s: .25 + Math.random() * .2, flap: 0 });
     }
     this.buildPath(positions);
-    const reefs = this.views.map(v => { const b = v.frameBox(); return { x: v.ox + b.cx, z: v.oz + b.cz, r: Math.hypot(b.hx, b.hz) + 2 }; });
-    const uv = positions.map(([x, z]) => toUV(x, z, .72)), us = uv.map(p => p[0]), vs = uv.map(p => p[1]);
-    this.seaLife = new SeaLife(this.scene, reefs, { u0: Math.min(...us) - 3, u1: Math.max(...us) + 3, v0: Math.min(...vs) - 3, v1: Math.max(...vs) + 3, az: .72 }, this.fx, (x, y, z) => this.fx.smoke(x, y, z));
+    const sea = this.seaBounds(positions);
+    this.seaLife = new SeaLife(this.scene, sea.reefs, sea.bounds, this.fx, (x, y, z) => this.fx.smoke(x, y, z));
     this.resize();
     addEventListener('resize', () => this.resize());
     this.writeStatic();
@@ -158,7 +157,28 @@ export class World {
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.hudPad = this.pads(this.padKind);
     if (this.active && !this.map && !this.fly) { this.dist = this.fitDistance(this.active); this.focus.copy(this.focusOf(this.active)); }
-    else if (this.map && !this.fly) this.dist = this.mapDistance();
+    else if (this.map && !this.fly && !this.peekAt && !this.homes) { const f = this.mapFrame(); this.dist = f.dist; this.focus.copy(f.focus); }
+  }
+
+  /** New island places, for a screen that has changed shape: the rows a phone's portrait wants are hopeless on its side (phone playtest PH1). Call with no island active. */
+  relayout(positions: [number, number][]) {
+    this.views.forEach((v, i) => v.moveTo(positions[i][0], positions[i][1]));
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    for (const [x, z] of positions) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    this.hero.moveTo(x1 + 34, z0 - 34);
+    const pad = 12; x0 -= pad; x1 += pad; z0 -= pad; z1 += pad;
+    this.aabb = { x0, x1, z0, z1 };
+    this.staticMask.size = [x1 - x0, z1 - z0]; this.staticMask.moveTo(x0, z0);
+    if (this.path) { this.scene.remove(this.path); this.path.geometry.dispose(); this.path = null; }
+    this.buildPath(positions);
+    const sea = this.seaBounds(positions);
+    this.seaLife.relayout(sea.reefs, sea.bounds);
+    this.writeStatic();
+  }
+  private seaBounds(positions: [number, number][]) {
+    const reefs = this.views.map(v => { const b = v.frameBox(); return { x: v.ox + b.cx, z: v.oz + b.cz, r: Math.hypot(b.hx, b.hz) + 2 }; });
+    const uv = positions.map(([x, z]) => toUV(x, z, .72)), us = uv.map(p => p[0]), vs = uv.map(p => p[1]);
+    return { reefs, bounds: { u0: Math.min(...us) - 3, u1: Math.max(...us) + 3, v0: Math.min(...vs) - 3, v1: Math.max(...vs) + 3, az: .72 } };
   }
 
   // ---- camera framing
@@ -221,7 +241,8 @@ export class World {
       return { top: .03, bottom: Math.min(.46, 290 / h), left: 0, right: 0 };
     }
     if (short) return { top: .05, bottom: .08, left: .2, right: .02 };
-    return { top: (big ? 76 : 60) / h, bottom: Math.max(84, this.goalsHeight() + 22) / h, left: 0, right: 0 };
+    const row = w <= 720 && w / h <= .75 ? 58 : 0; // an upright phone's Undo, Hint and Restart stand above the chips
+    return { top: (big ? 76 : 60) / h, bottom: Math.max(84, this.goalsHeight() + 22 + row) / h, left: 0, right: 0 };
   }
   /** Centre of the islands as the camera sees them (screen-aligned box), a little low so the title bar stays clear. */
   private mapCenter() { return this.mapFrame().focus; }
@@ -243,7 +264,8 @@ export class World {
     // (a label sits above its anchor, and a pin's badge beside it: playtest 3 saw both clipped at 1280x720)
     const yHi = 1 - 2 * ((side ? 12 : 66) + 46) / innerHeight, yLo = -1 + 2 * ((side ? 0 : this.mapBottom) + 28 / innerHeight), xHi = 1 - 2 * 58 / innerWidth - 2 * side, xLo = -1 + 2 * 58 / innerWidth;
     const focus = new Vector3(); for (const v of this.views) focus.add(new Vector3(v.ox, 0, v.oz)); focus.divideScalar(this.views.length);
-    let dist = 60;
+    // from outside everything: a camera that starts among the islands sees some behind it, and the fit runs off to nowhere
+    let dist = 60; for (const q of pts) dist = Math.max(dist, q.distanceTo(focus) * 2);
     // perspective makes the fit depend on itself; a few rounds of projecting and correcting settle it
     for (let k = 0; k < 8; k++) {
       let xa = 1e9, xb = -1e9, ya = 1e9, yb = -1e9;

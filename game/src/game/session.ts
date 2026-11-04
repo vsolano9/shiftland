@@ -1,6 +1,6 @@
 // One level being played: the pure core the render and input layers call (docs/PLAN.md Nov 6). No DOM, no three.js.
-// - History is a stack of immutable States; undo pops, restart returns to the start (undo after restart is not needed:
-//   restart is one keypress away from any state and the grey-box never wanted it).
+// - History is a stack of immutable States; undo pops, restart returns to the start, and an Undo straight after a restart
+//   brings the whole run back: one mistap beside Undo must not cost a player's progress (phone playtest PH4).
 // - preview(p, d) gives the next State and its MoveDiff without committing, for the diff-only preview (design audit S1).
 // - Every committed move, undo and restart asks the stuck checker about the new state; the checker drops stale answers.
 import { previewDiff, type MoveDiff } from '../rules/diff.ts';
@@ -40,18 +40,29 @@ export class Session {
     const next = shift(this.lv, this.state, p, d);
     if (!next) return { ok: false, reason: 'blocked' };
     this.history.push(next);
+    this.lastRun = null;
     this.afterChange();
     return { ok: true, solved: this.solved };
   }
 
   undo(): boolean {
-    if (this.history.length <= 1) return false;
+    if (this.history.length <= 1) {
+      if (!this.lastRun) return false;
+      this.history = this.lastRun.history; this.hinted = this.lastRun.hinted; this.lastRun = null;
+      this.afterChange();
+      return true;
+    }
     this.history.pop();
     this.afterChange();
     return true;
   }
 
+  private lastRun: { history: State[]; hinted: boolean } | null = null;
+  get canUndo() { return this.history.length > 1 || this.lastRun !== null; }
+
   restart() {
+    // a solved run is finished, and an empty one has nothing to bring back
+    this.lastRun = this.moves > 0 && !this.solved ? { history: this.history, hinted: this.hinted } : null;
     this.history = [this.lv.start];
     this.stuck = false;
     this.hinted = false;

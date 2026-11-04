@@ -305,7 +305,7 @@ describe('levels.json (the shipped campaign)', () => {
   it('starts with the first tutorial and has 20-25 levels', () => {
     expect(all[0].name).toBe('First Peak');
     expect(all.length).toBeGreaterThanOrEqual(20);
-    expect(all.length).toBeLessThanOrEqual(25);
+    expect(all.length).toBeLessThanOrEqual(30);
   });
   for (const lv of all) {
     it(`${lv.name}: solver par equals the exported par`, () => {

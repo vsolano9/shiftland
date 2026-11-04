@@ -58,6 +58,8 @@ describe('moveWhy and stackReason', () => {
   it('names what a refused move runs into', () => {
     const { lv, s } = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'oasis', cell: 3 + 6 }]);
     expect(stackReason(lv, s, 0, 1)).toBe('The oasis is in the way of the goat');
+    const twins = pair([{ kind: 'goat', cell: 2 + 6 }, { kind: 'goat', cell: 3 + 6 }]);
+    expect(stackReason(twins.lv, twins.s, 0, 1)).toBe('One goat is in the way of the other');
     const free = pair([{ kind: 'goat', cell: 1 }]);
     expect(stackReason(free.lv, free.s, 0, 1)).toBe('Something already stands there');
   });

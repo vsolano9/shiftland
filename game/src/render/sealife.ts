@@ -17,6 +17,12 @@ export class SeaLife {
   private nextWhale = 4;
   private splashed = 0;
 
+  /** The islands have moved: boats go back to open water. */
+  relayout(reefs: Reef[], bounds: Bounds) {
+    this.reefs = reefs; this.bounds = bounds; this.whale.visible = false; this.whaleT = -1;
+    for (const b of this.boats) { const at = openWater(reefs, bounds, this.rnd); if (at) b.g.position.set(at[0], 0, at[1]); else b.g.visible = false; }
+  }
+
   constructor(scene: Scene, private reefs: Reef[], private bounds: Bounds, private fx: Particles, private spout: (x: number, y: number, z: number) => void, private rnd: () => number = Math.random) {
     for (let i = 0; i < 4; i++) {
       const at = openWater(reefs, bounds, rnd); if (!at) break;

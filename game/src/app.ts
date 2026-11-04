@@ -72,17 +72,20 @@ function loadSettings(): Settings {
 }
 
 /** Islands along a serpentine path across the screen-aligned ocean. */
+const du0 = 13.5, dv0 = 14.5;
+/** Rows that suit the screen's shape, so the whole sea fills it and each island stays big enough to read and tap (depth on screen is foreshortened by the camera's tilt, about .73). */
+function rowLength(count: number, aspect: number) {
+  let perRow = 5, bestFit = Infinity;
+  for (let n = 3; n <= 8; n++) {
+    const shape = (n * du0) / (Math.ceil(count / n) * dv0 * .73), miss = Math.abs(Math.log(shape / aspect));
+    if (miss < bestFit) { bestFit = miss; perRow = n; }
+  }
+  return perRow;
+}
 function archipelago(levels: Level[], aspect: number): [number, number][] {
   const AZ = .72, right = [Math.cos(AZ), -Math.sin(AZ)], fwd = [-Math.sin(AZ), -Math.cos(AZ)];
   const out: [number, number][] = [];
-  // rows that suit the screen's shape, so the whole sea fills it and each island stays big enough to read and tap
-  // (depth on screen is foreshortened by the camera's tilt, about .73)
-  const du0 = 13.5, dv0 = 14.5;
-  let perRow = 5, bestFit = Infinity;
-  for (let n = 3; n <= 8; n++) {
-    const shape = (n * du0) / (Math.ceil(levels.length / n) * dv0 * .73), miss = Math.abs(Math.log(shape / aspect));
-    if (miss < bestFit) { bestFit = miss; perRow = n; }
-  }
+  const perRow = rowLength(levels.length, aspect);
   const rows = Math.ceil(levels.length / perRow), du = perRow === 3 ? 13 : du0, dv = perRow === 3 ? 13.5 : dv0;
   levels.forEach((_, i) => {
     const r = Math.floor(i / perRow), k = i - r * perRow;
@@ -186,7 +189,7 @@ class App {
         <div class="set-row"><label for="s-reduced">Reduced motion</label><input type="checkbox" id="s-reduced"></div>
         <div class="set-row"><label for="s-assist">Show who a drag pleases</label><input type="checkbox" id="s-assist"></div>
         <div class="set-foot"><button class="btn" id="s-reset">Reset progress</button><button class="btn" id="s-full">Fullscreen</button><button class="btn primary" id="s-close">Close</button></div>
-        <div id="credits">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next. Click or tap a creature to ask what it wants, and the name card for the island's note.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
+        <div id="credits"><span class="keys">Keys: Tab or 1-9 pick a plate, arrows slide it, Z undo, R restart, H hint, M map, Enter next. </span>Click or tap a creature to ask what it wants, and the name card for the island's note.<br>Shiftland, for GitHub Game Off 2026 (theme: SHIFT). All art and sound are made in code. Code written with AI (Claude). Font: Fredoka (OFL).</div>
       </div></div>`;
     const click = (id: string, fn: () => void) => $(id).addEventListener('click', () => { this.audio.unlock(); this.audio.play('ui'); fn(); });
     click('btn-play', () => this.toMap(true));
@@ -205,6 +208,7 @@ class App {
     click('e-map', () => this.leaveEnding());
     click('e-shift', () => this.lastShift());
     click('s-close', () => $('settings').classList.add('hidden'));
+    $('settings').addEventListener('click', e => { if (e.target === $('settings')) $('settings').classList.add('hidden'); }); // a tap beside the panel closes it
     click('s-full', () => { const d = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void }; const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void }; if (document.fullscreenElement || d.webkitFullscreenElement) (document.exitFullscreen ?? d.webkitExitFullscreen)?.call(document); else (el.requestFullscreen ?? el.webkitRequestFullscreen)?.call(el); });
     let confirmReset = false;
     click('s-reset', () => {
@@ -223,7 +227,9 @@ class App {
       const el = document.createElement('div'); el.className = 'pin'; el.dataset.level = String(i);
       el.addEventListener('click', () => { this.audio.unlock(); this.pickLevel(i); });
       $('s-map').appendChild(el);
-      this.world.pins.push({ el, pos: this.world.mapAnchors(this.world.views[i]).pin, hide: () => this.screen !== 'map' });
+      const pos = this.world.mapAnchors(this.world.views[i]).pin;
+      this.mapMarks.push({ pos, i, kind: 'pin' });
+      this.world.pins.push({ el, pos, hide: () => this.screen !== 'map' });
       return el;
     });
     // one label per biome, beside its first island
@@ -233,7 +239,9 @@ class App {
       if (b === last) return; last = b;
       const el = document.createElement('div'); el.className = 'biome-label'; el.textContent = BIOMES[b].label;
       $('s-map').appendChild(el);
-      this.world.pins.push({ el, pos: this.world.mapAnchors(this.world.views[i]).label, hide: () => this.screen !== 'map' });
+      const pos = this.world.mapAnchors(this.world.views[i]).label;
+      this.mapMarks.push({ pos, i, kind: 'label' });
+      this.world.pins.push({ el, pos, hide: () => this.screen !== 'map' });
     });
     this.syncMuteIcon();
     // logo: the two halves slide along their faults, then settle
@@ -279,11 +287,22 @@ class App {
     if (fromTitle && !this.progress.solved(0)) { this.openLevel(0); return; } // first play: straight into the first island
     this.show('map');
     this.world.setActive(null);
+    this.fitArchipelago();
     this.refreshIslands();
     this.world.writeStatic();
     this.audio.setMusic('title'); this.audio.setOcean(.6);
     this.audio.play('whoosh');
     this.world.showMap(1.1);
+  }
+  /** A phone turned on its side wants other rows: the map follows, whenever no island is in play. */
+  private rowsNow = rowLength((raw as unknown as unknown[]).length, innerWidth / innerHeight);
+  private mapMarks: { pos: Vector3; i: number; kind: 'pin' | 'label' }[] = [];
+  private fitArchipelago() {
+    const n = rowLength(this.levels.length, innerWidth / innerHeight);
+    if (n === this.rowsNow) return;
+    this.rowsNow = n;
+    this.world.relayout(archipelago(this.levels, innerWidth / innerHeight));
+    for (const a of this.mapMarks) a.pos.copy(this.world.mapAnchors(this.world.views[a.i])[a.kind]); // pins and labels hold their places by value
   }
   private refreshIslands() {
     let stars = 0;
@@ -404,8 +423,12 @@ class App {
    * Works out the next move from wherever the player is. The first press only points at a plate and keeps the star;
    * the second shows the whole move with the hand and gives up the star for this run (restart wins it back).
    */
+  private hintAt = 0;
   private showHint() {
     if (!this.canPlay) return;
+    // the first press warns that the second costs the star: a double tap must not spend it unread (phone playtest PH12)
+    if (this.hintLevel === 1 && performance.now() - this.hintAt < 1000) return;
+    this.hintAt = performance.now();
     const s = this.controller.session, v = this.view, at = s.state;
     // a dead end can take seconds to prove, so the search runs in a worker; a slow answer says it is thinking
     const here = () => this.controller.session === s && s.state === at && this.view === v;
@@ -518,7 +541,7 @@ class App {
     $('hud-name').textContent = `${this.controller.index + 1}. ${s.lv.name}`;
     $('hud-moves').innerHTML = `Moves <b>${s.moves}</b> <span class="par">/ Par ${par}</span>`;
     $('hud-moves').classList.toggle('over', s.moves > par);
-    $<HTMLButtonElement>('b-undo').disabled = s.moves === 0;
+    $<HTMLButtonElement>('b-undo').disabled = !s.canUndo;
     this.refreshChips();
   }
   private previewChips(flips: [number, boolean][] | null) {
@@ -618,6 +641,7 @@ class App {
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     v.clearPreview(); v.setSelected(null);
     const prev = v.state;
+    if (s.canUndo) this.flashHint('Back to the start. Undo brings your moves back');
     if (prev !== s.lv.start) { v.reconcile(s.lv.start, true, { fromRestart: true }); this.audio.play('restart'); this.world.after(.42, () => { v.applyGoals(this.controller.session.goals, true, false); this.refreshHud(); }); } // no red crosses for a restart the player asked for
     this.refreshHud();
   }
@@ -859,6 +883,9 @@ class App {
     cv.addEventListener('contextmenu', e => e.preventDefault());
     cv.addEventListener('wheel', e => e.preventDefault(), { passive: false });
     window.addEventListener('pointerdown', () => this.audio.unlock(), { capture: true });
+    for (const k of ['pointerup', 'pointercancel'] as const) window.addEventListener(k, e => this.fingers.delete(e.pointerId), { capture: true });
+    window.addEventListener('resize', () => { if (this.screen === 'map' && !this.world.flying) { this.fitArchipelago(); this.world.resize(); this.refreshIslands(); } });
+    window.addEventListener('blur', () => this.fingers.clear());
     window.addEventListener('keydown', () => this.audio.unlock(), { capture: true });
   }
   private get canPlay() { return this.screen === 'level' && this.busyUntil === 0 && !this.controller.session.solved && $('settings').classList.contains('hidden'); }
@@ -869,9 +896,13 @@ class App {
     if (this.touring()) { this.endTour(); return; }
     if (this.screen === 'level' && this.world.flying && this.busyUntil !== 0) this.world.finishFly(); // a touch during the fly-in lands at once and starts the drag
     if (!this.canPlay) return;
+    // a second finger is a pinch, not a slide: it drops the drag, and nothing starts until the fingers lift (phone playtest PH2)
+    this.fingers.add(e.pointerId);
+    if (this.fingers.size > 1) { this.pointerCancel(); return; }
     let plate = this.world.pick(e.clientX, e.clientY);
-    // a touch on the water or another spot keeps working on the selected plate (tap, then swipe anywhere)
-    if (plate === null) plate = this.controller.selected;
+    // a touch on the water keeps working on a plate the player tapped (tap, then swipe clear of the thumb). A plate
+    // merely dragged earlier doesn't count: swiping at the sea spent moves on it (phone playtest PH7).
+    if (plate === null) plate = this.tapPlate !== null && this.controller.selected === this.tapPlate ? this.tapPlate : null;
     if (plate === null) { this.askCreature(e.clientX, e.clientY); return; } // a buoy out on the water
     const v = this.view, y = v.plateTop(plate);
     if (v.lv.pinned?.includes(plate)) { if (!this.askCreature(e.clientX, e.clientY)) { this.audio.play('blocked'); this.flashHint('Anchored by the rock. This plate stays put'); } return; }
@@ -883,6 +914,8 @@ class App {
     v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
   }
+  private fingers = new Set<number>();
+  private tapPlate: number | null = null;
   private lastHover: number | null = null;
   private pointerMove(e: PointerEvent) {
     if (this.screen === 'level' && !this.drag && e.pointerType === 'mouse' && this.canPlay) {
@@ -920,6 +953,7 @@ class App {
     this.view.setDrag(null);
     const before = this.controller.session.moves;
     this.controller.release();
+    this.tapPlate = tapped ? p : null;
     if (tapped && this.controller.session.moves === before) this.askCreature(e.clientX, e.clientY);
     // dragged clean across the rail: say so, or the plate just looks broken
     if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }

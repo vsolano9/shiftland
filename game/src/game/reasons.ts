@@ -50,7 +50,7 @@ export function stackReason(lv: Level, s: State, p: number, d: Dir): string {
   const step = DX[d] + DY[d] * lv.w;
   for (const a of s.objs) if (s.plate[a.cell] === p) {
     const hit = s.objs.find(b => b.cell === a.cell + step && s.plate[b.cell] !== p);
-    if (hit) return `The ${NAME[hit.kind]} is in the way of the ${NAME[a.kind]}`;
+    if (hit) return hit.kind === a.kind ? `One ${NAME[a.kind]} is in the way of the other` : `The ${NAME[hit.kind]} is in the way of the ${NAME[a.kind]}`;
   }
   return 'Something already stands there';
 }

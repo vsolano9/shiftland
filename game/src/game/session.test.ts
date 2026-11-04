@@ -57,6 +57,22 @@ describe('Session', () => {
     s.restart();
     expect(s.moves).toBe(0);
     expect(s.state).toBe(lv.start);
+    expect(s.canUndo).toBe(true);
+    expect(s.undo()).toBe(true); // a restart can be taken back, whole
+    expect(s.moves).toBe(1);
+    s.undo();
+    expect(s.moves).toBe(0);
+    expect(s.canUndo).toBe(false);
+    expect(s.undo()).toBe(false);
+    play(s, 'P0W');
+    s.hinted = true;
+    s.restart();
+    expect(s.hinted).toBe(false);
+    s.undo();
+    expect(s.hinted).toBe(true); // nor does it launder a hint
+    s.restart();
+    play(s, 'P0W'); // a new move ends the way back
+    s.undo();
     expect(s.undo()).toBe(false);
   });
 

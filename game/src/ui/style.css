@@ -21,7 +21,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 
 .card { background: var(--cream); border-radius: 16px; box-shadow: var(--sh); }
 .round { width: 54px; height: 54px; border-radius: 50%; background: var(--cream); box-shadow: var(--sh); display: grid; place-items: center; transition: transform .12s ease, background .15s; color: var(--ink); flex: none; }
-.round:hover { transform: translateY(-2px) scale(1.04); background: #fff; }
+@media (hover: hover) { .round:hover { transform: translateY(-2px) scale(1.04); background: #fff; } } /* a touch leaves :hover stuck on: buttons looked lit (phone playtest PH15) */
 .round:active { transform: translateY(2px) scale(.96); box-shadow: 0 1px 0 rgba(120, 85, 40, .3); }
 .round svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
 .round:disabled { opacity: .45; cursor: default; transform: none; }
@@ -88,7 +88,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 #done .score { font-size: 19px; color: var(--ink2); font-weight: 500; margin-bottom: 4px; }
 #done .sub { font-size: 15px; color: var(--ink2); min-height: 1.3em; margin-bottom: 14px; }
 .btn { font-weight: 600; font-size: 20px; padding: 11px 22px; border-radius: 15px; background: var(--cream2); box-shadow: 0 3px 0 rgba(120, 85, 40, .3); transition: transform .12s, filter .12s; color: var(--ink); }
-.btn:hover { transform: translateY(-2px); filter: brightness(1.04); }
+@media (hover: hover) { .btn:hover { transform: translateY(-2px); filter: brightness(1.04); } }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(120, 85, 40, .3); }
 .btn.primary { background: linear-gradient(#52c963, #3bae4c); color: #fff; box-shadow: 0 3px 0 #2a8a3a; text-shadow: 0 1px 0 rgba(0, 0, 0, .2); }
 #done .row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
@@ -97,7 +97,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 #logo { position: absolute; left: 50%; top: calc(max(3vh, 72px) + var(--safe-t)); transform: translateX(-50%); width: min(780px, 92vw); height: auto; filter: drop-shadow(0 8px 12px rgba(0, 40, 80, .35)); }
 #play { position: absolute; left: 50%; bottom: calc(5.5vh + var(--safe-b)); transform: translateX(-50%); display: flex; gap: 12px; align-items: center; }
 #btn-play { font-size: 34px; font-weight: 600; padding: 13px 48px 14px 38px; border-radius: 22px; background: var(--cream); box-shadow: 0 5px 0 rgba(120, 85, 40, .3), 0 14px 30px rgba(4, 45, 70, .32); display: flex; align-items: center; gap: 14px; transition: transform .14s; animation: breathe 2.6s ease-in-out infinite; }
-#btn-play:hover { transform: translateY(-3px) scale(1.04); }
+@media (hover: hover) { #btn-play:hover { transform: translateY(-3px) scale(1.04); } }
 #btn-play svg { width: 30px; height: 30px; fill: var(--ink); }
 @keyframes breathe { 50% { box-shadow: 0 5px 0 rgba(120, 85, 40, .3), 0 14px 38px 6px rgba(255, 255, 255, .34); } }
 #title-tr { position: absolute; right: 16px; top: calc(14px + var(--safe-t)); display: flex; gap: 10px; }
@@ -113,7 +113,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 #map-note.off { opacity: 0; }
 .pin { position: absolute; left: 0; top: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--cream); box-shadow: 0 2px 0 rgba(120, 85, 40, .3), 0 4px 10px rgba(4, 45, 70, .25); display: grid; place-items: center; font-weight: 700; font-size: 17px; cursor: pointer; transition: background .15s, box-shadow .15s; will-change: transform; }
 .pin::after { content: ''; position: absolute; inset: -9px; border-radius: 50%; } /* a finger-sized target around a small pin */
-.pin:hover { background: #fff; box-shadow: 0 0 0 5px rgba(255, 255, 255, .5), var(--sh); }
+@media (hover: hover) { .pin:hover { background: #fff; box-shadow: 0 0 0 5px rgba(255, 255, 255, .5), var(--sh); } }
 @media (hover: hover) {
   .pin:hover { z-index: 5; }
   .pin:hover::before { content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%); width: max-content; padding: 5px 12px; border-radius: 12px; background: var(--ink); color: var(--cream); font-size: 15px; font-weight: 600; box-shadow: var(--sh); pointer-events: none; }
@@ -202,14 +202,25 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #done { align-items: center; justify-content: flex-end; padding: 0 14px 0 0; }
   #done .panel { width: min(340px, 44vw); padding: 8px 14px 12px; }
   #done h2 { font-size: 23px; } #done .star { width: 46px; height: 46px; } #done .score { font-size: 16px; margin: 0; } #done .sub { margin-bottom: 8px; font-size: 13px; }
-  .btn { font-size: 16px; padding: 8px 13px; }
+  .btn { font-size: 16px; padding: 8px 13px; min-height: 44px; }
 }
 
-/* The narrowest phones: the name card stays clear of Undo, wrapping as it must (the note below follows the card's height) */
-@media (max-width: 379px) and (max-aspect-ratio: 3/4) {
-  #hud-tl { max-width: calc(100vw - 248px); padding: 6px 8px; } #hud-moves { font-size: 12px; white-space: nowrap; }
-  #hud-name { font-size: 14px; }
+/* A phone held upright: what the thumb uses most sits at the bottom, under it, with Restart a hand's width from Undo (phone
+   playtest PH4), and the name card has the top row to itself (PH9). Island framing leaves room in world.ts pads(). */
+@media (max-width: 720px) and (max-aspect-ratio: 3/4) {
+  #hud-tr { display: contents; }
+  #hud-tr .round { position: absolute; width: 48px; height: 48px; }
+  #b-set { top: calc(10px + var(--safe-t)); right: 10px; }
+  #b-map { top: calc(10px + var(--safe-t)); right: 66px; }
+  #b-undo, #b-restart, #b-hint { bottom: calc(var(--goals-h, 40px) + 18px + var(--safe-b)); }
+  #b-undo { right: 14px; } #b-restart { left: 14px; } #b-hint { left: calc(50% - 24px); }
+  #hud-tl { max-width: calc(100vw - 142px); }
+  #hint { bottom: calc(var(--goals-h, 40px) + 74px + var(--safe-b)); }
+  #s-level:has(#goals.many) #chipwhy { bottom: calc(var(--goals-h, 40px) + 26px + var(--safe-b)); max-width: calc(100vw - 220px); white-space: normal; text-align: center; }
+  /* the next island along lies under the top row as well, and reads as part of the board */
+  #s-level::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 15vh; pointer-events: none; z-index: -1; background: linear-gradient(to bottom, rgb(20,62,112) 45%, rgba(20,62,112,0)); }
 }
+@media (pointer: coarse) { #credits .keys { display: none; } }
 /* A big screen: the same HUD at a size that reads from a chair. world.ts pads() keeps its numbers in step (top bar, panel width). */
 @media (min-width: 1600px) and (min-height: 900px) {
   .round { width: 66px; height: 66px; } .round svg { width: 34px; height: 34px; }
