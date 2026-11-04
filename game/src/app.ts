@@ -598,6 +598,7 @@ class App {
   private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
     const h = $('hint'); h.textContent = t; h.classList.remove('off');
     clearTimeout(this.flashT);
+    sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
     this.flashT = window.setTimeout(() => {
       if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off');
       else h.textContent = 'Drag a plate along its rail';
