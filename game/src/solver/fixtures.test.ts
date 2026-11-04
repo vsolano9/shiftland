@@ -67,6 +67,12 @@ describe('shape checks', () => {
   it('no shipped level breaks a shape rule', () => {
     for (const lv of all) expect(shapeProblems(lv), lv.name).toEqual([]);
   });
+  it('flags a goat on ice: it could never reach a peak', () => {
+    const lv = byName('Thin Ice'), ice = Uint8Array.from(lv.start.ice!);
+    ice[lv.start.objs[0].cell] = 1;
+    const goat = { ...lv, start: { ...lv.start, ice, objs: [{ kind: 'goat' as const, cell: lv.start.objs[0].cell }] } };
+    expect(shapeProblems(goat).join()).toMatch(/goat on ice/);
+  });
   it('flags land on the ocean ring, and a level over 9x9', () => {
     const plate = Int8Array.from(summit.start.plate); plate[0] = 0;
     expect(shapeProblems({ ...summit, start: { ...summit.start, plate } }).join()).toMatch(/ocean ring/);

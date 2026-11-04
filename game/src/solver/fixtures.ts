@@ -51,6 +51,7 @@ export function shapeProblems(lv: Level): string[] {
     if (s.ice?.[i] && s.plate[i] < 0) why.push(`ice on water at ${x},${y}`);
     if (s.ice?.[i] && s.elev[i] >= 2) why.push(`ice at height ${s.elev[i]} at ${x},${y} would melt on any move`);
   }
+  for (const o of s.objs) if (o.kind === 'goat' && s.ice?.[o.cell]) why.push(`goat on ice at cell ${o.cell} can never reach a peak`);
   // an island, not a rectangle: the land's bounding box must have gaps on its rim
   let x0 = w, x1 = 0, y0 = h, y1 = 0, land = 0;
   for (let i = 0; i < w * h; i++) if (s.plate[i] >= 0) { const x = i % w, y = Math.floor(i / w); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); land++; }

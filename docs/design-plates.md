@@ -29,9 +29,9 @@ These are built and solver-checked in `spikes/plates/tutorial.ts` (`node spikes/
 
 Dip and Return sits sixth in the grey-box until L6 ("land remembers") is built. It is generated (seed 56, 6×5, 2 plates). My hand-made level 5 failed its check: the solver beat it in 4 moves by pushing a plate twice and pulling it back twice. That shows a rule worth teaching on purpose: **a plate carries its raised land and creatures with it** (a mountain made by a push stays a mountain when the plate slides back). A Coast or Desert level should be built around "carry the peak".
 
-## Level progression (12 to ship, 15 with the stretch)
+## Level progression (the plan; the shipped list is "Level set" below)
 
-Ship target: levels 1-11 plus level 14 as the one Finale level. Tundra (12-13) and the second Finale level (15) are the stretch (see "Scope decision").
+The original plan, kept for its reasoning: levels 1-11 plus level 14 as the one Finale level, with Tundra (12-13) and the second Finale level (15) as the stretch (see "Scope decision"). On Nov 4 the set grew to 20 levels with Tundra in: the numbers in this table are the plan's, not the shipped order.
 
 Unlocking (decided Nov 3, `game/src/game/progress.ts`): the tutorials (`role: tutorial`, the leading run) open strictly in order, because each teaches what the next relies on. From the first puzzle on, two unsolved levels are always open, so a player stuck on one puzzle can play the next and come back (Play reopens the first unsolved one). Why: jam raters who hit a wall stop playing and never see the later biomes they would rate; a strict chain makes the hardest puzzle a quit point. Cost: a player can reach the Finale with one puzzle skipped, which is fine because no puzzle teaches a rule.
 
@@ -53,6 +53,37 @@ Unlocking (decided Nov 3, `game/src/game/progress.ts`): the tutorials (`role: tu
 Every beat in this table is written as a solver fixture before its level is built: the level's intended solution, the trap move and the "aha" move are asserted by `npm run levels:audit` (S5).
 
 Rules for the list: every level from level 8 on passes the full quality bar (`audit`: par ≥ 3, order matters, a tempting wrong move, land and plates kept, no goal that starts met); tutorial levels 1-7 are exempt from "par ≥ 3" but each keeps the trap it was designed around (pinned in `game/src/solver/audit.test.ts`); a new biome's twist ships only once the rules module, solver and a unit test support it; if a twist misses its date, its levels fall back to Meadow/Coast rules and the twist is cut (12 good levels beat 15 average ones).
+
+## Level set (shipped, Nov 4)
+
+The 20 shipped levels, in play order, built from `game/src/levels/tutorial.ts` (Meadow) and `game/src/levels/campaign.ts` (the rest) by `npm run levels:export`. Move notation: `P1E` = plate index 1 (letter b on the map) moves east. Regenerate this table with `node src/solver/cli.ts table`.
+
+| # | Name | Biome | Par | Idea | Trap | Random solve |
+|---|---|---|---|---|---|---|
+| 1 | First Peak | meadow | 1 | push a plate into another: the seam rises; a goat wants a peak | none | 68.8% |
+| 2 | Open Water | meadow | 1 | pull a plate away: the gap becomes sea; a buoy wants open sea | P1E: the gap opens beside the buoy, not under it: the buoy rides the other plate | 49.0% |
+| 3 | Mind the Village | meadow | 2 | the obvious push also lifts a village and crushes it: look first, undo | P0E: the goat rises, and so does the village beside it: a broken village never recovers | 16.4% |
+| 4 | Two Wishes | meadow | 1 | a plate has a front and a back: its front lifts land, its back opens sea, in the same move | P0E: the plain push lifts the goat and leaves the buoy on land | 54.4% |
+| 5 | Far One First | meadow | 2 | two goats, two pushes: the order decides, because a move leaves water behind | P1W: the near goat rises, but b has backed away from c: c now pushes into water and lifts nothing | 26.7% |
+| 6 | Stolen Peak | meadow | 2 | land remembers: push in, pull back, and the plate keeps the peak and leaves a bay | P1N: sliding b looks like it clears the buoy, but b's next row slides in under it and the goat sails away from the seam | 34.0% |
+| 7 | The Long Pier | coast | 1 | a plate can slide out over open water: land reclaims the sea and leaves room behind it | P0W: a rift gives the lighthouse its coast, but the buoy is still on land | 50.3% |
+| 8 | Wind-Up | coast | 3 | swing back to hit harder: a plate that bites one neighbour carries that height into the other | P2E: the straight push only raises the goat one step: the front of c is still flat | 13.4% |
+| 9 | Dip and Return | coast | 3 | away and back is not nothing: dip a plate so the high cell meets the lighthouse, not the village | P1W: b's high cell runs straight into the village row and breaks it | 5.8% |
+| 10 | Low Tide | coast | 4 | a plate carries what it takes: b comes in, takes the village aboard out of harm, and goes back out with it | P2S: pulling c away shows the lighthouse sea at once, and carries the goat and the village away from every seam | 6.6% |
+| 11 | Still Water | desert | 1 | water the sea cannot reach is a lake: an oasis wants a lake, not the ocean | P0S: pulling the desert apart spills open sea beside the oasis: it wants a closed pond | 40.1% |
+| 12 | The Door | desert | 1 | close a bay and it becomes a lake: one slide shuts the sea out on one side and lets it in on the other | P0E: pushing the land east swallows the door and the bay stays open to the sea for good | 31.6% |
+| 13 | Breakwater | desert | 2 | open a rift, then cap its end: a channel to the sea becomes a lake | P1W: pushing b in instead of pulling it away leaves no water at all and lifts the village onto a peak | 12.1% |
+| 14 | Two Waters | desert | 3 | lake or sea is decided by what walls it: make one hole of each | P0N: the pond comes at once, right above the buoy: open the buoy's water now and the two holes join into sea | 5.3% |
+| 15 | Anchor Rock | tundra | 1 | a pinned plate never moves: bring the land to it and choose the side that misses the village | P0E: the rock cannot step aside as a meadow plate could: the push breaks the village | 36.1% |
+| 16 | Thin Ice | tundra | 1 | ice lifted to a peak melts into water: a penguin wants a floe touching the sea | P1S: sliding the floe around finds no water: the sea is behind the ice wall | 36.4% |
+| 17 | Step Aside | tundra | 3 | a move that would melt ice under a creature is refused: slide the ice out of the way, then the floe can cross | P1E: b backs off and the penguin sees the sea at once, but the goat sails away from the seam that would lift it | 7.0% |
+| 18 | Bite the Rock | tundra | 4 | the rock will not move, but a plate can bite it and pull back: the bite is new sea | P0E: the bite is right, but the village still stands in the way and a lifts it past bearing | 6.1% |
+| 19 | Give and Take | finale | 5 | two bites: each plate pushes in and pulls back, and what it stole is what the next plate hits | P1E: the goal it ticks is free, but b backs away from the height it will need | 1.9% |
+| 20 | The Summit | finale | 6 | build the tower first: b drives over a dipped shore twice, then a rides its goat up the tower it left | P0N: the goat heads north at once, but the tower it needs does not exist yet | 2.3% |
+
+**How a level is proven.** Each spec carries a fixture, and `npm run levels:audit` (`game/src/solver/fixtures.ts`) checks it against the rules: the intended solution solves at par, is a shortest solution and equals the exported `sol`; the aha move is on every shortest path and does what the fixture claims (`lifts`, `melts`, `seals`, `returns`, ...); the trap is a legal first move off every shortest path that costs exactly what the fixture says, where "dead" must be proven, never "nothing within the search depth". Shape checks reject a level over 9x9, land on the ocean ring, a plain rectangle, a plate with no room, a goat on ice. Whether a trap looks like progress and whether a sentence reads true are judgement, not code: those go through the design audit.
+
+**Random solve** (`node src/solver/cli.ts random`): the share of 2000 random walks of 3 x par moves that hit a solved state. It is the ramp's sanity check, not the ramp itself: teachers sit at 30-70% on purpose, puzzles stay under 15%, the Finale under 3%. Each biome restarts low because its first levels teach a new rule.
 
 ## Rules (as in `spikes/plates/plates.ts`)
 
@@ -79,15 +110,15 @@ Rules for the list: every level from level 8 on passes the full quality bar (`au
 
 A level's goals list shows each creature's icon and a tick. All goals true at once = level complete.
 
-## Biomes and twists (Tundra is the stretch)
+## Biomes and twists
 
 | Biome | Levels | New idea | Why it adds depth |
 |---|---|---|---|
 | Meadow | 1-6 | plates, uplift, rifts, goats, villages, buoys, carrying a peak | the base verb |
-| Coast | 7-9 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
-| Desert | 10-11 | lakes vs sea (oasis wants a lake, buoys want sea) | the same rift must be closed off or opened to the ocean |
-| Tundra | 12-13 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
-| Finale | 14-15 | all of the above on a larger island | the payoff |
+| Coast | 7-10 | lighthouses (need coast) and ocean-ring reclaiming | moving land into the sea, not just splitting it |
+| Desert | 11-14 | lakes vs sea (oasis wants a lake, buoys want sea) | the same rift must be closed off or opened to the ocean |
+| Tundra | 15-18 | pinned plates (an anchor rock: cannot move, only be pushed into) and ice cells (melt to water when lifted to height ≥ 2) | reverses expectations of uplift |
+| Finale | 19-20 | all of the above on a larger island | the payoff |
 
 Each twist ships only if the solver and audit support it before levels are made with it.
 
@@ -110,7 +141,7 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 - Keyboard: Tab / 1-9 cycles plates, arrow keys move along the rail, Z undo, R restart, Enter next level.
 - Touch: tap a plate, then swipe along the rail; same preview while the finger is down.
 - The rail is a row of move steps, not a slider (S1): it looks reversible but is not, because moving back takes cells again and raises them. Each step shows the ghost of the land it will take, and level 6 teaches "land remembers" before any level relies on it.
-- Stuck states are never silent (S3): after every move `canFinish` searches every reachable state (no depth limit, capped at 200k states) for a solved one; only a proven dead end shows "no way back from here" and makes undo glow, and hitting the cap shows nothing. (A depth-limited search called far-but-solvable states dead ends: Codex chain 3, regression test in `game/src/rules/rules.test.ts`.) The check runs in a worker so input never waits. Prototyped in the grey-box.
+- Stuck states are never silent (S3): after every move `canFinish` searches every reachable state (no depth limit, capped at 200k states) for a solved one; only a proven dead end shows "no way back from here" and makes undo glow, and hitting the cap shows nothing. A village on a peak counts as proven at once, because a cell's height only ever rises. (A depth-limited search called far-but-solvable states dead ends: Codex chain 3, regression test in `game/src/rules/rules.test.ts`.) The check runs in a worker so input never waits. Prototyped in the grey-box.
 
 ## Feedback and feel
 
@@ -145,7 +176,7 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 
 ## Screens
 
-Title → level select (the 15 islands as an archipelago map) → level (HUD: level name, moves / par, goal chips each with icon + short label + status badge ("Goat: on a peak", "Village: stays low", "Lighthouse: by the sea", "Buoy: open sea"; icons alone don't teach the rule, HUD critic T4), undo, restart, menu; until the first move the selected plate's rail and a "Drag a plate along its rail" hint show (T1); the phone layout keeps the counter and goal strip, clear of the drag (T5); concept `concepts/shiftland-level-hud.png`) → level complete → … → ending (the whole archipelago, all creatures happy). Settings: volume, reduced motion, colour-blind patterns on/off.
+Title → level select (the 20 islands as an archipelago map) → level (HUD: level name, moves / par, goal chips each with icon + short label + status badge ("Goat: on a peak", "Village: stays low", "Lighthouse: by the sea", "Buoy: open sea"; icons alone don't teach the rule, HUD critic T4), undo, restart, menu; until the first move the selected plate's rail and a "Drag a plate along its rail" hint show (T1); the phone layout keeps the counter and goal strip, clear of the drag (T5); concept `concepts/shiftland-level-hud.png`) → level complete → … → ending (the whole archipelago, all creatures happy). Settings: volume, reduced motion, colour-blind patterns on/off.
 
 ## Design questions (game-design-self-critique)
 
@@ -158,6 +189,10 @@ Title → level select (the 15 islands as an archipelago map) → level (HUD: le
 | Undo / restart | Buttons always visible | Removes fear of experimenting | Undo restores the exact state, including creatures | | Move counter goes back too |
 | Drag preview (Nov 3, `controller.ts`) | The drag shows the result of every stop it asks for; letting go commits, Esc drops it | Players can test a move with no cost, not even an undo | A cancelled drag stays dead until release; undo, restart and level change drop a pending preview; exact half cells ask for nothing | A drag past the last legal stop previews the legal stops and strains once per push | Each committed stop is one move against par, the same as an arrow key |
 | Unlocking and Enter (Nov 3, `progress.ts`) | Tutorials open in order; then two unsolved levels are open, and Enter goes to the next unsolved one | One hard puzzle never ends a run | Saved per level name; malformed saves are dropped per record; blocked storage keeps progress for the session | Every level is reachable with at most one puzzle skipped at a time | The ending fires once, when the last level is solved (also after undo and re-solve); replays go on in order |
+| Pinned plate, the anchor rock (Nov 4, `Level.pinned`) | It has no rail and refuses every drag; other plates visibly bite into it | It removes the easy answer: the rock cannot step aside, so the player chooses who comes to it and from where, and a bite taken from it is new water | `shift` refuses it in every direction, `railMoves` never offers it, other plates still take its cells at max + 1 | First met in Anchor Rock (par 1), where the old push is the dead end; a plate can only reach it within its own ±2 travel | Fewer moves to search; the audit's "plate kept" floor stops a rock being eaten to a sliver in any intended solution |
+| Ice (Nov 4, `State.ice`, `MoveDiff.melt`) | A pale cell that rides its plate like terrain; lifted to height 2 it melts, and the preview lists it in `melt` and `flood` | It flips the verb: a push that would raise land here makes water, so a mountain-building move can open a channel | Melts in `shift` after the stack check, refused if a creature stands on it (S6), part of `stateKey`; goal order is unchanged. A goat on ice could never be happy (ice cannot reach its height), so `shapeProblems` rejects one | Thin Ice teaches it with par 1; only cells below height 2 may start as ice | Melted water joins the normal sea or lake fill, so one melt can change a lighthouse, a buoy or an oasis far away; the preview's `flood` covers that |
+| Penguin (Nov 4, `Kind 'penguin'`) | Stands on a floe and wants the floe to touch the sea; a lake does not count, the edge of the grid does (the same as a lighthouse) | The opposite of a goat: lifting is the danger, and Step Aside turns the refused push into the puzzle | Goal = on an ice cell next to sea; the goal list keeps its order (objects in reading order, then buoys) | Thin Ice (par 1), then Step Aside and Bite the Rock | It locks the ice under it: pushes that would melt that cell are refused, so a player meets a blocked move here that the stuck check never calls a dead end |
+| Lost-village shortcut (Nov 4, `rules.ts`) | "No way back" appears as soon as a village stands on a peak | The warning arrives right after the mistake instead of after a search | Heights only rise, so a village at height 2+ can never be happy again; `solve` and `canFinish` drop such states | Every level with a village | The search proves more dead ends inside its 200k cap (Breakwater's push hit the cap before) |
 
 ## Grey-box (2026-11-03)
 
@@ -205,4 +240,4 @@ Questions the build cannot answer by itself, each with the check that answers it
 
 ## Content budget
 
-15 levels × ~1-2 min = 20-30 min for a full play; the first 5 levels (~5 min) get the most polish because that is what most raters see.
+20 levels × ~1-2 min = 25-40 min for a full play; the first 5 levels (~5 min) get the most polish because that is what most raters see.
