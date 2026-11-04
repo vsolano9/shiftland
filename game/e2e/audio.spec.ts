@@ -15,7 +15,7 @@ const BIOMES: Biome[] = ['title', 'meadow', 'coast', 'desert', 'tundra', 'finale
 const SFX: Sfx[] = ['hover', 'select', 'slide', 'stop', 'uplift', 'crack', 'blocked', 'undo', 'restart', 'tick', 'untick', 'bleat', 'crush', 'lighthouse', 'splash', 'fish', 'penguin', 'oasis', 'complete', 'star', 'ui', 'stuck', 'whoosh', 'meltice', 'chord'];
 const SR = 44100;
 
-type Cue = { t: number; do: 'play' | 'pour' | 'music' | 'ocean' | 'duck' | 'mute' | 'musicVol'; name?: string; o?: object; v?: unknown };
+type Cue = { t: number; do: 'play' | 'pour' | 'music' | 'ocean' | 'duck' | 'mute' | 'musicVol' | 'mood'; name?: string; o?: object; v?: unknown };
 interface Scene { seconds: number; seed?: number; cues: Cue[]; musicVol?: number }
 interface Pcm { l: Float32Array; r: Float32Array; ms: number }
 
@@ -53,6 +53,7 @@ async function open(page: Page): Promise<void> {
         else if (c.do === 'duck') a.duck(c.v as number);
         else if (c.do === 'mute') a.setMuted(c.v as boolean);
         else if (c.do === 'musicVol') a.setMusicVolume(c.v as number);
+        else if (c.do === 'mood') a.setMood(c.v as number);
       }
       a.advanceTo(seconds);
       const t0 = performance.now(), buf = await ctx.startRendering(), ms = performance.now() - t0;
@@ -121,6 +122,18 @@ test.describe('offline renders', () => {
       expect.soft(m.dc, `${name} dc`).toBeLessThan(0.002);
       expect.soft(m.tail, `${name} decays`).toBeLessThan(-52);
     }
+  });
+
+  test('the mood filter darkens the song without losing its loudness', async ({ page }) => {
+    await open(page);
+    const scene = (v: number): Scene => ({ seconds: 20, seed: 5, cues: [{ t: 0, do: 'music', v: 'meadow' }, { t: 0, do: 'mood', v }] });
+    const low = await render(page, 'mood-0', scene(0)), high = await render(page, 'mood-1', scene(1));
+    // a second difference weighs the top end enough to see past the song's strong low notes
+    const bright = (p: Pcm) => { let e = 0; for (let i = 2; i < p.l.length; i++) e += (p.l[i] - 2 * p.l[i - 1] + p.l[i - 2]) ** 2; return db(Math.sqrt(e / p.l.length)); };
+    const dark = bright(high) - bright(low), lost = measure(high).rms - measure(low).rms;
+    console.log(`mood: top end ${dark.toFixed(1)} dB darker, ${lost.toFixed(1)} dB quieter`);
+    expect(dark).toBeGreaterThan(4);
+    expect(lost).toBeLessThan(5);
   });
 
   test('every biome loops inside a loudness window, with no gap and no clip', async ({ page }) => {

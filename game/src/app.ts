@@ -41,7 +41,7 @@ const icon = {
 };
 
 const GOAL_TEXT: Record<CreatureKind, [string, string]> = {
-  goat: ['Goat', 'on bare rock'], village: ['Village', 'off the rock'], light: ['Lighthouse', 'beside the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'beside a lake'], penguin: ['Penguins', 'ice by the sea'],
+  goat: ['Goat', 'on a rock peak'], village: ['Village', 'stays low'], light: ['Lighthouse', 'beside the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'beside a lake'], penguin: ['Penguins', 'ice by the sea'],
 };
 /** The full rule, shown when a goal chip is tapped. */
 const GOAL_RULE: Record<CreatureKind, string> = {
@@ -250,7 +250,7 @@ class App {
     if (s !== this.screen) this.solveGen++;
     this.screen = s;
     for (const [id, name] of [['s-title', 'title'], ['s-map', 'map'], ['s-level', 'level'], ['ending', 'ending']] as const) $(id).classList.toggle('hidden', s !== name);
-    if (s !== 'level') $('done').classList.add('hidden');
+    if (s !== 'level') { $('done').classList.add('hidden'); this.audio.setMood(1); }
   }
 
   // ---- navigation
@@ -412,6 +412,7 @@ class App {
   }
   private refreshChips() {
     const g = this.controller.session.goals;
+    this.audio.setMood(g.length ? g.filter(Boolean).length / g.length : 1);
     for (const [kind, e] of this.chips) {
       const n = e.goals.filter(k => g[k]).length, all = n === e.goals.length;
       const wasMet = e.el.classList.contains('met');
@@ -506,7 +507,7 @@ class App {
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     v.clearPreview(); v.setSelected(null);
     const prev = v.state;
-    if (prev !== s.lv.start) { v.reconcile(s.lv.start, true, { fromRestart: true }); this.audio.play('restart'); this.world.after(.42, () => { v.applyGoals(this.controller.session.goals, true); this.refreshHud(); }); }
+    if (prev !== s.lv.start) { v.reconcile(s.lv.start, true, { fromRestart: true }); this.audio.play('restart'); this.world.after(.42, () => { v.applyGoals(this.controller.session.goals, true, false); this.refreshHud(); }); } // no red crosses for a restart the player asked for
     this.refreshHud();
   }
 

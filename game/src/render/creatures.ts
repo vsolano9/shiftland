@@ -39,6 +39,8 @@ export class Creature {
   private pens: { g: Group; x: number; z: number; a: number }[] = [];
   private people: Mesh[] = [];
   sfx?: (s: 'bleat' | 'fish') => void;
+  /** Is this world point water? Set by the island view. */
+  wet: (x: number, z: number) => boolean = () => true;
   world: (x: number, y: number, z: number) => [number, number, number] = (x, y, z) => [x, y, z];
 
   constructor(readonly kind: CreatureKind, readonly goalIndex: number, private fx: Particles, seed: number) {
@@ -108,11 +110,12 @@ export class Creature {
   }
 
   /** Called when the goal turns true or false. animate=false sets it silently (level open, map islands). */
-  setMet(m: boolean, animate = true) {
+  setMet(m: boolean, animate = true, react = true) {
     if (m === this.met && animate) return;
     const was = this.met;
     this.met = m;
     if (!animate) { this.metK = m ? 1 : 0; this.pose(0, 0); return; }
+    if (!react) return; // eases to its pose with no badge, dust or sparkles
     this.pop = 1;
     if (m && !was) {
       this.showBadge(true);
@@ -228,7 +231,12 @@ export class Creature {
         this.body.position.y = stranded * .035 + k * (Math.sin(ph * 1.5) * .025) + hop * .1;
         for (const f of this.fish) {
           f.t += dt;
-          if (this.metK > .9 && f.t > 1 + (this.next < 0 ? 0 : 99)) { f.t = 0; f.a = Math.random() * 6.28; this.next = 1.4 + Math.random() * 3; this.sfx?.('fish'); const [x, , z] = this.world(Math.cos(f.a) * .42, 0, Math.sin(f.a) * .42); this.fx.splash(x, z, 5); }
+          if (this.metK > .9 && f.t > 1 + (this.next < 0 ? 0 : 99)) {
+            this.next = 1.4 + Math.random() * 3;
+            // a fish only jumps out over open water, never onto the plate beside the buoy
+            const a = Math.random() * 6.28, S = this.root.scale.x, [x, , z] = this.world(Math.cos(a) * .42 * S, 0, Math.sin(a) * .42 * S), [x2, , z2] = this.world(Math.cos(a) * .66 * S, 0, Math.sin(a) * .66 * S);
+            if (this.wet(x, z) && this.wet(x2, z2)) { f.t = 0; f.a = a; this.sfx?.('fish'); this.fx.splash(x, z, 5); }
+          }
           const u = f.t / .85;
           f.m.visible = u < 1;
           if (u < 1) {

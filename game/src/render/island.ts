@@ -179,6 +179,10 @@ export class IslandView {
     c.root.position.set(x, 0, z); c.root.scale.setScalar(KIND_SCALE[k]);
     c.world = (dx, dy, dz) => [this.ox + c.root.position.x + dx, c.root.position.y + dy, this.oz + c.root.position.z + dz];
     c.sfx = s => this.host.sfx(s);
+    c.wet = (wx, wz) => {
+      const { w, h } = this.lv, cx = Math.round(wx - this.ox + (w - 1) / 2), cz = Math.round(wz - this.oz + (h - 1) / 2);
+      return cx < 0 || cz < 0 || cx >= w || cz >= h || this.state.plate[cx + cz * w] < 0;
+    };
     this.group.add(c.root);
     return c;
   }
@@ -328,7 +332,7 @@ export class IslandView {
     }
   }
 
-  applyGoals(g: boolean[], animate: boolean) { this.creatures.forEach(c => c.setMet(g[c.goalIndex], animate)); }
+  applyGoals(g: boolean[], animate: boolean, react = true) { this.creatures.forEach(c => c.setMet(g[c.goalIndex], animate, react)); }
 
   private writeAllAttrs() {
     const { lv, state: s } = this, { w, h } = lv;

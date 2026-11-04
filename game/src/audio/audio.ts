@@ -13,6 +13,8 @@ export type Sfx = 'hover' | 'select' | 'slide' | 'stop' | 'uplift' | 'crack' | '
 const LOOKAHEAD = 0.4, TICK_MS = 100, FADE = 0.65; // FADE: time constant, so a crossfade is ~95% done at 2 s
 const MAX_NOTES = 48, MAX_SFX = 14, OCEAN_GAIN = 0.34, LOG_CAP = 500;
 const PANS = [-0.6, -0.25, 0, 0.25, 0.6];
+/** The mood filter's cutoff: 1.5 kHz with nobody happy (warm, the melody still there), about 18 kHz (out of the way) with everyone. Measured: top octaves 15-40 dB down, loudness within 1 dB. */
+export const moodHz = (m: number) => 1500 * 2 ** (m * 3.6);
 
 /** One biome's music while it sounds: its own fader, buses, delay and pad filter. Old ones fade, then disconnect. */
 interface Session {
@@ -34,6 +36,8 @@ export class GameAudio {
   private clock = 0;
   private readonly rand: () => number;
   private seedCounter: number;
+  private moodLevel = 1;
+  private moodFilters: BiquadFilterNode[] = [];
   private musicVol = 0.8;
   private sfxVol = 0.9;
   private isMuted = false;
@@ -146,7 +150,11 @@ export class GameAudio {
 
     const music = c.createGain(), duck = c.createGain(), musicWet = c.createGain(), duckWet = c.createGain();
     music.gain.value = musicWet.gain.value = this.musicVol;
-    music.connect(duck); duck.connect(master); musicWet.connect(duckWet); duckWet.connect(rev);
+    // the mood filter: the song sits a little under water until the island's creatures are happy, and opens up as they are
+    const mood = c.createBiquadFilter(); mood.type = 'lowpass'; mood.Q.value = 0.5; mood.frequency.value = moodHz(this.moodLevel);
+    const moodWet = c.createBiquadFilter(); moodWet.type = 'lowpass'; moodWet.Q.value = 0.5; moodWet.frequency.value = moodHz(this.moodLevel);
+    this.moodFilters = [mood, moodWet];
+    music.connect(mood); mood.connect(duck); duck.connect(master); musicWet.connect(moodWet); moodWet.connect(duckWet); duckWet.connect(rev);
     const sfx = c.createGain(); sfx.gain.value = this.sfxVol;
     const sfxLift = c.createGain(); sfxLift.gain.value = 2.4; sfx.connect(sfxLift); sfxLift.connect(master); // recipes are written quiet
     const sfxWet = c.createGain(); sfxWet.gain.value = 0.3; sfx.connect(sfxWet); sfxWet.connect(rev);
@@ -390,6 +398,11 @@ export class GameAudio {
   setMusicVolume(v: number): void {
     this.musicVol = Math.max(0, Math.min(1, v));
     this.param(this.g?.music.gain, this.musicVol); this.param(this.g?.musicWet.gain, this.musicVol);
+  }
+  /** 0 = no creature happy yet, 1 = all of them (and every screen outside a level). */
+  setMood(m: number): void {
+    this.moodLevel = Math.max(0, Math.min(1, m));
+    for (const f of this.moodFilters) this.param(f.frequency, moodHz(this.moodLevel), 0.5);
   }
   setSfxVolume(v: number): void { this.sfxVol = Math.max(0, Math.min(1, v)); this.param(this.g?.sfx.gain, this.sfxVol); }
   setMuted(m: boolean): void {
