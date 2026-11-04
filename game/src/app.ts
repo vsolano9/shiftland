@@ -648,8 +648,9 @@ class App {
       const v = this.world.views[i];
       this.world.fx.dust(v.ox, .2, v.oz, 3);
       this.world.shakeCam(.5);
-      // every island's arrival is a soft thud; a whole continent of cracks would be noise
-      if (landed++ % 3 === 0) this.audio.play('crack');
+      // every island's arrival strums the chord the music is on; a thud now and then keeps the weight, a continent of cracks would be noise
+      this.audio.play('chord');
+      if (landed++ % 4 === 0) this.audio.play('stop');
     }, () => {
       this.world.shakeCam(1.2);
       this.audio.play('complete');
@@ -734,9 +735,13 @@ class App {
     v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
   }
+  private lastHover: number | null = null;
   private pointerMove(e: PointerEvent) {
     if (this.screen === 'level' && !this.drag && e.pointerType === 'mouse' && this.canPlay) {
       const p = this.world.pick(e.clientX, e.clientY);
+      // each plate has its note, so sweeping the mouse over the board plays a little scale
+      if (p !== null && p !== this.lastHover) this.audio.play('hover', { plate: p });
+      this.lastHover = p;
       this.view.setHover(p);
       (e.target as HTMLElement).style.cursor = p !== null ? 'grab' : 'default';
       return;

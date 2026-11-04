@@ -644,8 +644,25 @@ export class IslandView {
   /** What the level camera must keep on screen, in island space: every land cell, a step of each plate's slide, and whoever stands on it. */
   /** Points the camera must hold: the start board while playing (it must not creep per move), the board as it now stands on the win screen. */
   framePoints(current = false) {
-    const { lv } = this, s = current ? this.state : lv.start, pts: Vector3[] = [], head = current ? 1.25 : .7;
-    const objs = new Set([...s.objs.map(o => o.cell), ...(current ? lv.buoys : [])]);
+    // Playing, the camera holds the board at the start, as it stands now and as it will stand solved, so rising land stays in frame.
+    if (current) return this.statePoints(this.state, 1.25, true);
+    const pts = this.statePoints(this.lv.start, .9, false);
+    if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .9, false));
+    const end = this.solvedState();
+    if (end) pts.push(...this.statePoints(end, .9, false));
+    return pts;
+  }
+  private solved?: State | null;
+  /** The board after the level's stored solution (null when it has none, as on the title's island). */
+  private solvedState(): State | null {
+    if (this.solved !== undefined) return this.solved;
+    let s: State | null = this.lv.start;
+    for (const m of this.lv.sol ?? []) { if (!s) break; s = shift(this.lv, s, Number(m[1]), 'NESW'.indexOf(m[2]) as Dir); }
+    return this.solved = this.lv.sol?.length ? s : null;
+  }
+  private statePoints(s: State, head: number, buoys: boolean) {
+    const { lv } = this, pts: Vector3[] = [];
+    const objs = new Set([...s.objs.map(o => o.cell), ...(buoys ? lv.buoys : [])]);
     for (let i = 0; i < s.plate.length; i++) {
       const p = s.plate[i]; if (p < 0) continue;
       const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .15, ax = lv.axis[p] === 1;

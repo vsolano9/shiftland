@@ -173,7 +173,7 @@ export class World {
     const w = innerWidth, h = innerHeight, short = h <= 560 && w > h;
     if (kind === 'title') {
       if (short || w / h >= 1.3) return { top: .05, bottom: .05, left: .48, right: .02 };
-      return { top: (.03 * h + Math.min(780, .92 * w) / 3 + 24) / h, bottom: (.055 * h + 128) / h, left: 0, right: 0 };
+      return { top: (Math.max(.03 * h, 72) + Math.min(780, .92 * w) / 3 + 24) / h, bottom: (.055 * h + 128) / h, left: 0, right: 0 };
     }
     if (kind === 'solved') {
       if (short) return { top: .04, bottom: .04, left: .02, right: .46 };

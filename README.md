@@ -2,7 +2,7 @@
 
 Our entry for [GitHub Game Off 2026](https://itch.io/jam/game-off-2026). Submissions close **2026-12-01 13:37 PST (22:37 CET)**; ratings run until 2027-01-01.
 
-Status (2026-11-03): Victor picked **Plates**; the game is **Shiftland**, a tectonic-shift puzzle. Research, design, rules spike and a playable grey-box are done; the real build starts Nov 4 (`docs/PLAN.md`). Changeover is the kill-gate fallback only.
+Status (2026-11-04): **Shiftland**, a tectonic-shift puzzle, is playable from title to ending in `game/` (`npm run dev`): 20 curated islands across five biomes, six creatures, code-made art and sound, the last-shift ending. Not public: the repo and itch page wait for Victor's approval (G0/G4, `docs/PLAN.md`). Nobody has listened to the audio yet; it has only been measured.
 
 | Doc | What |
 | --- | --- |

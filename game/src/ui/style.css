@@ -82,7 +82,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 #done .row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
 /* Title */
-#logo { position: absolute; left: 50%; top: calc(3vh + var(--safe-t)); transform: translateX(-50%); width: min(780px, 92vw); height: auto; filter: drop-shadow(0 8px 12px rgba(0, 40, 80, .35)); }
+#logo { position: absolute; left: 50%; top: calc(max(3vh, 72px) + var(--safe-t)); transform: translateX(-50%); width: min(780px, 92vw); height: auto; filter: drop-shadow(0 8px 12px rgba(0, 40, 80, .35)); }
 #play { position: absolute; left: 50%; bottom: calc(5.5vh + var(--safe-b)); transform: translateX(-50%); display: flex; gap: 12px; align-items: center; }
 #btn-play { font-size: 34px; font-weight: 600; padding: 13px 48px 14px 38px; border-radius: 22px; background: var(--cream); box-shadow: 0 5px 0 rgba(120, 85, 40, .3), 0 14px 30px rgba(4, 45, 70, .32); display: flex; align-items: center; gap: 14px; transition: transform .14s; animation: breathe 2.6s ease-in-out infinite; }
 #btn-play:hover { transform: translateY(-3px) scale(1.04); }
