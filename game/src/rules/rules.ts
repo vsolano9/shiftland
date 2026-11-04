@@ -75,6 +75,20 @@ export function shift(lv: Level, s: State, p: number, d: Dir): State | null {
   return out;
 }
 
+/** Why `shift` says no: 'rail' the plate's travel limit, 'stack' two creatures forced onto one cell, 'melt' ice melting
+ *  under a creature, 'pinned' an anchor rock, 'other' the wrong axis, the grid edge or a plate with no cells left. */
+export type Refusal = 'rail' | 'stack' | 'melt' | 'pinned' | 'other';
+
+/** The reason `shift(lv, s, p, d)` returns null, or null when the move is legal. The UI gives each reason its own hint. */
+export function refusal(lv: Level, s: State, p: number, d: Dir): Refusal | null {
+  if (shift(lv, s, p, d)) return null;
+  if ((d === 1 || d === 3) !== (lv.axis[p] === 1)) return 'other';
+  if (lv.pinned && lv.pinned.includes(p)) return 'pinned';
+  if (Math.abs((s.off ? s.off[p] : 0) + (d === 1 || d === 2 ? 1 : -1)) > lv.maxTravel) return 'rail';
+  if (s.ice && shift(lv, { ...s, ice: undefined }, p, d)) return 'melt';
+  return shift(lv, { ...s, objs: [] }, p, d) ? 'stack' : 'other';
+}
+
 /** Water joined to the grid edge (the ocean) is sea; the rest is lake. Used by goals, solver and renderer alike. */
 export function seaMask(lv: Level, s: State): Uint8Array {
   const { w, h } = lv;

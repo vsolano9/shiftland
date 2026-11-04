@@ -4,10 +4,13 @@
 import { previewDiff } from '../rules/diff.ts';
 import { canFinish, goalsMet, seaMask, solve, solved, type Level, type State } from '../rules/rules.ts';
 import type { Claim, Spec } from '../levels/tutorial.ts';
-import { applyAll, landShare, minPlateKept, randomSolveRate, shortestSolutions } from './audit.ts';
+import { applyAll, greedySolveRate, landShare, minPlateKept, partsOf, randomSolveRate, shortestSolutions } from './audit.ts';
 
 /** Deepest search the audit runs; the Finale's par is 5-7 and a trap's cost is measured a little past it. */
 export const AUDIT_DEPTH = 9;
+/** A puzzle must not fall to a player who just takes the move the preview shows ticking most goals. Lucky tie-breaks may
+ *  reach it, but not often: Step Aside sits at 12.5% because clearing the floe's path also opens sea for the penguin. */
+export const MAX_GREEDY = 0.15;
 /** Below this a plate reads as eaten (the grey-box's "conquest" finding); tiny plates still count by cells kept. */
 const MIN_PLATE_KEPT = 0.5;
 const MIN_LAND_KEPT = 0.6;
@@ -71,15 +74,15 @@ export function shapeProblems(lv: Level): string[] {
   return why;
 }
 
-export interface FixtureReport { problems: string[]; rate: number; plateKept: number; land: number; solutions: number }
+export interface FixtureReport { problems: string[]; rate: number; greedy: number; plateKept: number; land: number; solutions: number }
 
 /** Proves a level against its fixture. `lv` is the level as shipped (levels.json), `spec` is what its author claims. */
 export function checkFixture(spec: Spec, lv: Level): FixtureReport {
   const why: string[] = [];
   const fx = spec.fixture;
   const par = lv.par ?? -1;
-  const rate = randomSolveRate(lv);
-  if (!fx) return { problems: ['no fixture'], rate, plateKept: 0, land: 0, solutions: 0 };
+  const rate = randomSolveRate(lv), greedy = greedySolveRate(lv);
+  if (!fx) return { problems: ['no fixture'], rate, greedy, plateKept: 0, land: 0, solutions: 0 };
 
   const intended = fx.intended.split(' ');
   if (intended.length !== par) why.push(`intended solution has ${intended.length} moves, par is ${par}`);
@@ -121,6 +124,11 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
     }
   } else if (par > 1) why.push('a level with par above 1 must name its trap');
 
+  // Every goal, every stretch of ice and every pin must change the answer: a part that changes nothing is decoration.
+  for (const part of partsOf(lv)) if (part.effect === 'decoy') why.push(`decoy: without the ${part.what} the answer is the same`);
+
+  if (lv.role === 'puzzle' && greedy > MAX_GREEDY) why.push(`greedy play solves it ${(greedy * 100).toFixed(0)}% of the time: a puzzle needs a move the preview does not reward`);
+
   for (const p of shapeProblems(lv)) why.push(p);
-  return { problems: why, rate, plateKept, land, solutions: shortest.length };
+  return { problems: why, rate, greedy, plateKept, land, solutions: shortest.length };
 }

@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { buildLevels, MAX_DEPTH } from '../levels/build.ts';
 import { CAMPAIGN } from '../levels/campaign.ts';
 import { fromJson, type Level, type LevelJson } from '../rules/rules.ts';
-import { audit, drawLevel, firstMoves, randomSolveRate, shipCheck, shortestSolutions } from './audit.ts';
+import { audit, drawLevel, firstMoves, greedySolveRate, partsOf, randomSolveRate, shipCheck, shortestSolutions } from './audit.ts';
 import { checkFixture } from './fixtures.ts';
 import { generate } from './generate.ts';
 
@@ -31,7 +31,7 @@ function check(lv: Level, withFixture: boolean): { ok: boolean; line: string } {
     else {
       const f = checkFixture(spec, lv);
       problems.push(...f.problems);
-      extra = `  trap ${spec.fixture?.trap ? `${spec.fixture.trap.move}->${spec.fixture.trap.finish}` : 'none'}  aha ${spec.fixture?.aha.move}  shortest ${f.solutions}  random ${(f.rate * 100).toFixed(1)}%`;
+      extra = `  trap ${spec.fixture?.trap ? `${spec.fixture.trap.move}->${spec.fixture.trap.finish}` : 'none'}  aha ${spec.fixture?.aha.move}  shortest ${f.solutions}  random ${(f.rate * 100).toFixed(1)}%  greedy ${(f.greedy * 100).toFixed(0)}%`;
     }
   }
   const line = `min ${a.min}  land ${(a.land * 100).toFixed(0)}%  plate ${(a.plateKept * 100).toFixed(0)}%${extra}`;
@@ -59,7 +59,7 @@ if (cmd === 'export') {
   const walks = Number(arg1 ?? 2000);
   for (const [i, lv] of shipped().entries()) {
     const rate = randomSolveRate(lv, walks);
-    console.log(`${String(i + 1).padStart(2)} ${(lv.name ?? '?').padEnd(18)} ${lv.biome.padEnd(6)} par ${lv.par}  ${(rate * 100).toFixed(1).padStart(5)}%  (${walks} walks of ${3 * lv.par!} moves)`);
+    console.log(`${String(i + 1).padStart(2)} ${(lv.name ?? '?').padEnd(18)} ${lv.biome.padEnd(6)} par ${lv.par}  ${(rate * 100).toFixed(1).padStart(5)}%  (${walks} walks of ${3 * lv.par!} moves)  greedy ${(greedySolveRate(lv) * 100).toFixed(0)}%`);
   }
 } else if (cmd === 'inspect') {
   const levels = shipped();
@@ -68,12 +68,13 @@ if (cmd === 'export') {
   console.log(`${lv.name} (${lv.biome}, ${lv.w}x${lv.h}, par ${lv.par})\n${drawLevel(lv)}`);
   for (const s of shortestSolutions(lv, lv.par!, 16)) console.log(`  shortest: ${s.join(' ')}`);
   for (const m of firstMoves(lv, MAX_DEPTH)) console.log(`  first ${m.move}: ${m.ticks > 0 ? '+' : ''}${m.ticks} goals, ${m.dead ? 'dead end' : m.finish === null ? `beyond ${MAX_DEPTH}` : `finish in ${m.finish}`}`);
-  console.log(`  random ${(randomSolveRate(lv) * 100).toFixed(1)}%`);
+  console.log(`  random ${(randomSolveRate(lv) * 100).toFixed(1)}%  greedy ${(greedySolveRate(lv) * 100).toFixed(0)}%`);
+  for (const p of partsOf(lv)) console.log(`  without the ${p.what}: ${p.effect}${p.par === null ? '' : ` (par ${p.par}, ${p.ways} shortest)`}`);
 } else if (cmd === 'table') {
-  console.log('| # | Name | Biome | Par | Idea | Trap | Random solve |\n|---|---|---|---|---|---|---|');
+  console.log('| # | Name | Biome | Par | Idea | Trap | Random solve | Greedy solve |\n|---|---|---|---|---|---|---|---|');
   for (const [i, lv] of shipped().entries()) {
     const s = specOf(lv.name)!;
-    console.log(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.par} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% |`);
+    console.log(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.par} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% | ${(greedySolveRate(lv) * 100).toFixed(0)}% |`);
   }
 } else if (cmd === 'gen') {
   const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = flags.has('--desert');

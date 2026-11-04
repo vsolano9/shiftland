@@ -130,6 +130,83 @@ export function randomSolveRate(lv: Level, walks = 2000, factor = 3, seed = 1): 
   return hits / walks;
 }
 
+/**
+ * The preview-greedy player: at every step it previews each legal move, takes one that leaves the most goals met (ties at
+ * random) and never undoes. Returns the exact chance it finishes within par, over every tie-break. 0 proves the level
+ * can't be solved by following the preview: it needs a move that looks no better than another or looks worse.
+ */
+export function greedySolveRate(lv: Level, moves = lv.par ?? lv.sol?.length ?? 3): number {
+  const rails = railMoves(lv), memo = new Map<string, number>();
+  const count = (s: State) => goalsMet(lv, s).filter(Boolean).length;
+  const chance = (s: State, left: number): number => {
+    if (solved(lv, s)) return 1;
+    if (left === 0) return 0;
+    const key = `${left}:${stateKey(s)}`, known = memo.get(key);
+    if (known !== undefined) return known;
+    let best = -1, tied: State[] = [];
+    for (const [p, d] of rails) {
+      const t = shift(lv, s, p, d); if (!t) continue;
+      const n = count(t);
+      if (n > best) { best = n; tied = [t]; } else if (n === best) tied.push(t);
+    }
+    const out = tied.length ? tied.reduce((a, t) => a + chance(t, left - 1), 0) / tied.length : 0;
+    memo.set(key, out);
+    return out;
+  };
+  return chance(lv.start, moves);
+}
+
+/** One thing a level asks for or puts in the way: a goal, a connected stretch of ice, or the pin on a rock. */
+export interface Part { what: string; kind: 'goal' | 'ice' | 'pin'; par: number | null; ways: number;
+  /** needed: unsolvable within par without it; shortens: par drops without it; widens: more shortest solutions without it; decoy: nothing changes */
+  effect: 'needed' | 'shortens' | 'widens' | 'decoy' }
+
+/** Ice cells joined by an edge on one plate; a penguin's own floe is its goal, so it is not a part here. */
+function iceStretches(lv: Level): number[][] {
+  const { w, h } = lv, { ice, plate, objs } = lv.start;
+  if (!ice) return [];
+  const seen = new Set(objs.filter(o => o.kind === 'penguin').map(o => o.cell));
+  const out: number[][] = [];
+  for (let i = 0; i < w * h; i++) {
+    if (!ice[i] || seen.has(i)) continue;
+    const group: number[] = [], todo = [i];
+    seen.add(i);
+    while (todo.length) {
+      const c = todo.pop()!;
+      group.push(c);
+      for (const j of [c % w > 0 ? c - 1 : -1, c % w < w - 1 ? c + 1 : -1, c - w, c + w])
+        if (j >= 0 && j < w * h && ice[j] && plate[j] === plate[c] && !seen.has(j)) { seen.add(j); todo.push(j); }
+    }
+    out.push(group);
+  }
+  return out;
+}
+
+/**
+ * The decoy test: take each part away and solve again. A part whose removal leaves the same par and the same shortest
+ * solutions constrains nothing: a passenger goal ticked in passing, spare ice, a "rock" that would never have moved anyway.
+ */
+export function partsOf(lv: Level): Part[] {
+  const base = solve(lv, 9);
+  if (!base) return [];
+  const out: Part[] = [];
+  const test = (what: string, kind: Part['kind'], v: Level) => {
+    const r = solve(v, base.min);
+    const effect: Part['effect'] = !r ? 'needed' : r.min < base.min ? 'shortens' : r.solutionsAtMin > base.solutionsAtMin ? 'widens' : 'decoy';
+    out.push({ what, kind, par: r ? r.min : null, ways: r ? r.solutionsAtMin : 0, effect });
+  };
+  const at = (c: number) => `${c % lv.w},${Math.floor(c / lv.w)}`;
+  lv.start.objs.forEach((o, k) => test(`${o.kind} at ${at(o.cell)}`, 'goal', { ...lv, start: { ...lv.start, objs: lv.start.objs.filter((_, q) => q !== k) } }));
+  lv.buoys.forEach((b, k) => test(`buoy at ${at(b)}`, 'goal', { ...lv, buoys: lv.buoys.filter((_, q) => q !== k) }));
+  for (const group of iceStretches(lv)) {
+    const ice = lv.start.ice!.slice();
+    for (const c of group) ice[c] = 0;
+    test(`ice at ${group.map(at).join(' ')}`, 'ice', { ...lv, start: { ...lv.start, ice } });
+  }
+  if (lv.pinned?.length) test('the pin on the rock', 'pin', { ...lv, pinned: undefined });
+  return out;
+}
+
 /** Text map of a state for the CLI and for failure messages: plate letter + height, then a creature or buoy mark. */
 export function drawLevel(lv: Level, s: State = lv.start): string {
   const mark: Record<string, string> = { goat: 'G', village: 'V', light: 'L', oasis: 'O', penguin: 'P' };
