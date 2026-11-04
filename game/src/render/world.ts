@@ -156,6 +156,7 @@ export class World {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.hudPad = this.pads(this.padKind);
+    if (this.fly) this.resizeOwed = true;
     if (this.active && !this.map && !this.fly) { this.dist = this.fitDistance(this.active); this.focus.copy(this.focusOf(this.active)); }
     else if (this.map && !this.fly && !this.peekAt && !this.homes) { const f = this.mapFrame(); this.dist = f.dist; this.focus.copy(f.focus); }
   }
@@ -664,7 +665,7 @@ export class World {
       this.focus.lerpVectors(f.from, f.to, e);
       this.dist = f.d0 + (f.d1 - f.d0) * e + Math.sin(e * Math.PI) * f.arc;
       focus = this.focus; dist = this.dist;
-      if (u >= 1) { this.fly = null; f.done?.(); }
+      if (u >= 1) { this.fly = null; this.settleResize(); f.done?.(); focus = this.focus; dist = this.dist; }
     }
     if (this.pull) { this.pullT += dt; const u = Math.min(1, this.pullT / this.pullDur); dist = dist * (1 + this.pull * Math.sin(u * Math.PI * .5)); }
     this.drift = this.reducedMotion ? 0 : Math.sin(t * .23) * .05;
@@ -713,8 +714,11 @@ export class World {
   /** Land a camera flight at once (the player tapped to skip it). */
   finishFly() {
     const f = this.fly; if (!f) return;
-    this.focus.copy(f.to); this.dist = f.d1; this.fly = null; f.done?.();
+    this.focus.copy(f.to); this.dist = f.d1; this.fly = null; this.settleResize(); f.done?.();
   }
+  /** A phone turned during a flight was aiming for a frame made for the old shape: once landed, answer the turn. */
+  private resizeOwed = false;
+  private settleResize() { if (this.resizeOwed) { this.resizeOwed = false; dispatchEvent(new Event('resize')); } }
   get flying() { return !!this.fly; }
   get cameraFocus() { return this.focus; }
 }
