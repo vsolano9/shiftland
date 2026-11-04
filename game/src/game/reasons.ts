@@ -69,7 +69,7 @@ export function moveWhy(lv: Level, s: State, p: number, d: Dir): string {
     return "It bites its neighbour: that land is this plate's now."; // "...when it slides back" sent a player back at the wrong moment (playtest 5 P5-8)
   let wet = 0;
   for (let i = 0; i < s.plate.length; i++) wet += (next.plate[i] < 0 ? 1 : 0) - (s.plate[i] < 0 ? 1 : 0);
-  return wet > 0 ? 'It opens water you need soon.' : wet < 0 ? 'It closes water that is in the way.' : 'Nothing shows yet: this plate has to be here for the next move.';
+  return wet > 0 ? 'It opens water you need soon.' : wet < 0 ? 'It closes water that is in the way.' : 'Nothing shows yet: this slide sets up the next move.';
 }
 
 /** True when some plate's cells no longer touch edge to edge (a plate that slid across a gap, or lost its middle). */

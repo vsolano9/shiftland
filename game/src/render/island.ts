@@ -114,8 +114,10 @@ export class IslandView {
   /** Points at water on the board: dots run along a way out to sea, or stand and pulse on a lake (playtest 5 P5-2). Null clears it. */
   showLeak(l: { flow: boolean; pts: [number, number][] } | null, sec = 3.6) {
     this.leak = l && l.pts.length ? { ...l, left: sec } : null;
-    const n = !this.leak ? 0 : l!.flow ? Math.ceil((l!.pts.length - 1) * 1.6) + 1 : l!.pts.length;
-    while (this.leakDots.length < n) { const d = makeSprite(sprites().dot, .3, 22); this.leakDots.push(d); this.group.add(d); }
+    // +1 in a flow: a beat at the source, so the line reads as starting at the creature that complained (playtest 6 P6-4)
+    const n = !this.leak ? 0 : l!.flow ? Math.ceil((l!.pts.length - 1) * 1.6) + 2 : l!.pts.length;
+    // water's own colour, or white dots read as chimney puffs and bubble trails
+    while (this.leakDots.length < n) { const d = makeSprite(sprites().dot, .3, 22); (d.material as SpriteMaterial).color.set('#4fe8ff'); this.leakDots.push(d); this.group.add(d); }
     this.leakDots.forEach((d, i) => { d.visible = i < n; });
   }
   private stepLeak(dt: number, t: number) {
@@ -129,9 +131,13 @@ export class IslandView {
       if (!d.visible) return;
       let x: number, z: number, a = 1, size = .3;
       if (l.flow) {
-        const n = this.leakDots.filter(o => o.visible).length, u = (t * 1.5 / last + i / n) % 1, at = u * last, k = Math.min(last - 1, Math.floor(at)), f = at - k;
-        x = X(l.pts[k][0] + (l.pts[k + 1][0] - l.pts[k][0]) * f); z = Z(l.pts[k][1] + (l.pts[k + 1][1] - l.pts[k][1]) * f);
-        a = Math.min(1, u * 8, (1 - u) * 5); // it comes up beside the creature and fades out past the map's edge
+        const n = this.leakDots.filter(o => o.visible).length;
+        if (i === n - 1) { x = X(l.pts[0][0]); z = Z(l.pts[0][1]); size = .42 + Math.sin(t * 5) * .08; }
+        else {
+          const u = (t * 1.5 / last + i / (n - 1)) % 1, at = u * last, k = Math.min(last - 1, Math.floor(at)), f = at - k;
+          x = X(l.pts[k][0] + (l.pts[k + 1][0] - l.pts[k][0]) * f); z = Z(l.pts[k][1] + (l.pts[k + 1][1] - l.pts[k][1]) * f);
+          a = Math.min(1, u * 8, (1 - u) * 5); // it comes up beside the creature and fades out past the map's edge
+        }
       } else {
         x = X(l.pts[i][0]); z = Z(l.pts[i][1]);
         size = .3 + Math.sin(t * 5) * .06;

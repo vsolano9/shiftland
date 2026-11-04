@@ -22,6 +22,8 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 |---|---|---|---|---|
 | 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p8\a24.log` |
 | 24 islands | Real touch | 390x844 | Reached the ending | `p8\a24p.log` |
+| 24 islands | Real touch | 844x390 | Reached the ending in 3 of 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p8\a24l-r1.log` to `r3` |
+| Plate cells under the HUD | Probe, every island along its par line | 844x390, 390x844, 360x640, 1280x720 | No plate cell is covered by a chip, note or button | session scratch `overlay.mjs` |
 | 28 islands (older build), random walk | Controller | 1280x720 | 14 random moves on each island: 27 px past the screen edge on Still Water, none on the rest | `wander.mjs`, design row "Camera holds par moves' reach" |
 | Scenario run | Real mouse | 1280x720 | Pinned, ice, penguins, undo, restart, cancel: 11 checks, 0 fails, 0 errors | `q7.log` |
 | Random input | Real mouse | 1280x720 | 500 steps with reloads on the 24-island build, 0 errors | `p8\mk.log` |

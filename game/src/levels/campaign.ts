@@ -121,7 +121,7 @@ const DESERT: Spec[] = [
   },
   {
     name: 'Two Waters', biome: 'desert', role: 'puzzle', teaches: 'lake or sea is decided by what walls it: make one hole of each, side by side', axis: '|--', expectPar: 3,
-    blurb: 'Water joins edge to edge, so corners stay apart.',
+    blurb: 'A bitten palm stays put when its old plate slides away.',
     // Mirrored north to south (phone playtest): the finished buoy stood half behind the ridge. Pond and buoy now sit side by side
     // on the screen. The corner they share lies behind the tip of c, a trade: the two waters still read apart by colour, and the
     // way round that shows the corner leaves the buoy nearly half hidden.
@@ -184,7 +184,7 @@ const DESERT: Spec[] = [
 const TUNDRA: Spec[] = [
   {
     name: 'Thin Ice', biome: 'tundra', teaches: 'ice melts at height 2, not before: the first push only lifts the wall, the second carries it on and it melts right in front of the penguin riding behind it', axis: '-|', expectPar: 2,
-    blurb: 'Ice lifted to rock melts; penguins want ice by the sea.',
+    blurb: 'Ice lifted to rock melts away and leaves open water.',
     // Playtest 4 half solved the old map by accident: b's slides cost nothing there, so random play fell into the answer 26% of
     // the time. Here they cost two moves each and it is 11%. The wall only lines up after the first push, which is the moment to see.
     map: `
@@ -289,7 +289,7 @@ const FINALE: Spec[] = [
   },
   {
     name: 'Give and Take', biome: 'finale', role: 'puzzle', pinned: 'd', teaches: 'open a pond, fill it, open it again: what one plate shuts, another can bite back out', axis: '--||', expectPar: 6,
-    blurb: 'A plate can bite back land it lost.',
+    blurb: 'Push in, then pull back: the bitten land comes with you.',
     // Mirrored north to south (phone playtest): plate a stood behind the raised land on the solved board.
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~

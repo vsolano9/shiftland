@@ -14,7 +14,7 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 | R4 | Levels pass the bar | pass, 24 of 24; count matches `itch-page.md` | `npm run levels:audit` |
 | R5 | Rules and tests | see "Build" | `npm test`, `npm run typecheck` |
 | R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real draft page **waits on G0** | `if\` |
-| R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `a28p.log`, `a28l.log` |
+| R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `p8\a24p.log`, `p8\a24l-r1.log` to `r3` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
 | R9 | Performance | pass on the dev PC, see below; no mid laptop tried | `perf2.log` |
 | R10 | Audio | event log and metrics pass; **nobody has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |

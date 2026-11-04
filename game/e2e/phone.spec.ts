@@ -80,6 +80,30 @@ test('a swipe on the water is not a move, even just after one', async ({ page, c
   expect(errors).toEqual([]);
 });
 
+test('a thumb landing just off a plate still grabs it', async ({ page, context }) => {
+  const errors = await start(page);
+  const cdp = await context.newCDPSession(page);
+  const m = await firstMove(page), r = await railOf(page, m);
+  // a point on the water 5 px past the plate's edge, with only this plate within a thumb's reach
+  const off = await page.evaluate(`(() => {
+    const w = ${SL}.world, plate = ${Number(m[1])}, A = ${JSON.stringify(r.a)};
+    for (let k = 0; k < 16; k++) {
+      const ca = Math.cos(k * Math.PI / 8), sa = Math.sin(k * Math.PI / 8);
+      let d = 0; while (d < 400 && w.pick(A[0] + ca * d, A[1] + sa * d) === plate) d += 2;
+      const x = A[0] + ca * (d + 5), y = A[1] + sa * (d + 5);
+      if (w.pick(x, y) !== null || x < 20 || y < 200 || x > 370 || y > 700) continue;
+      let only = true;
+      for (const q of [7, 14]) for (let j = 0; j < 8; j++) { const h = w.pick(x + Math.cos(j * Math.PI / 4) * q, y + Math.sin(j * Math.PI / 4) * q); if (h !== null && h !== plate) only = false; }
+      if (only) return [x, y];
+    }
+    return null;
+  })()`) as [number, number] | null;
+  expect(off).not.toBeNull();
+  await swipe(cdp, page, off!, [off![0] + r.b[0] - r.a[0], off![1] + r.b[1] - r.a[1]]);
+  expect(await moves(page)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test('a reload puts the player back on the same board', async ({ page, context }) => {
   const errors = await start(page);
   const cdp = await context.newCDPSession(page);

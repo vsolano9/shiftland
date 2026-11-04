@@ -53,7 +53,7 @@ const GOAL_RULE: Record<CreatureKind, string> = {
   light: 'The lighthouse wants open sea on a side next to it. Pull plates apart, or sail its plate to the shore.',
   buoy: 'A buoy is chained to the sea floor: it stays where it is while the plates move. Land slid under it beaches it. It wants open sea.',
   oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it.',
-  penguin: 'Penguins want their ice touching the sea. Lifting ice melts it, and a plate carries what stands on it.',
+  penguin: 'Penguins want their ice touching the sea. Ice lifted to rock melts into open water, and a plate carries what stands on it.',
 };
 /** The ending's tour: what each biome's creatures got. */
 const TOUR: [BiomeName, string][] = [
@@ -292,7 +292,7 @@ class App {
   private toMap(fromTitle = false) {
     if (fromTitle && !this.progress.solved(0)) { this.pickLevel(0); return; } // first play: straight into the first island
     // a run left unfinished: Play goes back to it, which is what the game says it does (playtest 5 P5-12)
-    if (fromTitle && this.controller.session.moves > 0 && !this.controller.session.solved) { this.pickLevel(this.controller.index); return; }
+    if (fromTitle && this.controller.session.moves > 0 && !this.controller.session.solved) { this.controller.resumed = true; this.pickLevel(this.controller.index); return; }
     this.show('map');
     this.world.setActive(null);
     this.fitArchipelago();
@@ -393,7 +393,8 @@ class App {
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
-    const note = this.progress.solved(i) || s.moves ? '' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
+    // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
+    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? 'Click or tap a creature to ask what it wants' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
@@ -463,11 +464,13 @@ class App {
     v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
     // once the star is out of reach this run, the hints stop warning about it (second playtest P10)
     const gone = s.hinted || (s.par !== undefined && s.moves + sol.min > s.par);
+    // 7 moves to go on a par 6 island, and nothing said a fresh start was nearer (playtest 6 P6-1)
+    const shorter = s.par !== undefined && sol.min > s.par ? ` From here it takes ${sol.min}: Restart is shorter` : '';
     if (this.hintLevel === 0) {
       this.hintLevel = 1;
       // by name and pattern, since four plates side by side made "this plate" a guess (playtest 4 P4)
       const look = PLATES[m.plate % PLATES.length], which = `Try the ${look.name} plate with the ${PATTERN_WORD[look.pattern]}.`;
-      this.flashHint(gone ? `${which} Hint again shows the move` : `${which} Hint again shows the move, but costs the star`, 6);
+      this.flashHint(`${which} Hint again shows the move${gone ? '' : ', but costs the star'}${shorter ? `.${shorter}` : ''}`, 6);
       this.hintOffPlate(m.plate, m.dir);
       return;
     }
@@ -476,7 +479,7 @@ class App {
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
-    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${gone ? togo : `${togo}. No star this run: Restart to win it back`}`.trim(), 6);
+    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}. No star this run: Restart to win it back`}`.trim(), 6);
     this.hintOffPlate(m.plate, m.dir);
   }
   /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */
@@ -567,10 +570,17 @@ class App {
       e.el.dataset.why = why ?? '';
       const cnt = e.el.querySelector('.count'); if (cnt) cnt.textContent = `${n}/${e.goals.length}`;
     }
-    // the same reasons for a phone's icon-only chips, which have no room for theirs (playtest 3 P5): the first creature still unhappy
-    const first = [...this.chips].find(([, e]) => e.el.dataset.why);
-    $('chipwhy').textContent = first ? `${GOAL_TEXT[first[0]][0]}: ${first[1].el.dataset.why}` : '';
+    // the same reasons for a phone's icon-only chips, which have no room for theirs (playtest 3 P5): each unhappy creature in turn,
+    // since one line hid every reason but the first (playtest 6 P6-6)
+    this.whyLines = [...this.chips].filter(([, e]) => e.el.dataset.why).map(([kind, e]) => `${GOAL_TEXT[kind][0]}: ${e.el.dataset.why}`);
+    this.whyTurn = 0;
+    $('chipwhy').textContent = this.whyLines[0] ?? '';
+    clearInterval(this.whyTimer);
+    if (this.whyLines.length > 1) this.whyTimer = window.setInterval(() => { this.whyTurn = (this.whyTurn + 1) % this.whyLines.length; $('chipwhy').textContent = this.whyLines[this.whyTurn]; }, 2600);
   }
+  private whyLines: string[] = [];
+  private whyTurn = 0;
+  private whyTimer = 0;
   private refreshHud() {
     const s = this.controller.session, par = s.par ?? 0;
     $('hud-name').textContent = `${this.controller.index + 1}. ${s.lv.name}`;
@@ -942,6 +952,13 @@ class App {
     this.fingers.add(e.pointerId);
     if (this.fingers.size > 1) { this.pointerCancel(); return; }
     let plate = this.world.pick(e.clientX, e.clientY);
+    // a thumb is wider than a cursor: one landing just off a plate's edge means that plate
+    if (plate === null && e.pointerType === 'touch') {
+      search: for (const r of [7, 14]) for (let k = 0; k < 8; k++) {
+        const hit = this.world.pick(e.clientX + Math.cos(k * Math.PI / 4) * r, e.clientY + Math.sin(k * Math.PI / 4) * r);
+        if (hit !== null) { plate = hit; break search; }
+      }
+    }
     // a touch on the water keeps working on a plate the player tapped (tap, then swipe clear of the thumb). A plate
     // merely dragged earlier doesn't count: swiping at the sea spent moves on it (phone playtest PH7).
     if (plate === null) plate = this.tapPlate !== null && this.controller.selected === this.tapPlate ? this.tapPlate : null;
