@@ -488,6 +488,9 @@ class App {
       return x > r.left - 50 && x < r.right + 50 && y > r.top - 50 && y < r.bottom + 50;
     });
     h.classList.toggle('up', under);
+    // on a short landscape phone the chips stand in a column down the left: a raised panel keeps to the right of them
+    const goals = $('goals'), beside = under && getComputedStyle(goals).flexDirection === 'column', left = goals.getBoundingClientRect().right + 10, room = innerWidth - left - 10;
+    h.style.left = beside ? `${left + room / 2}px` : ''; h.style.maxWidth = beside ? `${room}px` : '';
     h.style.top = under ? `${Math.round(Math.max($('blurb').getBoundingClientRect().bottom, $('hud-tr').getBoundingClientRect().bottom) + 8)}px` : ''; // under the note, however many lines it wrapped to, and under the buttons (playtest 7 P7-5: it clipped Undo)
   }
   private hintLevel = 0;
@@ -666,7 +669,7 @@ class App {
   }
   private noteT = 0;
   private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
-    const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up'); h.style.top = '';
+    const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up'); h.style.top = ''; h.style.left = ''; h.style.maxWidth = '';
     clearTimeout(this.flashT);
     sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
     this.flashT = window.setTimeout(() => {
