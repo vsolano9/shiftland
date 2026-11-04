@@ -80,12 +80,13 @@ export function parse(spec: Spec): Level {
   return lv;
 }
 
-/** Meadow: the first six levels: one verb or one creature each, with the first real aha at slot 5 (most raters see about
- *  five levels). The rest of the campaign is in levels/campaign.ts. */
+/** Meadow: four teaching levels, one verb or one creature each, then three puzzles built only from what those four said:
+ *  the first real aha is at slot 5 and each of the next two stops a player who is not reading the board for longer.
+ *  The rest of the campaign is in levels/campaign.ts. */
 export const TUTORIAL: Spec[] = [
   {
     name: 'First Peak', teaches: 'push a plate into another: the seam rises; a goat wants a peak', axis: '--', expectPar: 1,
-    blurb: 'Push one plate into another. The seam rises.',
+    blurb: 'Push one plate into another and the seam rises.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 b0 b0 ~  ~
@@ -96,7 +97,7 @@ export const TUTORIAL: Spec[] = [
   },
   {
     name: 'Open Water', teaches: 'pull a plate away: the gap becomes sea; a buoy wants open sea', axis: '--', expectPar: 1,
-    blurb: 'Pull plates apart. The gap becomes sea.',
+    blurb: 'Plates and what stands on them move; a buoy stays put.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 ~  b0 ~  ~
@@ -107,8 +108,8 @@ export const TUTORIAL: Spec[] = [
       aha: { move: 'P0W', says: 'the plate under the buoy backs away and the buoy floats', shows: ['floods'] } },
   },
   {
-    name: 'Mind the Village', teaches: 'the obvious push also lifts a village and crushes it: look first, undo', axis: '-|', expectPar: 2, expectTempting: true,
-    blurb: 'Goats want peaks. A village on a peak breaks.',
+    name: 'Village Green', teaches: 'the obvious push also lifts a village and crushes it: look first, undo', axis: '-|', expectPar: 2, expectTempting: true,
+    blurb: 'A goat wants a peak, but a village on a peak breaks.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 ~  b0 ~  ~
@@ -120,7 +121,7 @@ export const TUTORIAL: Spec[] = [
   },
   {
     name: 'Stolen Peak', teaches: 'land remembers: push in, pull back, and the plate keeps the peak and leaves open water', axis: '-|', expectPar: 2,
-    blurb: 'Land remembers. A plate keeps the peak it raised.',
+    blurb: 'A plate keeps the cells it took, and what stands on them.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 a0 b1G b0 ~
@@ -133,11 +134,11 @@ export const TUTORIAL: Spec[] = [
   },
   {
     name: 'Good Neighbours', role: 'puzzle', teaches: 'a plate cannot climb itself: let the neighbour take the cell in front of the goat, then you have something to hit', axis: '-|', expectPar: 3,
-    blurb: 'A plate cannot climb itself.',
+    blurb: 'Land rises only where it hits another plate.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 a0 b0 ~  ~
-      ~  a0 a1G a0* b0 b0 ~
+      ~  ~  a0 a0 ~  ~  ~
+      ~  a0 a1G a0* ~  ~  ~
       ~  a0 a0 b0 b0 b0 ~
       ~  ~  a0 ~  b0 ~  ~
       ~  ~  ~  ~  ~  ~  ~`,
@@ -145,15 +146,30 @@ export const TUTORIAL: Spec[] = [
       aha: { move: 'P1N', says: 'the neighbour slides in and takes the cell in front of the goat: now the goat faces someone else', shows: ['quiet'] } },
   },
   {
-    name: 'Far One First', teaches: 'two goats, two pushes: the order decides, because a move leaves water behind', axis: '|--', expectPar: 2, expectTempting: true,
-    blurb: 'Every move leaves water behind it. Order matters.',
+    name: 'High Pasture', role: 'puzzle', teaches: 'a push takes everything in its row: step the second goat out from under it, then bring it back to climb the edge the push raised', axis: '||-', expectPar: 3,
+    blurb: 'A push lifts a cell one above the taller side.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  a0 a0 b1G b0 c1G ~
-      ~  a0 a0 a0 b0 b0 c0 ~
-      ~  ~  a0 ~  b0 ~  c0 ~
+      ~  a0 a1G a0 a0 a0 ~  ~
+      ~  c0G c0 c0 c0 c0 ~  ~
+      ~  ~  b0 b0 b0 c0 c0 ~
+      ~  ~  ~  b0 b0 c0 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P2W P1W', trap: { move: 'P1W', finish: 3, why: 'the near goat rises, but b has backed away from c: c now pushes into water and lifts nothing' },
-      aha: { move: 'P2W', says: 'the far goat goes first, while its neighbour is still there to push against', shows: ['lifts'] } },
+    fixture: { intended: 'P2W P0S P2E', trap: { move: 'P0S', finish: 'dead', why: 'the first goat has its peak at once, but the second is swallowed in the same push: it now stands on a, and a plate cannot lift itself' },
+      aha: { move: 'P2W', says: 'the second goat steps aside before a comes down, so it stays on its own plate and can come back to climb the raised edge', shows: ['quiet'] } },
+  },
+  {
+    name: "Shepherd's Hill", role: 'puzzle', teaches: 'three lessons in one: clear the village out of the row, bring a flat neighbour in front of the goat, push in and pull back', axis: '--|', expectPar: 4,
+    blurb: 'A village is fine on a low hill; only a peak breaks it.',
+    map: `
+      ~  ~  ~  ~  ~  ~  ~  ~
+      ~  ~  ~  a0 c0 c1 ~  ~
+      ~  ~  a0 a0 c0 c0 c0 ~
+      ~  a1 a0 a0 c0* c0 c0 ~
+      ~  a0 a0 a1G b0V b0 ~  ~
+      ~  ~  a0 a0 b0 b0 ~  ~
+      ~  ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P1E P2S P0E P0W', trap: { move: 'P2N', finish: 6, why: 'the buoy floats at once, but the tick is worth nothing: c is needed south, in front of the goat, and coming back covers the buoy again' },
+      aha: { move: 'P1E', says: 'b steps aside with the village: c can now come down over open water, staying flat, and stand in front of the goat', shows: ['quiet'] } },
   },
 ];

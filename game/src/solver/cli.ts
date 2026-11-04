@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { buildLevels, MAX_DEPTH } from '../levels/build.ts';
 import { CAMPAIGN } from '../levels/campaign.ts';
 import { fromJson, type Level, type LevelJson } from '../rules/rules.ts';
-import { audit, drawLevel, firstMoves, greedySolveRate, partsOf, randomSolveRate, shipCheck, shortestSolutions } from './audit.ts';
+import { audit, drawLevel, effortOf, firstMoves, greedySolveRate, partsOf, randomSolveRate, shipCheck, shortestSolutions } from './audit.ts';
 import { checkFixture } from './fixtures.ts';
 import { generate } from './generate.ts';
 
@@ -31,7 +31,7 @@ function check(lv: Level, withFixture: boolean): { ok: boolean; line: string } {
     else {
       const f = checkFixture(spec, lv);
       problems.push(...f.problems);
-      extra = `  trap ${spec.fixture?.trap ? `${spec.fixture.trap.move}->${spec.fixture.trap.finish}` : 'none'}  aha ${spec.fixture?.aha.move}  shortest ${f.solutions}  random ${(f.rate * 100).toFixed(1)}%  greedy ${(f.greedy * 100).toFixed(0)}%`;
+      extra = `  trap ${spec.fixture?.trap ? `${spec.fixture.trap.move}->${spec.fixture.trap.finish}` : 'none'}  aha ${spec.fixture?.aha.move}  shortest ${f.solutions}  random ${(f.rate * 100).toFixed(1)}%  greedy ${(f.greedy * 100).toFixed(0)}%  effort ${effortOf(lv).effort}`;
     }
   }
   const line = `min ${a.min}  land ${(a.land * 100).toFixed(0)}%  plate ${(a.plateKept * 100).toFixed(0)}%${extra}`;
@@ -71,10 +71,10 @@ if (cmd === 'export') {
   console.log(`  random ${(randomSolveRate(lv) * 100).toFixed(1)}%  greedy ${(greedySolveRate(lv) * 100).toFixed(0)}%`);
   for (const p of partsOf(lv)) console.log(`  without the ${p.what}: ${p.effect}${p.par === null ? '' : ` (par ${p.par}, ${p.ways} shortest)`}`);
 } else if (cmd === 'table') {
-  console.log('| # | Name | Biome | Par | Idea | Trap | Random solve | Greedy solve |\n|---|---|---|---|---|---|---|---|');
+  console.log('| # | Name | Biome | Role | Par | Effort | Blurb | Idea | Trap | Random solve | Greedy solve |\n|---|---|---|---|---|---|---|---|---|---|---|');
   for (const [i, lv] of shipped().entries()) {
     const s = specOf(lv.name)!;
-    console.log(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.par} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% | ${(greedySolveRate(lv) * 100).toFixed(0)}% |`);
+    console.log(`| ${i + 1} | ${lv.name} | ${lv.biome} | ${lv.role} | ${lv.par} | ${effortOf(lv).effort} | ${lv.blurb ?? ''} | ${s.teaches} | ${s.fixture?.trap ? `${s.fixture.trap.move}: ${s.fixture.trap.why}` : 'none'} | ${(randomSolveRate(lv) * 100).toFixed(1)}% | ${(greedySolveRate(lv) * 100).toFixed(0)}% |`);
   }
 } else if (cmd === 'gen') {
   const seed = Number(arg1), count = Number(arg2 ?? 1), oasis = flags.has('--desert');

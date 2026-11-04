@@ -45,10 +45,12 @@ describe('previewDiff (Codex chain 4: every visible change is in the preview)', 
     expect(d.flips).toEqual([[0, true]]); // the goat gets its peak: First Peak is solved by P0E
   });
 
-  it('ice lifted to a peak melts where it stood (Thin Ice P0E: the whole ice wall, and those cells flood)', () => {
+  it('ice lifted to a peak melts where it stood (Thin Ice, second P0E: the whole ice wall, and those cells flood)', () => {
     const ice = named('Thin Ice');
-    const d = previewDiff(ice, ice.start, shift(ice, ice.start, 0, 1)!);
-    expect(d.melt).toEqual([12, 20, 28]);
+    const first = shift(ice, ice.start, 0, 1)!;
+    expect(previewDiff(ice, ice.start, first).melt).toEqual([]); // the first push only lifts the wall to height 1
+    const d = previewDiff(ice, first, shift(ice, first, 0, 1)!);
+    expect(d.melt).toEqual([14, 23, 32]);
     for (const c of d.melt) expect(d.flood).toContain(c);
     expect(d.rise).toEqual([]); // nothing visibly rises: the cells that would have are gone
     expect(d.flips).toEqual([[0, true]]); // the penguin sees the sea

@@ -2,14 +2,15 @@
 // trap and its aha move in levels/tutorial.ts or levels/campaign.ts, and `npm run levels:audit` proves each claim against the
 // rules. A level whose idea stops being true (a rules change, a map edit) fails here instead of shipping as solver noise.
 import { previewDiff } from '../rules/diff.ts';
-import { canFinish, goalsMet, seaMask, solve, solved, type Level, type State } from '../rules/rules.ts';
+import { canFinish, DIR_NAME, goalsMet, railMoves, seaMask, shift, solve, solved, type Level, type State } from '../rules/rules.ts';
 import type { Claim, Spec } from '../levels/tutorial.ts';
 import { applyAll, greedySolveRate, landShare, minPlateKept, partsOf, randomSolveRate, shortestSolutions } from './audit.ts';
 
 /** Deepest search the audit runs; the Finale's par is 5-7 and a trap's cost is measured a little past it. */
 export const AUDIT_DEPTH = 9;
+const TRAP_PROOF_STATES = 1_000_000;
 /** A puzzle must not fall to a player who just takes the move the preview shows ticking most goals. Lucky tie-breaks may
- *  reach it, but not often: Step Aside sits at 12.5% because clearing the floe's path also opens sea for the penguin. */
+ *  reach it, but not often: Cold Feet sits at 12.5% because clearing the floe's path also opens sea for the penguin. */
 export const MAX_GREEDY = 0.15;
 /** Below this a plate reads as eaten (the grey-box's "conquest" finding); tiny plates still count by cells kept. */
 const MIN_PLATE_KEPT = 0.5;
@@ -31,8 +32,7 @@ export function claimsOf(lv: Level, s: State, t: State, m: string, earlier: stri
   if (d.flood.length) out.add('floods');
   if (d.melt.length) out.add('melts');
   const sea0 = seaMask(lv, s), sea1 = seaMask(lv, t);
-  const lakeCount = (st: State, sea: Uint8Array) => { let n = 0; for (let i = 0; i < st.plate.length; i++) if (st.plate[i] < 0 && !sea[i]) n++; return n; };
-  if (lakeCount(t, sea1) > lakeCount(s, sea0)) out.add('lake');
+  if (lakeCount(lv, t) > lakeCount(lv, s)) out.add('lake');
   const p = Number(m[1]);
   for (let i = 0; i < t.plate.length; i++) {
     if (s.plate[i] < 0 && t.plate[i] < 0 && sea0[i] && !sea1[i]) out.add('seals');
@@ -55,6 +55,18 @@ export function shapeProblems(lv: Level): string[] {
     if (s.ice?.[i] && s.elev[i] >= 2) why.push(`ice at height ${s.elev[i]} at ${x},${y} would melt on any move`);
   }
   for (const o of s.objs) if (o.kind === 'goat' && s.ice?.[o.cell]) why.push(`goat on ice at cell ${o.cell} can never reach a peak`);
+  // a plate reads as one piece of land: it slides as one, so a plate in two pieces looks like two plates
+  for (let p = 0; p < lv.plates; p++) {
+    const cells = [...s.plate.keys()].filter(i => s.plate[i] === p);
+    if (!cells.length) continue;
+    const seen = new Set([cells[0]]), todo = [cells[0]];
+    while (todo.length) {
+      const c = todo.pop()!;
+      for (const j of [c % w > 0 ? c - 1 : -1, c % w < w - 1 ? c + 1 : -1, c - w, c + w])
+        if (j >= 0 && j < w * h && s.plate[j] === p && !seen.has(j)) { seen.add(j); todo.push(j); }
+    }
+    if (seen.size !== cells.length) why.push(`plate ${p} is in two pieces`);
+  }
   // an island, not a rectangle: the land's bounding box must have gaps on its rim
   let x0 = w, x1 = 0, y0 = h, y1 = 0, land = 0;
   for (let i = 0; i < w * h; i++) if (s.plate[i] >= 0) { const x = i % w, y = Math.floor(i / w); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); land++; }
@@ -72,6 +84,25 @@ export function shapeProblems(lv: Level): string[] {
     if (!free) why.push(`plate ${p} has no room to move`);
   }
   return why;
+}
+
+const lakeCount = (lv: Level, s: State) => { const sea = seaMask(lv, s); let n = 0; for (let i = 0; i < s.plate.length; i++) if (s.plate[i] < 0 && !sea[i]) n++; return n; };
+
+/** Lakes are taught in the desert. Before it no board on the intended line, nor the preview of any move from one, may show
+ *  a pond: the water is another colour and a buoy in it stays unhappy, and nobody has said why (Nov 4 playtest P8). */
+export function lakesBeforeTheyAreTaught(lv: Level, line: string[]): string[] {
+  if (lv.biome !== 'meadow' && lv.biome !== 'coast') return [];
+  const out: string[] = [];
+  let s = lv.start;
+  const at = (moves: string[]) => (moves.length ? `after ${moves.join(' ')}` : 'at the start');
+  for (let k = 0; k <= line.length; k++) {
+    for (const [p, d] of railMoves(lv)) {
+      const t = shift(lv, s, p, d);
+      if (t && lakeCount(lv, t)) out.push(`${at(line.slice(0, k))} P${p}${DIR_NAME[d]} shows a pond`);
+    }
+    if (k < line.length) { const t = applyAll(lv, s, [line[k]]); if (!t) break; s = t; }
+  }
+  return out;
 }
 
 export interface FixtureReport { problems: string[]; rate: number; greedy: number; plateKept: number; land: number; solutions: number }
@@ -99,14 +130,17 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
 
   // The aha: on every shortest path, and it does what the fixture says.
   if (!shortest.every(s => s.includes(fx.aha.move) || (fx.aha.or && s.includes(fx.aha.or)))) why.push(`aha ${fx.aha.move} is not on every shortest path`);
-  const at = intended.indexOf(fx.aha.move);
-  if (at < 0) why.push(`aha ${fx.aha.move} is not in the intended solution`);
+  // A move can come twice in a line (Thin Ice pushes twice and the second melts): one of its turns must show every claim.
+  const turns = intended.flatMap((m, k) => (m === fx.aha.move ? [k] : []));
+  if (!turns.length) why.push(`aha ${fx.aha.move} is not in the intended solution`);
   else {
-    const before = applyAll(lv, lv.start, intended.slice(0, at)), after = applyAll(lv, lv.start, intended.slice(0, at + 1));
-    if (before && after) {
-      const has = claimsOf(lv, before, after, fx.aha.move, intended.slice(0, at));
-      const miss = fx.aha.shows.filter((c: Claim) => !has.has(c));
-      if (miss.length) why.push(`aha ${fx.aha.move} does not show: ${miss.join(', ')} (it shows ${[...has].join(', ')})`);
+    const shown = turns.map(at => {
+      const before = applyAll(lv, lv.start, intended.slice(0, at)), after = applyAll(lv, lv.start, intended.slice(0, at + 1));
+      return before && after ? claimsOf(lv, before, after, fx.aha.move, intended.slice(0, at)) : null;
+    }).filter((h): h is Set<Claim> => h !== null);
+    if (shown.length && !shown.some(has => fx.aha.shows.every((c: Claim) => has.has(c)))) {
+      const has = shown[0];
+      why.push(`aha ${fx.aha.move} does not show: ${fx.aha.shows.filter((c: Claim) => !has.has(c)).join(', ')} (it shows ${[...has].join(', ')})`);
     }
   }
 
@@ -118,8 +152,9 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
     else {
       if (shortest.some(s => s[0] === fx.trap!.move)) why.push(`trap ${fx.trap.move} is on a shortest path`);
       const rest = solve(lv, AUDIT_DEPTH, t);
-      // 'dead' is a proof (the "no way back" search), never "nothing within the search depth"
-      const finish = rest ? 1 + rest.min : canFinish(lv, t) === false ? 'dead' : `beyond ${AUDIT_DEPTH}`;
+      // 'dead' is a proof (every reachable state searched), never "nothing within the search depth". The audit can afford a
+      // wider search than the in-game warning: High Pasture's trap has 272k reachable states and no solution among them.
+      const finish = rest ? 1 + rest.min : canFinish(lv, t, TRAP_PROOF_STATES) === false ? 'dead' : `beyond ${AUDIT_DEPTH}`;
       if (finish !== fx.trap.finish) why.push(`trap ${fx.trap.move} finishes in ${finish}, fixture says ${fx.trap.finish}`);
     }
   } else if (par > 1) why.push('a level with par above 1 must name its trap');
@@ -129,6 +164,7 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
 
   if (lv.role === 'puzzle' && greedy > MAX_GREEDY) why.push(`greedy play solves it ${(greedy * 100).toFixed(0)}% of the time: a puzzle needs a move the preview does not reward`);
 
+  for (const p of lakesBeforeTheyAreTaught(lv, intended)) why.push(p);
   for (const p of shapeProblems(lv)) why.push(p);
   return { problems: why, rate, greedy, plateKept, land, solutions: shortest.length };
 }

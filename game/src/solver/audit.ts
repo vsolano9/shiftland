@@ -156,6 +156,66 @@ export function greedySolveRate(lv: Level, moves = lv.par ?? lv.sol?.length ?? 3
   return chance(lv.start, moves);
 }
 
+const shuffled = <T,>(a: readonly T[], r: () => number): T[] => a.map(x => ({ x, k: r() })).sort((p, q) => p.k - q.k).map(p => p.x);
+const crushed = (s: State) => s.objs.some(o => o.kind === 'village' && s.elev[o.cell] > 1);
+
+/** Tries (one move looked at, undo free) for a player who always goes on from the position with the most ticks, the latest
+ *  on a tie, and gives a broken village up at once because the game says "no way back". Never repeats a position. */
+function followTries(lv: Level, seed: number, cap: number): number {
+  const r = rng(seed), rails = railMoves(lv), seen = new Set([stateKey(lv.start)]);
+  const open = [{ s: lv.start, ticks: 0, at: 0 }];
+  let tries = 0, count = 0;
+  while (open.length) {
+    let best = 0;
+    for (let i = 1; i < open.length; i++) if (open[i].ticks > open[best].ticks || (open[i].ticks === open[best].ticks && open[i].at > open[best].at)) best = i;
+    const cur = open.splice(best, 1)[0];
+    for (const [p, d] of shuffled(rails, r)) {
+      const t = shift(lv, cur.s, p, d); if (!t) continue;
+      tries++;
+      if (solved(lv, t)) return tries;
+      if (tries >= cap) return cap;
+      const k = stateKey(t);
+      if (seen.has(k) || crushed(t)) continue;
+      seen.add(k);
+      open.push({ s: t, ticks: goalsMet(lv, t).filter(Boolean).length, at: ++count });
+    }
+  }
+  return cap;
+}
+
+/** Tries for a player who ignores the ticks and works through the board move by move, shortest lines first. */
+function blindTries(lv: Level, seed: number): number {
+  const r = rng(seed), rails = railMoves(lv), seen = new Set([stateKey(lv.start)]);
+  let frontier = [lv.start], tries = 0;
+  while (frontier.length) {
+    const next: State[] = [];
+    for (const c of frontier) for (const [p, d] of shuffled(rails, r)) {
+      const t = shift(lv, c, p, d); if (!t) continue;
+      tries++;
+      if (solved(lv, t)) return tries;
+      const k = stateKey(t);
+      if (!seen.has(k)) { seen.add(k); next.push(t); }
+    }
+    frontier = next;
+  }
+  return tries;
+}
+
+export interface Effort { follow: number; blind: number; effort: number }
+
+/**
+ * How much a level resists a player who is not reading the board: the moves tried by the cheaper of two strategies, chasing
+ * ticks or brute force, averaged over seeded tie-breaks. Undo is free, so this is what a look at every move costs. A puzzle
+ * whose effort is low falls without thought whatever its par: the Nov 4 tester breezed through Ice Dam (par 3, effort 22)
+ * and stuck on Two Waters (par 3, effort 122, against a highest 108 before it). This is the ramp, read from `npm run levels:audit`.
+ */
+export function effortOf(lv: Level, runs = 24, cap = 4000): Effort {
+  let follow = 0, blind = 0;
+  for (let i = 1; i <= runs; i++) { follow += followTries(lv, i * 7 + 1, cap); blind += blindTries(lv, i * 13 + 1); }
+  follow = Math.round(follow / runs); blind = Math.round(blind / runs);
+  return { follow, blind, effort: Math.min(follow, blind) };
+}
+
 /** One thing a level asks for or puts in the way: a goal, a connected stretch of ice, or the pin on a rock. */
 export interface Part { what: string; kind: 'goal' | 'ice' | 'pin'; par: number | null; ways: number;
   /** needed: unsolvable within par without it; shortens: par drops without it; widens: more shortest solutions without it; decoy: nothing changes */

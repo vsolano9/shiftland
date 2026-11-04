@@ -121,8 +121,8 @@ describe('canFinish (the "no way back" warning)', () => {
     expect(play('Mirage', 'P2W')).toBe(false); // the bite comes too soon: a dead end proven by search, not by a lost village
     expect(performance.now() - t).toBeLessThan(5000);
   });
-  it('proves a real dead end (Mind the Village after the crushing push)', () => {
-    expect(play('Mind the Village', 'P0E')).toBe(false);
+  it('proves a real dead end (Village Green after the crushing push)', () => {
+    expect(play('Village Green', 'P0E')).toBe(false);
   });
   it('a lost village is proven without searching, even where the search would hit its cap', () => {
     const t = performance.now();
@@ -130,7 +130,7 @@ describe('canFinish (the "no way back" warning)', () => {
     expect(performance.now() - t).toBeLessThan(200);
   });
   it('does not call a far-but-solvable state a dead end (Codex chain 3 regression)', () => {
-    expect(play('Far One First', 'P0S P1W P2E P2W P1W P2E P1E P1W')).toBe(true);
+    expect(play("Shepherd's Hill", 'P0W P1W P1E P0E P2N P2S P0W P1W')).toBe(true); // eight moves in, six still to go
   });
 });
 
@@ -169,8 +169,8 @@ describe('refusal: the reason shift says no, for the UI', () => {
     const edge = shift(lv, lv.start, 0, 3)!; // one step west leaves no room on the grid: that is not the rail
     expect(refusal(lv, edge, 0, 3)).toBe('other');
   });
-  it('melt: Step Aside refuses both pushes until the floe has somewhere to go', () => {
-    const lv = named('Step Aside');
+  it('melt: Cold Feet refuses both pushes until the floe has somewhere to go', () => {
+    const lv = named('Cold Feet');
     expect(refusal(lv, lv.start, 0, 1)).toBe('melt'); // P0E would melt the floe under the penguin
     expect(refusal(lv, lv.start, 1, 2)).toBe('melt'); // P1S would too, against c
     const cleared = shift(lv, lv.start, 2, 3)!; // P2W: c gets out of the way
@@ -302,10 +302,10 @@ describe('penguin (Tundra): stands on ice that touches the sea', () => {
 
 describe('levels.json (the shipped campaign)', () => {
   const all = (levels as LevelJson[]).map(fromJson);
-  it('starts with the first tutorial and has 18-20 levels', () => {
+  it('starts with the first tutorial and has 20-24 levels', () => {
     expect(all[0].name).toBe('First Peak');
-    expect(all.length).toBeGreaterThanOrEqual(18);
-    expect(all.length).toBeLessThanOrEqual(20);
+    expect(all.length).toBeGreaterThanOrEqual(20);
+    expect(all.length).toBeLessThanOrEqual(24);
   });
   for (const lv of all) {
     it(`${lv.name}: solver par equals the exported par`, () => {

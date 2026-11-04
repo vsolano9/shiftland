@@ -3,7 +3,7 @@ import { canFinish, fromJson, goalsMet, seaMask, type Level, type LevelJson } fr
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
-import { checkFixture, claimsOf, shapeProblems } from './fixtures';
+import { checkFixture, claimsOf, lakesBeforeTheyAreTaught, shapeProblems } from './fixtures';
 import { applyAll } from './audit';
 
 const all = (levels as LevelJson[]).map(fromJson);
@@ -19,7 +19,7 @@ describe('every shipped level proves its intended solution, trap and aha (npm ru
 });
 
 describe('a fixture that stops being true fails', () => {
-  const name = 'Wind-Up', s = spec(name), lv = byName(name);
+  const name = 'Salt Point', s = spec(name), lv = byName(name);
   const problems = (f: Spec, l: Level = lv) => checkFixture(f, l).problems.join('; ');
   it('no fixture at all', () => expect(problems({ ...s, fixture: undefined })).toMatch(/no fixture/));
   it('an intended solution that is not shortest', () => expect(problems(withFix(s, { intended: 'P2E P2E P2W' }))).toMatch(/does not solve|not a shortest|not the intended/));
@@ -71,6 +71,20 @@ describe('the moments the finale is built on', () => {
   });
 });
 
+describe('ponds before the desert (Nov 4 playtest P8: a pond appeared in level 5, before lakes are taught)', () => {
+  it('no meadow or coast level shows one on its intended line or any preview from it', () => {
+    for (const lv of all.filter(l => l.biome === 'meadow' || l.biome === 'coast')) expect(lakesBeforeTheyAreTaught(lv, lv.sol!), lv.name).toEqual([]);
+  });
+  it('names the move that would show one', () => {
+    const still = byName('Still Water');
+    expect(lakesBeforeTheyAreTaught({ ...still, biome: 'coast' }, still.sol!).join()).toMatch(/at the start P1E shows a pond/);
+  });
+  it('the desert and after are free to show them', () => {
+    const still = byName('Still Water');
+    expect(lakesBeforeTheyAreTaught(still, still.sol!)).toEqual([]);
+  });
+});
+
 describe('claims', () => {
   const claims = (name: string, before: string[], m: string) => {
     const lv = byName(name);
@@ -78,13 +92,16 @@ describe('claims', () => {
   };
   it('lifts', () => expect(claims('First Peak', [], 'P0E')).toContain('lifts'));
   it('floods', () => expect(claims('Open Water', [], 'P0W')).toContain('floods'));
-  it('quiet', () => expect(claims('Mind the Village', [], 'P1S')).toContain('quiet'));
+  it('quiet', () => expect(claims('Village Green', [], 'P1S')).toContain('quiet'));
   it('ticks2', () => expect(claims('The Long Pier', [], 'P1E')).toContain('ticks2'));
   it('returns', () => expect(claims('Stolen Peak', ['P0E'], 'P0W')).toContain('returns'));
   it('reclaims', () => expect(claims('The Long Pier', [], 'P1E')).toContain('reclaims'));
   it('lake', () => expect(claims('Still Water', [], 'P1E')).toContain('lake'));
   it('seals', () => expect(claims('Mirage', ['P1E', 'P0E', 'P2W'], 'P2E')).toContain('seals'));
-  it('melts', () => expect(claims('Thin Ice', [], 'P0E')).toContain('melts'));
+  it('melts, on the second push and not the first', () => {
+    expect(claims('Thin Ice', [], 'P0E')).not.toContain('melts');
+    expect(claims('Thin Ice', ['P0E'], 'P0E')).toContain('melts');
+  });
   it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P2S')).toContain('hitsrock'));
   it('unticks', () => expect(claims('The Summit', ['P0N', 'P2E', 'P0N'], 'P2W')).toContain('unticks'));
   it('opens', () => {
@@ -103,6 +120,11 @@ describe('shape checks', () => {
   });
   it('no shipped level breaks a shape rule', () => {
     for (const lv of all) expect(shapeProblems(lv), lv.name).toEqual([]);
+  });
+  it('flags a plate in two pieces: it slides as one, so it would read as two plates', () => {
+    const lv = byName('First Peak'), plate = Int8Array.from(lv.start.plate);
+    plate[2 * lv.w + 2] = -1; // the cell that joins plate a's three arms
+    expect(shapeProblems({ ...lv, start: { ...lv.start, plate } }).join()).toMatch(/plate 0 is in two pieces/);
   });
   it('flags a goat on ice: it could never reach a peak', () => {
     const lv = byName('Thin Ice'), ice = Uint8Array.from(lv.start.ice!);

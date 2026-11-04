@@ -18,7 +18,7 @@ class FakeWorker implements WorkerLike {
 }
 const pool = () => { const made: FakeWorker[] = []; return { made, make: () => { const w = new FakeWorker(); made.push(w); return w; } }; };
 
-const village = fromJson((levels as LevelJson[]).find(l => l.name === 'Mind the Village')!);
+const village = fromJson((levels as LevelJson[]).find(l => l.name === 'Village Green')!);
 const deadEnd = shift(village, village.start, 0, 1)!; // P0E crushes the village: proven dead end
 
 describe('StuckChecker', () => {

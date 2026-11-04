@@ -30,11 +30,9 @@ describe('level build', () => {
 
 describe('the campaign', () => {
   const biomes = CAMPAIGN.map(s => s.biome ?? 'meadow');
-  it('runs Meadow 6, Coast 3-4, Desert 3-4, Tundra 3-4, Finale 2, in that order', () => {
+  it('runs Meadow 7, Coast 4, Desert 5, Tundra 5, Finale 3, in that order', () => {
     const count = (b: string) => biomes.filter(x => x === b).length;
-    expect(count('meadow')).toBe(6);
-    for (const b of ['coast', 'desert', 'tundra']) { expect(count(b)).toBeGreaterThanOrEqual(3); expect(count(b)).toBeLessThanOrEqual(4); }
-    expect(count('finale')).toBe(2);
+    expect(['meadow', 'coast', 'desert', 'tundra', 'finale'].map(count)).toEqual([7, 4, 5, 5, 3]);
     const order = biomes.filter((b, i) => b !== biomes[i - 1]);
     expect(order).toEqual(['meadow', 'coast', 'desert', 'tundra', 'finale']);
   });
@@ -43,8 +41,11 @@ describe('the campaign', () => {
     expect(new Set(names).size).toBe(names.length);
     for (const n of names) { expect(n.split(' ').length).toBeLessThanOrEqual(3); expect(n).not.toMatch(/puzzle|level|\d/i); }
   });
-  it('blurbs are one short sentence or two, within about 60 characters', () => {
-    for (const s of CAMPAIGN) expect(s.blurb?.length ?? 0, s.name).toBeLessThanOrEqual(60);
+  it('every level has a blurb of one plain sentence, within 60 characters', () => {
+    for (const s of CAMPAIGN) {
+      expect(s.blurb, s.name).toMatch(/^[A-Z][^.!?]*\.$/);
+      expect(s.blurb!.length, s.name).toBeLessThanOrEqual(60);
+    }
   });
   it("each biome's first level teaches its twist in at most 3 moves, and the Finale runs 5-7", () => {
     for (const [i, s] of CAMPAIGN.entries()) if (i > 0 && biomes[i] !== biomes[i - 1] && biomes[i] !== 'finale') expect(s.expectPar, s.name).toBeLessThanOrEqual(3);
