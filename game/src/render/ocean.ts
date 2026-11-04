@@ -154,7 +154,8 @@ const FRAG = /* glsl */`
     lake = mix(lake, vec3(.93,.84,.6), smoothstep(.2,.07,d));
     col = mix(col, lake, m.g);
     // rift floor before the sea reaches it
-    vec3 flr = uFloor*(.72+.5*fbm(p*4.))*mix(.55,1.,smoothstep(0.,.3,dist));
+    // wet and dark, half sea already: bright sand laid on the water looks like a sheet of cardboard
+    vec3 flr = mix(uFloor*(.42+.3*fbm(p*4.)), col, .42)*mix(.7,1.,smoothstep(0.,.3,dist));
     col = mix(col, flr, m.b);
     float fm = max(foam, ring*.5)*(1.-m.b);
     col = mix(col, vec3(.96,.99,1.), fm*(1.-.35*m.g));

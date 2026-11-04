@@ -3,7 +3,7 @@
 // Pure: no DOM, no three.js. The render layer reads `session`, `selected` and `progress` and reacts to the events.
 import type { Level } from '../rules/rules.ts';
 import { previewDiff, type MoveDiff } from '../rules/diff.ts';
-import { shift, solved, type Dir } from '../rules/rules.ts';
+import { refusal, shift, solved, type Dir, type Refusal } from '../rules/rules.ts';
 import { dragStops } from './drag.ts';
 import type { KeyAction } from './keys.ts';
 import type { Progress } from './progress.ts';
@@ -13,7 +13,7 @@ export type GameEvent =
   | { kind: 'level'; index: number }                       // a level was opened (restart counts too)
   | { kind: 'selected'; plate: number | null }
   | { kind: 'moved'; plate: number }
-  | { kind: 'blocked'; plate: number }                     // rail end or a rule refused the move (shake the plate)
+  | { kind: 'blocked'; plate: number; why: Refusal | null } // rail end or a rule refused the move (shake the plate, say why)
   /** Drag preview of `steps` stops (diff from the current state); steps 0 / diff null clears it. */
   | { kind: 'preview'; plate: number; steps: number; diff: MoveDiff | null }
   | { kind: 'wrong-axis'; plate: number }
@@ -102,7 +102,7 @@ export class Controller {
       steps.push(ask.dir); s = next;
       if (solved(this.levels[this.index], s)) break; // the level ends at this stop; the rest of the drag is moot
     }
-    if (strained && !this.straining) this.emit({ kind: 'blocked', plate: p });
+    if (strained && !this.straining) this.emit({ kind: 'blocked', plate: p, why: refusal(this.levels[this.index], s, p, ask!.dir) });
     this.straining = strained;
     const key = steps.length ? `${p}:${steps[0]}:${steps.length}` : '';
     if (key === this.pending?.key || (!key && !this.pending)) return;
@@ -138,8 +138,9 @@ export class Controller {
   /** Commit one stop (keyboard arrow or a drag step); false when refused. */
   move(p: number, d: Dir): boolean {
     const was = this.session.stuck;
+    const why = refusal(this.levels[this.index], this.session.state, p, d);
     const r = this.session.move(p, d);
-    if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p }); return false; }
+    if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p, why }); return false; }
     this.emit({ kind: 'moved', plate: p });
     this.unstuck(was);
     if (r.solved) {

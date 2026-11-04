@@ -60,7 +60,7 @@ export class Particles {
   dust(x: number, y: number, z: number, n = 8, col = '#e9ddc6') {
     for (let i = 0; i < (this.reduced ? n / 3 : n); i++) {
       const a = Math.random() * 6.28, r = .35 + Math.random() * .9;
-      this.puffs.add({ color: col, x: x + Math.cos(a) * .3, y: y + .03, z: z + Math.sin(a) * .3, vx: Math.cos(a) * r, vy: .4 + Math.random() * .8, vz: Math.sin(a) * r, g: .9, drag: 2.6, size: .07 + Math.random() * .08, grow: .12, max: .55 + Math.random() * .4 });
+      this.puffs.add({ color: col, x: x + Math.cos(a) * .3, y: y + .03, z: z + Math.sin(a) * .3, vx: Math.cos(a) * r, vy: .4 + Math.random() * .8, vz: Math.sin(a) * r, g: .9, drag: 2.6, size: .035 + Math.random() * .05, grow: .08, max: .45 + Math.random() * .3 });
     }
   }
   rubble(x: number, y: number, z: number, n = 5, col = '#a98d6d') {

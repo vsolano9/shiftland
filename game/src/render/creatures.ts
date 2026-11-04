@@ -211,11 +211,11 @@ export class Creature {
         break;
       }
       case 'buoy': {
-        // floating at sea it bobs; stranded on land it lies on its side
+        // floating at sea it bobs; stranded on land it leans over, aground
         const stranded = 1 - k;
-        this.body.rotation.z = stranded * 1.32 + k * Math.sin(ph * 1.5) * .09;
+        this.body.rotation.z = stranded * .46 + k * Math.sin(ph * 1.5) * .09;
         this.body.rotation.x = k * Math.sin(ph * 1.1) * .07;
-        this.body.position.y = stranded * .07 + k * (Math.sin(ph * 1.5) * .025) + hop * .1;
+        this.body.position.y = stranded * .035 + k * (Math.sin(ph * 1.5) * .025) + hop * .1;
         for (const f of this.fish) {
           f.t += dt;
           if (this.metK > .9 && f.t > 1 + (this.next < 0 ? 0 : 99)) { f.t = 0; f.a = Math.random() * 6.28; this.next = 1.4 + Math.random() * 3; this.sfx?.('fish'); const [x, , z] = this.world(Math.cos(f.a) * .42, 0, Math.sin(f.a) * .42); this.fx.splash(x, z, 5); }

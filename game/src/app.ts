@@ -92,7 +92,7 @@ class App {
   settings = loadSettings();
   private view!: IslandView;
   private busyUntil = 0;
-  private drag: { plate: number; start: Vector3; y: number; pointer: number; moved: boolean } | null = null;
+  private drag: { plate: number; start: Vector3; y: number; pointer: number; moved: boolean; across: number } | null = null;
   private dragging = false;
   private pinEls: HTMLElement[] = [];
   private thumbs!: ReturnType<World['thumbs']>;
@@ -335,7 +335,8 @@ class App {
     const tut = i < 2 && s.moves === 0;
     const h = $('hint');
     h.textContent = i === 0 && tut ? 'Drag a plate along its rail' : '';
-    h.classList.toggle('off', !(i === 0 && tut));
+    h.classList.add('off');
+    if (i === 0 && tut) this.world.after(fly ? 1.3 : .1, () => { if (this.view === v && !this.firstMoveMade && this.screen === 'level') h.classList.remove('off'); });
     this.handStart = tut ? this.world.time.value : 0;
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.showRail(this.handMove.plate); } });
@@ -446,7 +447,12 @@ class App {
         break;
       }
       case 'moved': this.afterMove(e.plate); break;
-      case 'blocked': this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18); break;
+      case 'blocked': {
+        this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
+        const say = { rail: 'End of the rail', stack: "Two creatures can't share a cell", melt: 'That would melt the ice under them', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
+        if (e.why) this.flashHint(say[e.why]);
+        break;
+      }
       case 'wrong-axis': this.audio.play('blocked'); this.flashHint('This plate slides the other way'); break;
       case 'preview': {
         this.view.showPreview(e.diff);
@@ -687,7 +693,7 @@ class App {
     const start = this.world.groundPoint(e.clientX, e.clientY, y);
     if (!start) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    this.drag = { plate, start, y, pointer: e.pointerId, moved: false };
+    this.drag = { plate, start, y, pointer: e.pointerId, moved: false, across: 0 };
     this.dragging = true;
     v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
@@ -707,6 +713,7 @@ class App {
     (e.target as HTMLElement).style.cursor = 'grabbing';
     const ax = v.lv.axis[plate], along = ax === 1 ? dx : dz;
     if (Math.abs(along) > .06) this.drag.moved = true;
+    this.drag.across = Math.max(this.drag.across, Math.abs(ax === 1 ? dz : dx) - Math.abs(along));
     const r = v.legalRange(plate);
     let o = along;
     const rub = (over: number) => Math.tanh(over * 2) * .16;
@@ -717,12 +724,15 @@ class App {
   }
   private pointerUp(e: PointerEvent) {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
-    const p = this.drag.plate;
+    const p = this.drag.plate, across = this.drag.across;
     this.drag = null; this.dragging = false;
     this.view.setQuiet(false);
     this.view.noteDragEnd(p);
     this.view.setDrag(null);
+    const before = this.controller.session.moves;
     this.controller.release();
+    // dragged clean across the rail: say so, or the plate just looks broken
+    if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }
     (e.target as HTMLElement).style.cursor = 'default';
   }
   private pointerCancel() {
