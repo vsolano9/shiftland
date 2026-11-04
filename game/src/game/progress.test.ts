@@ -33,6 +33,16 @@ describe('Progress', () => {
     expect(open()).toEqual([true, true, true, true, true, false]);     // P3 opens; still two unsolved open
     expect(p.next()).toBe(2);                                          // Play returns to the skipped puzzle
   });
+  it('a teaching island further along cannot be skipped, a puzzle can', () => {
+    const six = ['T1', 'P1', 'T2', 'P2', 'P3', 'P4'];
+    const p = new Progress(six, new Mem(), 1, [0, 2]);
+    p.complete(0, 1, 0);
+    expect(p.unlocked(2)).toBe(true);   // P1 skipped: T2 is one of the two open
+    expect(p.unlocked(3)).toBe(false);  // T2 still unsolved
+    p.complete(2, 1, 0);                // T2 done, P1 still skipped
+    expect(p.unlocked(3)).toBe(true);
+    expect(p.unlocked(1)).toBe(true);
+  });
   it('tutorialCount: the leading run of tutorial levels', async () => {
     const { tutorialCount } = await import('./progress');
     expect(tutorialCount([{ role: 'tutorial' }, { role: 'tutorial' }, { role: 'puzzle' }, { role: 'tutorial' }])).toBe(2);

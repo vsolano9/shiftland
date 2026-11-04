@@ -310,6 +310,12 @@ export class IslandView {
       const cell = this.creatureCell(c, next), [tx, tz] = this.xz(cell), ty = this.creatureY(c, next, cell);
       if (animate) this.crT.push({ c, fx: c.root.position.x, fy: c.root.position.y, fz: c.root.position.z, tx, ty, tz, t: 0, dur, delay: 0 });
       else c.root.position.set(tx, ty, tz);
+      if (c.kind === 'goat') {
+        // it stands looking along the island, never out over the water
+        const x = cell % this.lv.w, y = Math.floor(cell / this.lv.w);
+        const land = (a: number, b: number) => a >= 0 && b >= 0 && a < this.lv.w && b < this.lv.h && next.plate[a + b * this.lv.w] >= 0;
+        c.face(land(x, y + 1) || !land(x + 1, y) ? -.4 : 1.25, !animate);
+      }
     }
   }
 
@@ -631,13 +637,14 @@ export class IslandView {
   get span() { return Math.max(this.lv.w, this.lv.h); }
   /** The box the camera must keep in view: start land plus how far each plate can slide, clipped to the grid. */
   /** What the level camera must keep on screen, in island space: every land cell, a step of each plate's slide, and whoever stands on it. */
-  framePoints() {
-    const { lv } = this, s = lv.start, pts: Vector3[] = [];
-    const objs = new Set(s.objs.map(o => o.cell));
+  /** Points the camera must hold: the start board while playing (it must not creep per move), the board as it now stands on the win screen. */
+  framePoints(current = false) {
+    const { lv } = this, s = current ? this.state : lv.start, pts: Vector3[] = [], head = current ? 1.25 : .7;
+    const objs = new Set([...s.objs.map(o => o.cell), ...(current ? lv.buoys : [])]);
     for (let i = 0; i < s.plate.length; i++) {
       const p = s.plate[i]; if (p < 0) continue;
       const [x, z] = this.xz(i), slide = lv.pinned?.includes(p) ? 0 : .15, ax = lv.axis[p] === 1;
-      const top = topY(s.elev[i]) + (objs.has(i) ? .7 : .05);
+      const top = topY(s.elev[i]) + (objs.has(i) ? head : .05);
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         const px = x + sx * (.5 + (ax ? slide : 0)), pz = z + sz * (.5 + (ax ? 0 : slide));
         pts.push(new Vector3(px, -.05, pz), new Vector3(px, top, pz));

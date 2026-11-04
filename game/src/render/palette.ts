@@ -20,7 +20,7 @@ export const BIOMES: Record<BiomeName, BiomeLook> = {
   meadow: { ground: '#7ccb46', mix: 0.1, rock: '#8d8a84', sand: '#c9a56b', sea: ['#1298ad', '#22cfc9'], accent: '#6cbf3c', label: 'Meadow' },
   coast: { ground: '#ecd59a', mix: 0.2, rock: '#9b9184', sand: '#e9d29a', sea: ['#0f93bd', '#35dbd9'], accent: '#2fa9d6', label: 'Coast' },
   desert: { ground: '#efb066', mix: 0.3, rock: '#b08660', sand: '#f0cd8a', sea: ['#118da3', '#35cfb8'], accent: '#e8953a', label: 'Desert' },
-  tundra: { ground: '#eef3f8', mix: 0.06, rock: '#7e8794', sand: '#cfd9e2', sea: ['#17749c', '#3cb4d0'], accent: '#7fc4ec', label: 'Tundra' },
+  tundra: { ground: '#eef3f8', mix: 0.13, rock: '#7e8794', sand: '#cfd9e2', sea: ['#17749c', '#3cb4d0'], accent: '#7fc4ec', label: 'Tundra' },
   finale: { ground: '#86c85a', mix: 0.14, rock: '#7f7a78', sand: '#d4b57a', sea: ['#0d6a9e', '#26bcd0'], accent: '#a06be0', label: 'Finale' },
 };
 

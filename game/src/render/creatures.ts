@@ -72,7 +72,7 @@ export class Creature {
         this.houses.push({ g, cracks: cr, dx, dz, rot }); b.add(g);
       }
       b.rotation.y = 0;
-      for (let i = 0; i < 3; i++) { const p = mesh(i === 0 ? peopleA : i === 1 ? peopleB : peopleC, false); p.visible = false; p.position.set(-.26 + i * .26, .0, .38 - i * .04); b.add(p); this.people.push(p); }
+      for (let i = 0; i < 3; i++) { const p = mesh(i === 0 ? peopleA : i === 1 ? peopleB : peopleC, false); p.visible = false; p.position.set(-.24 + i * .24, .0, .3 - i * .02); b.add(p); this.people.push(p); }
     } else if (this.kind === 'light') {
       b.add(mesh(M.lighthouse));
       const lampMesh = new Mesh(M.lamp, this.lampMat = new MeshBasicMaterial({ vertexColors: true, color: 0x555555 })); b.add(lampMesh);
@@ -129,6 +129,8 @@ export class Creature {
   bubbleHome: [number, number, number] = [.2, .1, -.18];
   private bubbleAt: [number, number, number] = [.2, .1, -.18];
 
+  private faceY = -.4;
+  face(y: number, snap: boolean) { this.faceY = y; if (snap) this.body.rotation.y = y; }
   celebrate(on: boolean) { this.celebrating = on ? 1 : 0; this.people.forEach(p => { p.visible = on; }); }
 
   update(dt: number, t: number) {
@@ -162,6 +164,7 @@ export class Creature {
     switch (this.kind) {
       case 'goat': {
         const pivot = this.head!.userData.pivot as Group;
+        this.body.rotation.y += (this.faceY - this.body.rotation.y) * Math.min(1, dt * 6);
         // unhappy: sulking on its belly, legs tucked, chin down, sighing; a goat that fell over reads as a dead goat.
         // happy: up on all fours, chin high, a little hop
         const sad = 1 - k;

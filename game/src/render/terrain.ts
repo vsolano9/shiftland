@@ -98,10 +98,11 @@ const FRAG_HEAD = /* glsl */`
   float aa(float e, float x){ float w = fwidth(x)+1e-4; return smoothstep(e-w, e+w, x); }
   float patternMask(vec2 p, float kind){
     // bold dark marks on the plate's ground, as on concepts/shiftland-biomes.png: the pattern alone tells one plate from another
-    if (kind < .5) { float s = fract((p.x + p.y) * 1.5); return aa(.7, s); }                           // diagonal stripes
+    // (distance from the middle of each period, so both edges get antialiased, not just the rising one)
+    if (kind < .5) { float s = abs(fract((p.x + p.y) * 1.5)-.5); return 1. - aa(.15, s); }             // diagonal stripes
     if (kind < 1.5) { vec2 q = p*1.7; q.x += .5*floor(q.y); vec2 g = fract(q)-.5; return 1. - aa(.2, length(g)); } // round dots
-    if (kind < 2.5) { float z = abs(fract(p.x*1.25)-.5); float s = fract(p.y*1.5 + z); return aa(.72, s); } // chevrons
-    vec2 c = floor(p*2.); return mod(c.x+c.y, 2.)*.7;                                                  // checks
+    if (kind < 2.5) { float z = abs(fract(p.x*1.25)-.5); float s = abs(fract(p.y*1.5 + z)-.5); return 1. - aa(.14, s); } // chevrons
+    vec2 c = abs(fract(p)-.5); float a = aa(.25, c.x), b = aa(.25, c.y); return (a + b - 2.*a*b)*.7;   // checks
   }
 `;
 const FRAG_BODY = /* glsl */`

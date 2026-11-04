@@ -83,7 +83,7 @@ export class World {
     this.scene.add(new AmbientLight('#ffffff', .35));
     const sun = this.sun = new DirectionalLight('#fff3dc', 2.35);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.015; sun.shadow.radius = 1.4;
+    sun.shadow.bias = -0.0012; sun.shadow.normalBias = 0.035; sun.shadow.radius = 1.4;
     this.scene.add(sun, sun.target);
     this.setShadowSpan(13);
 
@@ -149,7 +149,7 @@ export class World {
     const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(), up = new Vector3().crossVectors(CAM_DIR, right).normalize();
     const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
     const usableV = 1 - this.hudPad.top - this.hudPad.bottom, usableH = 1 - this.hudPad.left - this.hudPad.right;
-    const pts = v.framePoints();
+    const pts = v.framePoints(this.padKind === 'solved');
     let u0 = 1e9, u1 = -1e9, w0 = 1e9, w1 = -1e9;
     for (const p of pts) { const u = p.dot(right), w = p.dot(up); u0 = Math.min(u0, u); u1 = Math.max(u1, u); w0 = Math.min(w0, w); w1 = Math.max(w1, w); }
     const cu = (u0 + u1) / 2, cw = (w0 + w1) / 2;

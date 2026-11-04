@@ -108,7 +108,7 @@ class App {
   constructor(canvas: HTMLCanvasElement) {
     this.levels = (raw as unknown as LevelJson[]).map(fromJson);
     const names = this.levels.map(l => l.name!);
-    this.progress = new Progress(names, browserStorage(), tutorialCount(this.levels));
+    this.progress = new Progress(names, browserStorage(), tutorialCount(this.levels), this.levels.flatMap((l, i) => (l.role === 'tutorial' ? [i] : [])));
     this.world = new World(canvas, this.levels, (s, o) => this.audio.play(s, o), archipelago(this.levels, innerWidth / innerHeight));
     this.world.reducedMotion = this.settings.reduced;
     this.world.fx.reduced = this.settings.reduced;

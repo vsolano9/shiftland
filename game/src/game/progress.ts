@@ -19,7 +19,7 @@ export class Progress {
   /** false once a write failed (shown nowhere yet; the settings screen may say "progress won't be saved"). */
   persistent = true;
 
-  constructor(private names: string[], private storage: StorageLike | null, private orderedUntil = 0) {
+  constructor(private names: string[], private storage: StorageLike | null, private orderedUntil = 0, private teachers: number[] = []) {
     try {
       const raw = storage?.getItem(KEY);
       const parsed = raw ? JSON.parse(raw) : null;
@@ -40,6 +40,8 @@ export class Progress {
   unlocked(i: number): boolean {
     if (i === 0 || this.solved(i - 1)) return true;
     if (i < this.orderedUntil) return false;
+    // an island that teaches a rule can't be skipped: what comes after it assumes the player has met that rule
+    if (this.teachers.some(t => t < i && !this.solved(t))) return false;
     const tutorialsDone = this.orderedUntil === 0 || this.solved(this.orderedUntil - 1);
     const solvedCount = this.names.reduce((n, _, k) => n + (this.solved(k) ? 1 : 0), 0);
     return tutorialsDone && i < solvedCount + 2;

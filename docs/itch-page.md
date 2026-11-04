@@ -17,14 +17,15 @@ A small island is cut into tectonic plates. Slide one along its rail:
 - where it **pushes** into its neighbour, the land rises into mountains;
 - where it **pulls away**, the sea pours in.
 
-Goats want peaks. Villages want to stay low and whole. Lighthouses want a coast. Buoys want open sea. Make them all happy at once in as few shifts as you can.
+Goats want peaks. Villages want to stay low and whole. Lighthouses want a coast. Buoys want open sea. Oases want a still lake, and penguins want a floe by the water. Make them all happy at once in as few shifts as you can.
 
-- 12 islands across meadow, coast and desert (15 with tundra if the stretch ships; update this line at G4 to the shipped count)
+- 20 islands across meadow, coast, desert, tundra and a finale
 - every level is solver-checked: it can always be solved, and par is the true minimum
-- free undo and restart; stars for finishing at par, never required
-- plays in the browser with mouse, keyboard or touch, in about 30 minutes
+- free undo and restart; a live preview shows what a shift will do before you let go
+- stars for finishing at par without seeing a move, never required
+- plays in the browser with mouse, keyboard or touch, in about 30 to 45 minutes
 
-**Controls:** click or tap a plate, drag it one stop along its rail (or arrow keys). Z undo, R restart.
+**Controls:** drag a plate along its rail, or select it and use the arrow keys. Z undo, R restart, H hint, M map.
 
 ## Made for Game Off 2026 (theme: SHIFT)
 

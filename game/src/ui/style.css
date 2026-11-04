@@ -37,7 +37,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 #hud-tr { position: absolute; right: 16px; top: calc(14px + var(--safe-t)); display: flex; gap: 10px; }
 #goals { position: absolute; left: 0; right: 0; bottom: calc(14px + var(--safe-b)); display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; padding: 0 12px; }
 .chip { display: flex; align-items: center; gap: 8px; background: var(--cream); border-radius: 15px; box-shadow: var(--sh); padding: 6px 12px 6px 7px; position: relative; font-size: 15px; line-height: 1.08; transition: transform .2s cubic-bezier(.3, 1.8, .5, 1), background .2s; }
-.chip img { width: 44px; height: 44px; display: block; }
+.chip img { width: 44px; height: 44px; display: block; filter: drop-shadow(0 0 1px rgba(40, 60, 90, .55)); }
 .chip .tx { min-width: 62px; }
 .chip .tx b { display: block; font-weight: 600; }
 .chip .tx span { color: var(--ink2); font-size: 14px; }
