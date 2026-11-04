@@ -15,7 +15,8 @@ import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
-import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
+import { DIR_NAME, fromJson, shift, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
+import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
 import { drawLogo } from './ui/logo.ts';
 
@@ -323,6 +324,7 @@ class App {
   }
 
   private enterLevel(i: number, fly: boolean) {
+    this.dropHint();
     this.view = this.world.views[i];
     const v = this.view, lv = v.lv;
     this.show('level');
@@ -381,9 +383,22 @@ class App {
    */
   private showHint() {
     if (!this.canPlay) return;
-    const s = this.controller.session, v = this.view, sol = solve(s.lv, 16, s.state);
+    const s = this.controller.session, v = this.view, at = s.state;
+    // a dead end can take seconds to prove, so the search runs in a worker; a slow answer says it is thinking
+    const here = () => this.controller.session === s && s.state === at && this.view === v;
+    clearTimeout(this.hintSlow);
+    this.hintSlow = window.setTimeout(() => { if (here()) this.flashHint('Thinking it over…', 8); }, 250);
+    this.hints.ask(s.lv, at, sol => {
+      clearTimeout(this.hintSlow);
+      if (here()) this.answerHint(sol); else $('hint').classList.add('off'); // the player moved on
+    });
+  }
+  private hintSlow = 0;
+  private dropHint() { clearTimeout(this.hintSlow); this.hints.cancel(); }
+  private answerHint(sol: HintReply['sol']) {
+    const s = this.controller.session, v = this.view;
     if (!sol) { this.flashHint('No way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
-    const m = parseMove(sol.firstSolution[0]);
+    const m = parseMove(sol.first);
     v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
     const late = s.par !== undefined && s.moves + sol.min > s.par;
     if (this.hintLevel === 0) {
@@ -397,6 +412,7 @@ class App {
     this.flashHint(`${sol.min} move${sol.min === 1 ? '' : 's'} to go. No star this run: Restart to win it back`, 4);
   }
   private hintLevel = 0;
+  private hints = new HintSearch(createHintWorker);
 
   // ---- HUD
   private buildChips() {
@@ -520,6 +536,7 @@ class App {
   private afterMove(plate: number) {
     const v = this.view, s = this.controller.session, lv = s.lv;
     this.firstMoveMade = true;
+    this.dropHint();
     this.handStart = 0; this.handMove = null; v.railHint = 0;
     $('hint').classList.add('off'); $('b-undo').classList.remove('glow'); $('stuck').classList.add('hidden-el');
     if (this.hintLevel) v.showRail(plate); // the pointed-at plate lets go: the hint was for the board before this move
@@ -550,9 +567,10 @@ class App {
     }
     if (r.arrived.length) this.world.after(MOVE_TIME * .7, () => { for (const cell of r.arrived) { const p = v.worldPos(cell, 0); this.world.fx.splash(p.x, p.z, 4); } });
     this.refreshHud();
+    // the camera steps back with the move and not after it: a board still sliding under the pointer takes the next grab to the wrong plate
+    if (!this.controller.session.solved) this.world.keepInFrame(MOVE_TIME);
     this.world.after(MOVE_TIME + .05, () => {
       if (this.view !== v || this.controller.session.lv !== lv) return;
-      if (!this.controller.session.solved) this.world.keepInFrame();
       const g = this.controller.session.goals;
       v.applyGoals(g, true);
       let delay = 0;

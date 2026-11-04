@@ -42,6 +42,12 @@ describe('packContinent', () => {
     }
     expect(seen.size).toBe(cells.size);
   });
+  it('keeps every island\'s reserved water clear of land, its own and the others\'', () => {
+    const wet = [square(-20, 0, 4), square(20, 0, 4), square(0, 20, 4), square(0, -20, 4), square(-20, 20, 3), square(20, -20, 3)]
+      .map(i => ({ ...i, keep: [[-1, 1], [4, 2]] as [number, number][] }));
+    const at = packContinent(wet), land = new Set(world(wet, at).map(([x, z]) => `${Math.round(x)},${Math.round(z)}`));
+    for (let i = 0; i < wet.length; i++) for (const [x, z] of wet[i].keep!) expect(land.has(`${Math.round(at[i][0] + x)},${Math.round(at[i][1] + z)}`)).toBe(false);
+  });
   it('is deterministic and handles nothing', () => {
     expect(packContinent(isls)).toEqual(to);
     expect(packContinent([])).toEqual([]);

@@ -1,7 +1,8 @@
 // The last shift: every island of the map slides in and locks into one continent, like plates that were always one land.
 // A jigsaw over the islands' real land cells: nothing overlaps, and each island touches what was placed before it.
 
-export interface PackIsland { x: number; z: number; cells: [number, number][] }
+/** `keep`: water no land may cover, this island's own or another's: a buoy's sea, an oasis's lake. Relative, like `cells`. */
+export interface PackIsland { x: number; z: number; cells: [number, number][]; keep?: [number, number][] }
 
 const key = (x: number, z: number) => (x + 4096) * 8192 + z + 4096;
 
@@ -37,7 +38,7 @@ export function packContinent(islands: PackIsland[], pull = .3, reach = 24): [nu
   if (!n) return [];
   const cx = islands.reduce((s, i) => s + i.x, 0) / n, cz = islands.reduce((s, i) => s + i.z, 0) / n;
   const order = islands.map((_, i) => i).sort((a, b) => Math.hypot(islands[a].x - cx, islands[a].z - cz) - Math.hypot(islands[b].x - cx, islands[b].z - cz));
-  const taken = new Set<number>();
+  const taken = new Set<number>(), water = new Set<number>();
   const out: [number, number][] = new Array(n);
   for (const i of order) {
     const isl = islands[i];
@@ -54,12 +55,13 @@ export function packContinent(islands: PackIsland[], pull = .3, reach = 24): [nu
       let clash = false, touch = 0;
       for (const [cxl, czl] of isl.cells) {
         const gx = Math.round(tx + cxl), gz = Math.round(tz + czl);
-        if (taken.has(key(gx, gz))) { clash = true; break; }
+        if (taken.has(key(gx, gz)) || water.has(key(gx, gz))) { clash = true; break; }
         if (taken.has(key(gx + 1, gz))) touch++;
         if (taken.has(key(gx - 1, gz))) touch++;
         if (taken.has(key(gx, gz + 1))) touch++;
         if (taken.has(key(gx, gz - 1))) touch++;
       }
+      if (!clash) for (const [wx, wz] of isl.keep ?? []) if (taken.has(key(Math.round(tx + wx), Math.round(tz + wz)))) { clash = true; break; }
       if (clash || (taken.size && touch < 3)) continue;
       // a long shared coast beats a close fit: that is what makes it a continent and not a crowd
       const score = dist - Math.min(touch, 12) * .5;
@@ -69,6 +71,7 @@ export function packContinent(islands: PackIsland[], pull = .3, reach = 24): [nu
     const [tx, tz] = best ?? [isl.x, isl.z];
     out[i] = [tx, tz];
     if (best) for (const [cxl, czl] of isl.cells) taken.add(key(Math.round(tx + cxl), Math.round(tz + czl)));
+    for (const [wx, wz] of isl.keep ?? []) water.add(key(Math.round(tx + wx), Math.round(tz + wz)));
   }
   return out;
 }

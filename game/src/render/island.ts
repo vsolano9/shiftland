@@ -568,8 +568,9 @@ export class IslandView {
       const [bx, bz] = this.xz(cell);
       const riding = cr.kind !== 'buoy' && p >= 0;
       if (!this.crT.some(t => t.c === cr)) {
-        cr.root.position.x = bx + (riding && p === this.dragPlateNow() ? this.dragNow.x : 0);
-        cr.root.position.z = bz + (riding && p === this.dragPlateNow() ? this.dragNow.z : 0);
+        const shoved = cr.kind === 'buoy' && this.state.objs.some(o => o.cell === cell); // as in moveCreatures
+        cr.root.position.x = bx + (shoved ? .3 : 0) + (riding && p === this.dragPlateNow() ? this.dragNow.x : 0);
+        cr.root.position.z = bz - (shoved ? .3 : 0) + (riding && p === this.dragPlateNow() ? this.dragNow.z : 0);
         const baseY = this.creatureY(cr, this.state, cell);
         cr.root.position.y = baseY + (riding ? this.lift[p] : 0);
       }

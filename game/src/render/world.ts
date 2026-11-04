@@ -278,6 +278,7 @@ export class World {
   peek(i: number, dur: number, done?: () => void) {
     const v = this.views[i];
     this.map = true; this.peekAt = new Vector3(v.ox, 0, v.oz);
+    this.seaTarget = BIOMES[v.biome].sea; this.dayTarget = DAYLIGHT[v.biome]; // the ending's tour replays the journey's hours
     this.padKind = 'level'; this.hudPad = this.pads('level');
     this.setShadowSpan(13);
     this.flyTo(this.focusOf(v), this.fitDistance(v) * 1.15, dur, done);
@@ -306,12 +307,18 @@ export class World {
     this.mapBottom = oldBottom;
     return f;
   }
+  /** The water on an island that must stay water in the continent, relative to the island: its buoys' cells and its lakes. */
+  private wetCells(v: IslandView): [number, number][] {
+    const wet: [number, number][] = v.lv.buoys.map(c => v.xz(c));
+    for (const r of v.waterRects([], true)) if (r.lake) wet.push([(r.x0 + r.x1) / 2 - v.ox, (r.z0 + r.z1) / 2 - v.oz]);
+    return wet;
+  }
   /** Slide every island home into one land; farthest first, so the middle is still open water as they come in. */
   lastShift(onLand: (i: number) => void, done: () => void) {
     if (this.homes || this.drive) return;
     this.setActive(null);
     const homes = this.homes = this.views.map(v => [v.ox, v.oz] as [number, number]);
-    const to = packContinent(this.views.map((v, i) => ({ x: homes[i][0], z: homes[i][1], cells: v.landRects().map(r => [(r.x0 + r.x1) / 2 - v.ox, (r.z0 + r.z1) / 2 - v.oz] as [number, number]) })));
+    const to = packContinent(this.views.map((v, i) => ({ x: homes[i][0], z: homes[i][1], cells: v.landRects().map(r => [(r.x0 + r.x1) / 2 - v.ox, (r.z0 + r.z1) / 2 - v.oz] as [number, number]), keep: this.wetCells(v) })));
     const far = this.views.map((_, i) => Math.hypot(homes[i][0] - to[i][0], homes[i][1] - to[i][1])), most = Math.max(1, ...far);
     const delay = far.map(d => (1 - d / most) * 2.6);
     const f = this.mapFrameFor(to, .3);
@@ -533,10 +540,10 @@ export class World {
     this.fx.update(dt);
     if (this.seaTarget) this.ocean.setSea(this.seaTarget[0], this.seaTarget[1], 1 - Math.exp(-dt * 1.4));
     this.easeDay(dt);
-    this.seaLife.update(dt, t, this.map || !!this.fly);
+    this.seaLife.update(dt, t, this.camera.position.y > 26); // from high up only: beside a board a boat is as big as a lighthouse
     // clouds pass by on a flight, then clear: nothing may hide an island on the map
     const cm = this.clouds[0].o.material as MeshLambertMaterial;
-    cm.opacity += ((this.fly ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5);
+    cm.opacity += ((this.fly && !this.homes ? .92 : 0) - cm.opacity) * Math.min(1, raw * 5); // nor the last shift: it is the picture the game ends on
     for (const c of this.clouds) { c.o.position.x += c.v * dt; if (c.o.position.x > this.aabb.x1 + 8) c.o.position.x = this.aabb.x0 - 8; c.o.visible = cm.opacity > .01; }
     for (const g of this.gulls) {
       g.a += g.s * dt; g.g.position.set(g.c.x + Math.cos(g.a) * g.r, g.c.y + Math.sin(g.a * 2.3) * .3, g.c.z + Math.sin(g.a) * g.r);

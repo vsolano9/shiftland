@@ -1,6 +1,7 @@
 // The title screen's island (concepts/shiftland-title-select.png): never played, arranged by hand to show the game at
 // its happiest. A goat proud on a snowy peak, a lighthouse lit by the sea, a village, a buoy with fish, the three patterns.
-import type { Level, Obj } from '../rules/rules.ts';
+import type { Level } from '../rules/rules.ts';
+import { parse } from '../levels/tutorial.ts';
 
 // One token per cell: '~' sea, '~*' sea with a buoy, otherwise <plate letter><height>[G goat, V village, L lighthouse].
 // +x runs down-right on screen and +z down-left, so the top-left of this map is the back of the island.
