@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { canFinish, fromJson, goalsMet, seaMask, type Level, type LevelJson } from '../rules/rules';
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
 import { checkFixture, claimsOf, lakesBeforeTheyAreTaught, shapeProblems } from './fixtures';
 import { applyAll } from './audit';
+
+vi.setConfig({ testTimeout: 60_000 }); // High Pasture's dead-trap proof walks 272k states
 
 const all = (levels as LevelJson[]).map(fromJson);
 const byName = (n: string) => all.find(l => l.name === n)!;

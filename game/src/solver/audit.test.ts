@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fromJson, type LevelJson } from '../rules/rules';
 import { audit, effortOf, firstMoves, greedySolveRate, partsOf, randomSolveRate, shipCheck, shortestSolutions } from './audit';
 import levels from '../levels/levels.json';
+
+vi.setConfig({ testTimeout: 60_000 }); // High Pasture's dead-trap proof walks 272k states
 
 // The exported set: tutorial levels (each biome's teachers, exempt from par >= 3) and puzzles that must pass the full bar.
 const all = (levels as LevelJson[]).map(fromJson);

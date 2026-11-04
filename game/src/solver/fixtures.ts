@@ -8,7 +8,6 @@ import { applyAll, greedySolveRate, landShare, minPlateKept, partsOf, randomSolv
 
 /** Deepest search the audit runs; the Finale's par is 5-7 and a trap's cost is measured a little past it. */
 export const AUDIT_DEPTH = 9;
-const TRAP_PROOF_STATES = 1_000_000;
 /** A puzzle must not fall to a player who just takes the move the preview shows ticking most goals. Lucky tie-breaks may
  *  reach it, but not often: Cold Feet sits at 12.5% because clearing the floe's path also opens sea for the penguin. */
 export const MAX_GREEDY = 0.15;
@@ -152,9 +151,9 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
     else {
       if (shortest.some(s => s[0] === fx.trap!.move)) why.push(`trap ${fx.trap.move} is on a shortest path`);
       const rest = solve(lv, AUDIT_DEPTH, t);
-      // 'dead' is a proof (every reachable state searched), never "nothing within the search depth". The audit can afford a
-      // wider search than the in-game warning: High Pasture's trap has 272k reachable states and no solution among them.
-      const finish = rest ? 1 + rest.min : canFinish(lv, t, TRAP_PROOF_STATES) === false ? 'dead' : `beyond ${AUDIT_DEPTH}`;
+      // 'dead' is a proof (every reachable state searched), never "nothing within the search depth". It uses the in-game
+      // warning's own search and cap, so a player who falls into a dead trap is always told.
+      const finish = rest ? 1 + rest.min : canFinish(lv, t) === false ? 'dead' : `beyond ${AUDIT_DEPTH}`;
       if (finish !== fx.trap.finish) why.push(`trap ${fx.trap.move} finishes in ${finish}, fixture says ${fx.trap.finish}`);
     }
   } else if (par > 1) why.push('a level with par above 1 must name its trap');

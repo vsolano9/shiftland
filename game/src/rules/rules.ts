@@ -175,9 +175,10 @@ export function railMoves(lv: Level): [number, Dir][] {
  * Can any solved state still be reached from s? Searches every reachable state (no depth limit): `false` proves a
  * dead end, `null` means the cap was hit and nothing is proven. The "no way back" warning shows only on `false`.
  * Breadth-first: a depth-first order wandered to the cap (2+ s, answer unknown) on states that finish in 2 moves
- * (Codex chain 4); BFS finds those in a few hundred states.
+ * (Codex chain 4); BFS finds those in a few hundred states. The cap is set so every dead trap a fixture names is
+ * proven by this same search: High Pasture's has 272k reachable states and takes about 5 s, off the main thread.
  */
-export function canFinish(lv: Level, s: State, cap = 200000): boolean | null {
+export function canFinish(lv: Level, s: State, cap = 300000): boolean | null {
   if (solved(lv, s)) return true;
   if (villageLost(s)) return false;
   const moves = railMoves(lv);
