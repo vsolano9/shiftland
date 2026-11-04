@@ -138,7 +138,11 @@ const FRAG = /* glsl */`
     // the two masks are drawn at different sharpness: the fine one fades in over its border, or a neighbour's shallows show a straight seam
     if (ua.x>0. && ua.y>0. && ua.x<1. && ua.y<1.) m = mix(m, texture2D(uActive, ua), smoothstep(0.,.1,min(min(ua.x,ua.y),min(1.-ua.x,1.-ua.y))));
     // a just-opened rift has a shore, not a ruled line: its edge is read off a wandering point
-    if (ua.x>.02 && ua.y>.02 && ua.x<.98 && ua.y<.98) m.b = texture2D(uActive, ua+(vec2(vn(p*2.3),vn(p*2.3+9.))-.5)*.5/uActiveB.zw).b;
+    // and four reads around it give the sand a slope down into the sea, where one read cut it out like paper
+    if (ua.x>.02 && ua.y>.02 && ua.x<.98 && ua.y<.98) {
+      vec2 w0 = ua+(vec2(vn(p*2.3),vn(p*2.3+9.))-.5)*.5/uActiveB.zw, r = .24/uActiveB.zw;
+      m.b = .25*(texture2D(uActive, w0+r).b + texture2D(uActive, w0-r).b + texture2D(uActive, w0+vec2(r.x,-r.y)).b + texture2D(uActive, w0+vec2(-r.x,r.y)).b);
+    }
     float dist = m.r*uRange;
     float wob = (fbm(p*1.4+vec2(t*.05,-t*.04))-.5);
     float d = dist + wob*.1;
@@ -176,15 +180,19 @@ const FRAG = /* glsl */`
     float wet = 0., front = 0.;
     if (m.b>.001) {
       float n3 = fbm(p*3.1+vec2(t*.2,0.)), n4 = fbm(p*7.3-vec2(0.,t*.3));
-      wet = smoothstep(.2,.5,m.b+(n3-.5)*.55+(n4-.5)*.2);
-      front = smoothstep(.0,.5,wet)*smoothstep(1.,.5,wet);
-      float sandRipple = .5+.5*sin((p.x*.7518-p.y*.6594)*11.+n3*5.);
-      // a sandbar just under the water, not a panel laid on it: shallow sea over sand, with ripples, its edge melting away
-      vec3 flr = mix(uFloor*(1.05+.4*n4+.15*sandRipple), uShallow, .24)*mix(.72,1.,smoothstep(0.,.3,dist));
+      float e = m.b+(n3-.5)*.55+(n4-.5)*.2;
+      wet = smoothstep(.14,.66,e);
+      // the foam rides just ahead of the sand, and breaks up: a hairline all round read as a paper cut-out
+      front = smoothstep(.08,.2,e)*smoothstep(.44,.24,e)*smoothstep(.32,.56,fbm(p*6.-vec2(t*.4,t*.25)));
+      float sandRipple = .5+.5*sin((p.x*.7518-p.y*.6594)*13.+n3*6.);
+      // a sandbar just under the water, not a panel laid on it: from pale and rippled in the middle to dark and wet toward the sea
+      float dryness = smoothstep(.34,.86,e);
+      vec3 sand = uFloor*(.82+.62*n4+.3*sandRipple*dryness)*mix(.66,1.,dryness);
+      vec3 flr = mix(mix(uShallow,sand,.62), sand, dryness)*mix(.72,1.,smoothstep(0.,.3,dist));
       col = mix(col, flr, wet);
     }
     // under land nobody sees water, except where a hidden neighbour stands: there it must be plain sea, not a raft of foam
-    float fm = max(max(foam, ring*.5)*(1.-wet), front*.85)*smoothstep(0.,.04,dist);
+    float fm = max(max(foam, ring*.5)*(1.-wet), front*.9)*smoothstep(0.,.04,dist);
     col = mix(col, vec3(.96,.99,1.), fm*(1.-.35*m.g));
     gl_FragColor = vec4(col,1.);
     #include <colorspace_fragment>
