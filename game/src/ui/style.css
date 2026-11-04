@@ -200,6 +200,11 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   .btn { font-size: 16px; padding: 8px 13px; }
 }
 
+/* The narrowest phones: the name card stays clear of Undo, wrapping as it must (the note below follows the card's height) */
+@media (max-width: 379px) and (max-aspect-ratio: 3/4) {
+  #hud-tl { max-width: calc(100vw - 248px); padding: 6px 8px; } #hud-moves { font-size: 12px; white-space: nowrap; }
+  #hud-name { font-size: 14px; }
+}
 /* A big screen: the same HUD at a size that reads from a chair. world.ts pads() keeps its numbers in step (top bar, panel width). */
 @media (min-width: 1600px) and (min-height: 900px) {
   .round { width: 66px; height: 66px; } .round svg { width: 34px; height: 34px; }
