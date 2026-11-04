@@ -1,7 +1,7 @@
 // One level's island: columns, creatures, decor, rails and move preview. The view holds no rules: it is told the State
 // to show and reconciles its columns by identity (plate + plate-anchored cell), so a move, an undo and a restart all
 // animate the same way.
-import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite } from 'three';
+import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite, type SpriteMaterial } from 'three';
 import type { MoveDiff } from '../rules/diff.ts';
 import { DX, DY, railMoves, seaMask, shift, stateKey, type Dir, type Level, type State } from '../rules/rules.ts';
 import { beamRun } from '../game/reasons.ts';
@@ -109,6 +109,38 @@ export class IslandView {
   /** Axis marks show on the island being played, until it is solved. */
   showMarks = false;
   /** Bubbles step aside while a plate is dragged. */
+  private leakDots: Sprite[] = [];
+  private leak: { flow: boolean; pts: [number, number][]; left: number } | null = null;
+  /** Points at water on the board: dots run along a way out to sea, or stand and pulse on a lake (playtest 5 P5-2). Null clears it. */
+  showLeak(l: { flow: boolean; pts: [number, number][] } | null, sec = 3.6) {
+    this.leak = l && l.pts.length ? { ...l, left: sec } : null;
+    const n = !this.leak ? 0 : l!.flow ? Math.ceil((l!.pts.length - 1) * 1.6) + 1 : l!.pts.length;
+    while (this.leakDots.length < n) { const d = makeSprite(sprites().dot, .3, 22); this.leakDots.push(d); this.group.add(d); }
+    this.leakDots.forEach((d, i) => { d.visible = i < n; });
+  }
+  private stepLeak(dt: number, t: number) {
+    const l = this.leak;
+    if (!l) return;
+    l.left -= dt;
+    if (l.left <= 0) { this.showLeak(null); return; }
+    const { w, h } = this.lv, fade = Math.min(1, l.left / .5), X = (a: number) => a - (w - 1) / 2, Z = (b: number) => b - (h - 1) / 2;
+    const last = l.pts.length - 1;
+    this.leakDots.forEach((d, i) => {
+      if (!d.visible) return;
+      let x: number, z: number, a = 1, size = .3;
+      if (l.flow) {
+        const n = this.leakDots.filter(o => o.visible).length, u = (t * 1.5 / last + i / n) % 1, at = u * last, k = Math.min(last - 1, Math.floor(at)), f = at - k;
+        x = X(l.pts[k][0] + (l.pts[k + 1][0] - l.pts[k][0]) * f); z = Z(l.pts[k][1] + (l.pts[k + 1][1] - l.pts[k][1]) * f);
+        a = Math.min(1, u * 8, (1 - u) * 5); // it comes up beside the creature and fades out past the map's edge
+      } else {
+        x = X(l.pts[i][0]); z = Z(l.pts[i][1]);
+        size = .3 + Math.sin(t * 5) * .06;
+      }
+      d.position.set(x, .22, z); d.scale.setScalar(size);
+      (d.material as SpriteMaterial).opacity = a * fade;
+    });
+  }
+
   /** Wish bubbles step to a side of their creature where they cover nobody else, judged in screen space (the camera angle is fixed). */
   private bubbleKey = '';
   private placeBubbles() {
@@ -137,7 +169,8 @@ export class IslandView {
       const [hu, hv] = screen(p.x, p.y + y0, p.z);
       let best = CAND[0], bestCost = Infinity;
       CAND.forEach((o, n) => {
-        const u = hu + o[0], v = hv + o[1]; let cost = n * .02;
+        // distance costs: a bubble three cells off read as someone else's (playtest 5 P5-6), so it takes a small overlap before that
+        const u = hu + o[0], v = hv + o[1]; let cost = n * .01 + Math.hypot(o[0], o[1]) * .45;
         for (const b of blobs) { if (b.owner === c) continue; const d = Math.hypot(u - b.u, v - b.v) - b.r - .24; if (d < 0) cost -= d * 4; }
         for (const [bu, bv] of placed) { const d = Math.hypot(u - bu, v - bv) - .5; if (d < 0) cost -= d * 6; }
         if (cost < bestCost) { bestCost = cost; best = o; }
@@ -253,6 +286,7 @@ export class IslandView {
   reconcile(next: State, animate: boolean, opts: { fromRestart?: boolean } = {}): { rose: number[]; flooded: number[]; arrived: number[] } {
     const lv = this.lv, prev = this.state, n = lv.w * lv.h;
     this.state = next;
+    this.showLeak(null);
     const dirSlow = opts.fromRestart ? .5 : MOVE_TIME;
     const keep = new Map<string, Column>();
     for (const c of this.cols) if (!c.dead && !c.removing) keep.set(`${c.plate}:${c.patX}:${c.patZ}`, c);
@@ -347,7 +381,7 @@ export class IslandView {
         const { dir, run } = beamRun(this.lv, next, cell);
         if (dir) c.aimBeam(dir[0], dir[1], run);
       }
-      c.setXray(this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]) >= .5);
+      c.setXray(this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]) >= .3); // half hidden was already hard to read (playtest 5 P5-5)
     }
   }
   /** How much of a creature standing here the land hides from the fixed camera: sample points walked along the view ray over the columns. */
@@ -609,6 +643,7 @@ export class IslandView {
       cr.update(dt, t);
     }
     this.placeBubbles();
+    this.stepLeak(dt, t);
     // ghost pulses
     for (const o of this.ghostGroup.children) if (o.userData.pulse) { const s = o as Sprite, b = .42 + Math.sin(t * 7) * .05; s.scale.setScalar(b); }
     // rail arrows

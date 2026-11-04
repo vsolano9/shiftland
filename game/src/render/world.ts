@@ -351,7 +351,7 @@ export class World {
   /** Where a map pin (front of the island) and a biome label (behind it) sit. */
   mapAnchors(v: IslandView): { pin: Vector3; label: Vector3 } {
     const b = v.frameBox(), r = Math.max(b.hx, b.hz) * .78, fx = Math.sin(AZ), fz = Math.cos(AZ);
-    return { pin: new Vector3(v.ox + b.cx + fx * r, 0, v.oz + b.cz + fz * r), label: new Vector3(v.ox + b.cx - fx * (r + 1.2), 1, v.oz + b.cz - fz * (r + 1.2)) };
+    return { pin: new Vector3(v.ox + b.cx + fx * r, 0, v.oz + b.cz + fz * r), label: new Vector3(v.ox + b.cx - fx * (r + 1.9), 1, v.oz + b.cz - fz * (r + 1.9)) }; // past the back of the island: labels sat on its art (playtest 5 P5-12)
   }
   /** A stop on the ending's tour: one island large in the frame, while the rest of the map stays alive. */
   peek(i: number, dur: number, done?: () => void) {

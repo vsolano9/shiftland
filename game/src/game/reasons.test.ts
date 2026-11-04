@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalsMet, type Level, type State, type Kind } from '../rules/rules.ts';
-import { beamDir, beamRun, goalReason, hasSplitPlate, meltReason, moveWhy, stackReason } from './reasons.ts';
+import { beamDir, beamRun, goalReason, hasSplitPlate, leakOf, meltReason, moveWhy, stackReason } from './reasons.ts';
 import { refusal } from '../rules/rules.ts';
 
 /** A 5x5 grid from rows: '#' land, '.' water; one creature at (x, y). */
@@ -85,6 +85,28 @@ describe('hasSplitPlate', () => {
     expect(hasSplitPlate(split.lv, split.s)).toBe(true);
     const corner = board(['.....', '.#...', '..#..', '.....', '.....'], 'goat', 1, 1);
     expect(hasSplitPlate(corner.lv, corner.s)).toBe(true);
+  });
+});
+
+describe('leakOf', () => {
+  it('walks the way out for an oasis on water that reaches the sea', () => {
+    const { lv, s } = board(['#####', '#.###', '#.###', '#...#', '###.#'], 'oasis', 2, 1);
+    const l = leakOf(lv, s, 0)!;
+    expect(l.flow).toBe(true);
+    expect(l.pts[0]).toEqual([1, 1]); // starts beside the oasis
+    expect(l.pts[l.pts.length - 1]).toEqual([3, 5]); // and runs off the map
+    for (let i = 1; i < l.pts.length; i++) expect(Math.abs(l.pts[i][0] - l.pts[i - 1][0]) + Math.abs(l.pts[i][1] - l.pts[i - 1][1])).toBe(1);
+  });
+  it('marks the whole lake for a lighthouse or a buoy that wants the sea', () => {
+    const light = board(['#####', '#####', '#..##', '#####', '#####'], 'light', 1, 1);
+    expect(leakOf(light.lv, light.s, 0)).toEqual({ flow: false, pts: [[1, 2], [2, 2]] });
+    const buoy = board(['#####', '#####', '#..##', '#####', '#####'], 'goat', 0, 0, 2, [11]);
+    expect(leakOf(buoy.lv, buoy.s, 1)!.pts).toHaveLength(2);
+  });
+  it('says nothing when the complaint is not about a body of water, or the goal is met', () => {
+    const goat = board(POND, 'goat', 1, 1, 1), oasis = board(POND, 'oasis', 1, 2);
+    expect(leakOf(goat.lv, goat.s, 0)).toBeNull();
+    expect(leakOf(oasis.lv, oasis.s, 0)).toBeNull();
   });
 });
 

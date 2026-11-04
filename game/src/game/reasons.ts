@@ -89,6 +89,33 @@ export function hasSplitPlate(lv: Level, s: State): boolean {
   return false;
 }
 
+/**
+ * The water a goal's complaint is about, for the board to point at: "that water reaches the sea" said neither which water
+ * nor where (playtest 5 P5-2). `flow`: the way out, from beside the creature to one step off the map, in grid cells.
+ * Otherwise the lake's own cells. Null when the complaint isn't about a body of water.
+ */
+export function leakOf(lv: Level, s: State, goal: number): { flow: boolean; pts: [number, number][] } | null {
+  const why = goalReason(lv, s, goal);
+  if (why !== 'that water reaches the sea' && why !== 'that water is a lake') return null;
+  const { w, h } = lv, sea = seaMask(lv, s), buoy = goal >= s.objs.length, cell = buoy ? lv.buoys[goal - s.objs.length] : s.objs[goal].cell;
+  const around = (i: number) => [0, 1, 2, 3].map(d => [i % w + DX[d], Math.floor(i / w) + DY[d]]).filter(([x, y]) => x >= 0 && y >= 0 && x < w && y < h).map(([x, y]) => x + y * w);
+  const flow = why === 'that water reaches the sea', ok = (i: number) => s.plate[i] < 0 && !!sea[i] === flow;
+  const from = buoy ? [cell] : around(cell).filter(ok), back = new Map<number, number>(from.map(i => [i, -1]));
+  const edge = (i: number) => i % w === 0 || i % w === w - 1 || i < w || i >= w * (h - 1);
+  for (const q = [...from]; q.length;) {
+    const i = q.shift()!;
+    if (flow && edge(i)) {
+      const pts: [number, number][] = [];
+      for (let k = i; k >= 0; k = back.get(k)!) pts.unshift([k % w, Math.floor(k / w)]);
+      const [x, y] = pts[pts.length - 1];
+      pts.push(x === 0 ? [-1, y] : x === w - 1 ? [w, y] : y === 0 ? [x, -1] : [x, h]);
+      return { flow, pts };
+    }
+    for (const j of around(i)) if (ok(j) && !back.has(j)) { back.set(j, i); q.push(j); }
+  }
+  return flow || !back.size ? null : { flow, pts: [...back.keys()].map(i => [i % w, Math.floor(i / w)]) };
+}
+
 /** What is wrong with one goal (index as in goalsMet: objects, then buoys), or null when it is met. */
 export function goalReason(lv: Level, s: State, goal: number): string | null {
   const { w, h } = lv, sea = seaMask(lv, s);

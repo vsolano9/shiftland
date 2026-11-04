@@ -16,8 +16,8 @@ import { BIOMES, PATTERN_WORD, PLATES, type BiomeName } from './render/palette.t
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
 import { SNAP } from './game/drag.ts';
-import { goalReason, hasSplitPlate, meltReason, moveWhy, stackReason } from './game/reasons.ts';
-import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
+import { goalReason, hasSplitPlate, leakOf, meltReason, moveWhy, stackReason } from './game/reasons.ts';
+import { DIR_NAME, DX, DY, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
 import { drawLogo } from './ui/logo.ts';
@@ -468,6 +468,7 @@ class App {
       // by name and pattern, since four plates side by side made "this plate" a guess (playtest 4 P4)
       const look = PLATES[m.plate % PLATES.length], which = `Try the ${look.name} plate with the ${PATTERN_WORD[look.pattern]}.`;
       this.flashHint(gone ? `${which} Hint again shows the move` : `${which} Hint again shows the move, but costs the star`, 6);
+      this.hintOffPlate(m.plate, m.dir);
       return;
     }
     s.hinted = true;
@@ -476,6 +477,16 @@ class App {
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
     this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${gone ? togo : `${togo}. No star this run: Restart to win it back`}`.trim(), 6);
+    this.hintOffPlate(m.plate, m.dir);
+  }
+  /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */
+  private hintOffPlate(plate: number, dir: number) {
+    const h = $('hint'), r = h.getBoundingClientRect(), a = this.view.railAnchor(plate), D = new Vector3(DX[dir], 0, DY[dir]);
+    const under = [-1, 0, 1, 2].some(k => {
+      const [x, y] = this.world.project(a.clone().addScaledVector(D, k));
+      return x > r.left - 50 && x < r.right + 50 && y > r.top - 50 && y < r.bottom + 50;
+    });
+    h.classList.toggle('up', under);
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);
@@ -492,9 +503,9 @@ class App {
       el.title = GOAL_RULE[c.kind];
       el.addEventListener('click', () => {
         this.audio.play('ui'); const why = el.dataset.why; this.flashHint(why ? `Now: ${why}. ${GOAL_RULE[c.kind]}` : GOAL_RULE[c.kind], 6);
-        this.hopOwners(c.kind);
+        this.hopOwners(c.kind); this.pointAtWater(c.kind);
       });
-      el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') this.hopOwners(c.kind); });
+      el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { this.hopOwners(c.kind); this.pointAtWater(c.kind); } });
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
@@ -515,6 +526,11 @@ class App {
   }
   /** Chip to board: whoever the chip means gives a little hop, since on a dense board "Goat" can stand anywhere. */
   private hopOwners(kind: CreatureKind) { for (const c of this.view.creatures) if (c.kind === kind) c.pop = 1; }
+  /** Chip to water: the first of this kind whose complaint is about a stretch of water gets that water shown. */
+  private pointAtWater(kind: CreatureKind) {
+    const s = this.controller.session, e = this.chips.get(kind);
+    for (const k of e?.goals ?? []) { const l = leakOf(s.lv, s.state, k); if (l) { this.view.showLeak(l); return; } }
+  }
   /** Board to rule: a tap on a creature asks it what it wants, the first thing a stuck player tries. True if one answered. */
   private askCreature(x: number, y: number) {
     const v = this.view, s = this.controller.session, at = new Vector3();
@@ -526,6 +542,7 @@ class App {
     }
     if (!best) return false;
     best.pop = 1; this.audio.play('ui');
+    v.showLeak(leakOf(s.lv, s.state, best.goalIndex));
     const why = goalReason(s.lv, s.state, best.goalIndex), rule = GOAL_RULE[best.kind];
     this.flashHint(why ? `Now: ${why}. ${rule}` : `Happy. ${rule}`, 6);
     return true;
@@ -542,7 +559,8 @@ class App {
       e.el.querySelector('.badge')!.innerHTML = all ? icon.check : icon.cross;
       (e.el.querySelector('img') as HTMLImageElement).src = this.thumbs[kind][all ? 'ok' : 'sad'];
       // the second line says what is wrong right now: a chip that flips with no reason teaches nothing (second playtest P2)
-      const s = this.controller.session, why = e.goals.map(k => g[k] ? null : goalReason(s.lv, s.state, k)).find(Boolean) ?? null;
+      // every different reason, since one line for two goats told a player both were one step short (playtest 5 P5-9)
+      const s = this.controller.session, why = [...new Set(e.goals.map(k => g[k] ? null : goalReason(s.lv, s.state, k)).filter(Boolean))].join(', ') || null;
       const line = e.el.querySelector('.tx span') as HTMLElement;
       line.textContent = why ?? GOAL_TEXT[kind][1]; line.classList.toggle('why', !!why && s.moves > 0);
       e.el.dataset.why = why ?? '';
@@ -635,7 +653,7 @@ class App {
   }
   private noteT = 0;
   private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
-    const h = $('hint'); h.textContent = t; h.classList.remove('off');
+    const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up');
     clearTimeout(this.flashT);
     sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
     this.flashT = window.setTimeout(() => {
@@ -673,7 +691,11 @@ class App {
     v.absorbDrag(plate);
     const before = v.creatures.map(c => c.met);
     const melted = previewDiff(lv, v.state, s.state).melt;
+    const was = v.state;
     const r = v.reconcile(s.state, true);
+    // a move that newly makes water the wrong kind shows which water, while the player still looks at what just moved (playtest 5 P5-2)
+    const wrong = s.goals.findIndex((_, k) => leakOf(lv, s.state, k) && goalReason(lv, was, k) !== goalReason(lv, s.state, k));
+    if (wrong >= 0) { const at = s.state; this.world.after(MOVE_TIME + .1, () => { if (this.view === v && this.controller.session.state === at) v.showLeak(leakOf(lv, at, wrong)); }); }
     if (melted.length) this.world.after(MOVE_TIME * .6, () => {
       this.audio.play('meltice', { pan: this.panOf(melted[0]) });
       for (const cell of melted) { const p = v.worldPos(cell, .1); this.world.fx.splash(p.x, p.z, 10); this.world.fx.rubble(p.x, .4, p.z, 4, '#d6f3ff'); }

@@ -56,6 +56,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 @keyframes pop { from { transform: scale(0); } }
 #hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; text-wrap: balance; width: max-content; max-width: min(740px, 94vw); transition: opacity .3s; pointer-events: none; }
 #hint.off { opacity: 0; }
+#hint.up { bottom: auto; top: calc(var(--hint-top, 70px) + var(--safe-t)); } /* out from over the plate it is talking about (playtest 5 P5-7) */
 #blurb { position: absolute; left: 50%; top: calc(16px + var(--safe-t)); transform: translateX(-50%); padding: 8px 20px; font-size: 18px; font-weight: 500; text-align: center; width: max-content; max-width: min(560px, 62vw); transition: opacity .35s; pointer-events: none; }
 #blurb.off { opacity: 0; }
 /* the name card recalls the level's note: a small "i" says it can be tapped */
@@ -164,7 +165,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #s-level:has(#goals.many) #chipwhy:empty, #s-level:has(#hint:not(.off)) #chipwhy, #s-level:has(~ #done:not(.hidden)) #chipwhy { opacity: 0; }
   .chip img { width: 32px; height: 32px; } .chip .tx { min-width: 0; } .chip .tx span { font-size: 12px; }
   .badge { width: 22px; height: 22px; } .badge svg { width: 13px; height: 13px; }
-  #hint { font-size: 15px; padding: 6px 13px; bottom: calc(var(--goals-h, 40px) + 16px + var(--safe-b)); }
+  #hint { font-size: 15px; padding: 6px 13px; bottom: calc(var(--goals-h, 40px) + 16px + var(--safe-b)); --hint-top: 112px; }
   #blurb { top: calc(66px + var(--safe-t)); font-size: 14px; padding: 5px 12px; max-width: 92vw; }
   #stuck { top: calc(70px + var(--safe-t)); left: 10px; font-size: 14px; padding: 6px 11px; }
   .pin { width: 28px; height: 28px; font-size: 14px; } .pin svg.st { width: 16px; height: 16px; right: -8px; top: -8px; }
@@ -195,7 +196,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #tagline { left: 4vw; width: 44vw; transform: none; text-align: center; bottom: auto; top: calc(10vh + 14.7vw + 6px); margin-top: 0; }
   #play { left: 26vw; bottom: 9vh; top: auto; margin-top: 0; }
   #goals { left: 10px; right: auto; top: calc(70px + var(--safe-t)); bottom: auto; flex-direction: column; align-items: flex-start; padding: 0; }
-  #hint { bottom: calc(8px + var(--safe-b)); left: 60%; }
+  #hint { bottom: calc(8px + var(--safe-b)); left: 60%; --hint-top: 40px; }
   #blurb { top: 6px; max-width: 42vw; font-size: 13px; }
   #stuck { top: auto; bottom: calc(8px + var(--safe-b)); }
   #card { top: 4px; } #card .big { font-size: 26px; } #card .small { font-size: 14px; }

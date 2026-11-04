@@ -62,7 +62,7 @@ export class Creature {
       this.bubble.position.set(.28, HEAD_Y[kind] + .1, 0);
       this.root.add(this.bubble);
       // dots from the head to the bubble: wherever placeBubbles has to put it on a crowded board, it still says whose it is (playtest 3 P3)
-      for (const size of [.13, .09, .06]) { const d = makeSprite(sprites().dot, size / KIND_SCALE[kind], 21); d.userData.size = size / KIND_SCALE[kind]; this.root.add(d); this.bubbleDots.push(d); }
+      for (const size of [.18, .13, .09]) { const d = makeSprite(sprites().dot, size / KIND_SCALE[kind], 21); d.userData.size = size / KIND_SCALE[kind]; this.root.add(d); this.bubbleDots.push(d); }
     }
     this.phase += seed;
     this.build();
