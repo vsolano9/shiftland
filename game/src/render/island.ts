@@ -81,6 +81,8 @@ export class IslandView {
   private badgePool: Sprite[] = [];
   railPlate: number | null = null;
   railHint = 0;
+  /** With railHint: which way along the rail the hint points (+1 east/south, -1 west/north). */
+  railDir = 0;
   private anchors: Mesh[] = [];
   private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number }[] = [];
   /**
@@ -428,7 +430,10 @@ export class IslandView {
     const place = (o: Mesh, k: number) => { o.position.set(ax === 1 ? ax0 + k : ax0, y, ax === 1 ? az0 : az0 + k); };
     const range = this.legalRange(p);
     // the rail shows what matters: every legal stop, plus one red stop past each end when something (not the rail's end) refuses it
-    const lo = Math.max(-mt, off - range.neg - 1), hi = Math.min(mt, off + range.pos + 1);
+    // Never further than two stops from the plate (a full rail runs off over the sea, through whoever stands in line),
+    // and on a hint only the way the hint means
+    const dir = this.railHint ? this.railDir : 0;
+    const lo = dir > 0 ? off : Math.max(-mt, off - range.neg - 1, off - 2), hi = dir < 0 ? off : Math.min(mt, off + range.pos + 1, off + 2);
     const tubeLen = hi - lo + .3, mid = (lo + hi) / 2;
     place(P.tube, mid); P.tube.scale.set(tubeLen, 1, 1); P.tube.rotation.y = ax === 1 ? 0 : Math.PI / 2;
     const sh = P.tube.userData.shadow as Mesh; sh.position.copy(P.tube.position); sh.position.y -= .01; sh.scale.copy(P.tube.scale); sh.rotation.copy(P.tube.rotation);
@@ -443,7 +448,7 @@ export class IslandView {
     place(P.knob, off);
     P.knob.userData.base = P.knob.position.clone();
     P.arrows.forEach((a, i) => {
-      const sign = i ? 1 : -1, ok = i ? range.pos > 0 : range.neg > 0;
+      const sign = i ? 1 : -1, ok = (i ? range.pos > 0 : range.neg > 0) && (!dir || dir === sign);
       a.visible = ok;
       place(a, off + sign * .34);
       a.rotation.set(Math.PI / 2, 0, ax === 1 ? -sign * Math.PI / 2 : (sign > 0 ? Math.PI : 0));
@@ -652,21 +657,11 @@ export class IslandView {
   /** What the level camera must keep on screen, in island space: every land cell, a step of each plate's slide, and whoever stands on it. */
   /** Points the camera must hold: the start board while playing (it must not creep per move), the board as it now stands on the win screen. */
   framePoints(current = false) {
-    // Playing, the camera holds the board at the start, as it stands now and as it will stand solved, so rising land stays in frame.
+    // Playing, the board opens as large as it fits and the camera steps back when land rises out of frame (World.keepInFrame).
     if (current) return this.statePoints(this.state, 1.25, true);
     const pts = this.statePoints(this.lv.start, .9, false);
     if (this.state !== this.lv.start) pts.push(...this.statePoints(this.state, .9, false));
-    const end = this.solvedState();
-    if (end) pts.push(...this.statePoints(end, .9, false));
     return pts;
-  }
-  private solved?: State | null;
-  /** The board after the level's stored solution (null when it has none, as on the title's island). */
-  private solvedState(): State | null {
-    if (this.solved !== undefined) return this.solved;
-    let s: State | null = this.lv.start;
-    for (const m of this.lv.sol ?? []) { if (!s) break; s = shift(this.lv, s, Number(m[1]), 'NESW'.indexOf(m[2]) as Dir); }
-    return this.solved = this.lv.sol?.length ? s : null;
   }
   private statePoints(s: State, head: number, buoys: boolean) {
     const { lv } = this, pts: Vector3[] = [];

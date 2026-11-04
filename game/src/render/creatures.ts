@@ -1,12 +1,13 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
+import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, SphereGeometry, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
 import { makeSprite, sprites, type WishIcon } from './sprites.ts';
 
 export const MAT = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
+const XRAY = new MeshBasicMaterial({ color: '#1d4468', depthFunc: GreaterDepth, depthWrite: false });
 const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = new Mesh(g, MAT); m.castShadow = shadow; m.receiveShadow = false; return m; };
 
 export type CreatureKind = 'goat' | 'village' | 'light' | 'oasis' | 'penguin' | 'buoy';
@@ -54,6 +55,11 @@ export class Creature {
     }
     this.phase += seed;
     this.build();
+    // a creature behind a tall stack still shows, as a flat silhouette: you can't solve for what you can't see.
+    // Drawn after the land (renderOrder) and before the creature's own colours, so it never tints the creature itself.
+    const parts: Mesh[] = [];
+    this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT) parts.push(m); });
+    for (const m of parts) { const s = new Mesh(m.geometry, XRAY); s.renderOrder = -2; m.add(s); }
   }
 
   private build() {

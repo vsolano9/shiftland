@@ -345,7 +345,7 @@ class App {
     if (i === 0 && tut) this.world.after(fly ? 1.3 : .1, () => { if (this.view === v && !this.firstMoveMade && this.screen === 'level') h.classList.remove('off'); });
     this.handStart = tut ? this.world.time.value : 0;
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
-    if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.showRail(this.handMove.plate); } });
+    if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
@@ -378,7 +378,7 @@ class App {
     const s = this.controller.session, v = this.view, sol = solve(s.lv, 16, s.state);
     if (!sol) { this.flashHint('No way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.firstSolution[0]);
-    v.setSelected(null); v.railHint = 1; v.showRail(m.plate);
+    v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
     const late = s.par !== undefined && s.moves + sol.min > s.par;
     if (this.hintLevel === 0) {
       this.hintLevel = 1;
@@ -386,6 +386,7 @@ class App {
       return;
     }
     s.hinted = true;
+    v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     this.flashHint(`${sol.min} move${sol.min === 1 ? '' : 's'} to go. No star this run: Restart to win it back`, 4);
   }

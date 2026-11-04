@@ -177,6 +177,8 @@ export class World {
     }
     if (kind === 'solved') {
       if (short) return { top: .04, bottom: .04, left: .02, right: .46 };
+      // a wide screen has the panel at the side, so the finished island keeps its size: this is the picture the level was for
+      if (w / h >= 1.3) return { top: .04, bottom: .06, left: .03, right: (Math.min(360, .92 * w) + .05 * w + 24) / w };
       return { top: .03, bottom: Math.min(.46, 290 / h), left: 0, right: 0 };
     }
     if (short) return { top: .05, bottom: .08, left: .2, right: .02 };

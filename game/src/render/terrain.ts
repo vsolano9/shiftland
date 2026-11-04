@@ -52,6 +52,7 @@ export function makeColumnMesh(capacity: number, material: MeshLambertMaterial):
   for (const [name, n] of ATTRS) g.setAttribute(name, new InstancedBufferAttribute(new Float32Array(capacity * n), n));
   const m = new InstancedMesh(g, material, capacity);
   m.castShadow = true; m.receiveShadow = true;
+  m.renderOrder = -3; // first, so creature silhouettes can test against the land (creatures.ts XRAY); the ocean is -1
   m.boundingSphere = new Sphere(new Vector3(), 14);
   return m;
 }
