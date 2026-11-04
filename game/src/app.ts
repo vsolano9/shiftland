@@ -394,7 +394,7 @@ class App {
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
-    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? 'Click or tap a creature to ask what it wants' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
+    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
@@ -406,8 +406,6 @@ class App {
       if (this.view !== v) return;
       const say = () => { if (this.view === v && this.screen === 'level') this.showBlurb(11); }; // long enough to read it twice: it is the level's one clue (playtest 3 P6)
       if (chapter) window.setTimeout(say, 1700); else say();
-      // once, on the first island without a guiding hand: nothing on screen says creatures can be asked
-      if (this.controller.index === 2) window.setTimeout(() => { if (this.view === v && this.screen === 'level' && !this.controller.session.solved && $('hint').classList.contains('off')) this.flashHint(`Not sure what someone wants? ${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} them and ask`, 5); }, 12000);
     });
     if (fly) this.audio.play('whoosh');
   }

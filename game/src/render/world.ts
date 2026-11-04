@@ -715,19 +715,23 @@ export class World {
     this.frames++;
   }
   frames = 0;
-  /** 0 full, 1 pixel ratio capped at 1, 2 no shadows, 3 below native resolution. Only ever steps down. */
+  /** 0 full, 1 pixel ratio capped at 1.5, 2 capped at 1, 3 no shadows, 4 below native resolution. Only ever steps down. */
   quality = 0;
-  private slow = { t: 0, n: 0 };
+  private slow = { t: 0, n: 0, low: 0 };
   private adaptQuality(raw: number) {
     if (document.hidden || raw > 1) return; // a background tab or a stall says nothing about the machine
     const s = this.slow; s.t += raw; s.n++;
     if (s.t < 2) return;
     const fps = s.n / s.t; s.t = 0; s.n = 0;
-    if (fps >= 28 || this.quality >= 3) return;
+    if (fps >= 28 || this.quality >= 4) { s.low = 0; return; }
+    // one busy moment on a good phone must not blur the board for the rest of the session: a merely slow window has to repeat, a crawl acts at once
+    if (fps >= 18 && ++s.low < 2) return;
+    s.low = 0;
     this.quality++;
-    if (this.quality === 1) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
-    if (this.quality === 2) { this.renderer.shadowMap.enabled = false; this.sun.castShadow = false; this.scene.traverse(o => { const m = (o as Mesh).material as MeshLambertMaterial | undefined; if (m) m.needsUpdate = true; }); }
-    if (this.quality === 3) this.renderer.setPixelRatio(.7);
+    if (this.quality === 1) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    if (this.quality === 2) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
+    if (this.quality === 3) { this.renderer.shadowMap.enabled = false; this.sun.castShadow = false; this.scene.traverse(o => { const m = (o as Mesh).material as MeshLambertMaterial | undefined; if (m) m.needsUpdate = true; }); }
+    if (this.quality === 4) this.renderer.setPixelRatio(.7);
     this.resize();
   }
   /** Land a camera flight at once (the player tapped to skip it). */

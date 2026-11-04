@@ -23,7 +23,8 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 | 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p8\a24.log` |
 | 24 islands | Real touch | 390x844 | Reached the ending | `p8\a24p.log` |
 | 24 islands | Real touch | 844x390 | Reached the ending in 3 of 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p8\a24l-r1.log` to `r3` |
-| Plate cells under the HUD | Probe, every island along its par line | 844x390, 390x844, 360x640, 1280x720 | No plate cell is covered by a chip, note or button | session scratch `overlay.mjs` |
+| Plate cells and buttons under the HUD | Probe, every island along its par line, frozen build | 844x390, 390x844, 360x640, 1280x720, 1024x768 | No plate cell or action button is covered by a chip, note or button. A phone with 4 chips used to push a third row over Hint: found by the critic, fixed with icon-only chips from 4 up | session scratch `overlay.mjs` (run it on a frozen build: a dev-server hot reload mid-scan reports false misses) |
+| Rail handle on its plate | Probe, every plate of every island along its par line | 1280x720 | The handle projects onto its own plate, near its slider | session scratch `anchor.mjs` |
 | 28 islands (older build), random walk | Controller | 1280x720 | 14 random moves on each island: 27 px past the screen edge on Still Water, none on the rest | `wander.mjs`, design row "Camera holds par moves' reach" |
 | Scenario run | Real mouse | 1280x720 | Pinned, ice, penguins, undo, restart, cancel: 11 checks, 0 fails, 0 errors | `q7.log` |
 | Random input | Real mouse | 1280x720 | 500 steps with reloads on the 24-island build, 0 errors | `p8\mk.log` |
@@ -59,7 +60,7 @@ Times from an agent reading a board dump: lower limits. Report: `playtest6\`. Ve
 | P6-4 | Water dots read as chimney puffs, start far from the creature | Tinted water cyan, with a pulsing beat at the source |
 | P6-5 | Bubbles far from owners, over rails | Already weighs distance against covering (P5-6); with six creatures and four rails on a small board some trade stays. No change |
 | P6-6 | Phone shows one reason at a time | The line turns through every unhappy creature, 2.6 s each |
-| P6-7 | A drag at a floating rail handle missed once, through the tester's helper | Its aim was the anchor's height with the rail not showing, where nothing is drawn; a drawn rail is grabbable (`markSegments`). A thumb now also reaches 14 px past a plate's edge. Not seen by real aim |
+| P6-7 | A drag at a floating rail handle missed once, through the tester's helper | Rail height came from the plate's highest cell, so beside a low cell the rail and the hint hand floated over water (seen again on Give and Take, `p9\sh\s2.png`). Rail, anchor and grab segments now ride the slider's own cell (`railY`, `p9\sh2\s2.png`). A thumb also reaches 14 px past a plate's edge |
 | P6-8 | Hint panel didn't move up over a plate's edge | It moves for the rail and hand, by design; it covered 25 px of a plate's edge and no handle. No change |
 | P6-9 | Tundra label missing | The tester's build predates labels stepping aside (`382ef3b`); present in `p8\_map.png` |
 | P6-10 | "This plate has to be here" unclear | "Nothing shows yet: this slide sets up the next move" |
