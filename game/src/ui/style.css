@@ -216,6 +216,8 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #b-map { top: calc(10px + var(--safe-t)); right: 66px; }
   #b-undo, #b-restart, #b-hint { bottom: calc(var(--goals-h, 40px) + 18px + var(--safe-b)); }
   #b-undo { right: 14px; } #b-restart { left: 14px; } #b-hint { left: calc(50% - 24px); }
+  /* the results card sits on this row and its Replay stands in: an edge of a button peeped out beside it (playtest 6 P6-11) */
+  #s-level:has(~ #done:not(.hidden)) :is(#b-undo, #b-restart, #b-hint) { visibility: hidden; }
   #hud-tl { max-width: calc(100vw - 142px); }
   #hint { bottom: calc(var(--goals-h, 40px) + 74px + var(--safe-b)); }
   #s-level:has(#goals.many) #chipwhy { bottom: calc(var(--goals-h, 40px) + 72px + var(--safe-b)); }

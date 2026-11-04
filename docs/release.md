@@ -47,4 +47,4 @@ Load about 3 s from a local server. A mid laptop and a real phone have not been 
 ## Known limits
 
 - Real Safari and iOS are untested. WebKit in Playwright solved the first island; WebKit on Windows goes blank after a resize, which looks like a Playwright bug and not ours.
-- Par and "30 to 45 minutes" on the itch page are estimates from agent play.
+- "About an hour" on the itch page is an estimate from agent play: playtest 6 finished everything in 51 minutes, reading a text dump of the board, so a person is likely slower. Par is the solver's true minimum.

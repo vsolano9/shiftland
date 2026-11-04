@@ -23,7 +23,7 @@ Goats want peaks. Villages want to stay low and whole. Lighthouses want a coast.
 - every level is solver-checked: it can always be solved, and par is the true minimum
 - free undo and restart; a live preview shows what a shift will do before you let go
 - stars for finishing at par without seeing a move, never required
-- plays in the browser with mouse, keyboard or touch, in about 30 to 45 minutes
+- plays in the browser with mouse, keyboard or touch, in about an hour
 
 **Controls:** drag a plate along its rail, or select it and use the arrow keys. Z undo, R restart, H hint, M map.
 

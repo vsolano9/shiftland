@@ -47,6 +47,28 @@ Agents told to play as a new player, each on a newer build.
 | 4 | `playtest4\` | "A good puzzle game is hiding inside a pleasant one, but its middle sags." Findings below |
 | 5 | `playtest5\` | Saw-tooth curve and a quit point at the Tundra's start: campaign cut to 24, water dots added. Findings below |
 
+### Playtest 6 findings (24 islands, ending, map, phone; finished, 22 of 24 stars, 51 minutes)
+
+Times from an agent reading a board dump: lower limits. Report: `playtest6\`. Verdict: would finish and recommend; the place it would quit was island 23.
+
+| Id | Finding | Result |
+|---|---|---|
+| P6-1 | Give and Take is the wall, before an easier finale, and nothing says Restart is nearer | Note now states the trick ("Push in, then pull back: the bitten land comes with you"); both hint presses say "Restart is shorter" when the way from here is longer than par. Not swapped: The Summit is the climax |
+| P6-2 | Thin Ice never says melted ice becomes open water | Note and penguin rule both say so |
+| P6-3 | Two Waters spikes above the next three | Note fixed, not swapped: playtest 5 hit the same wall the other way round. It now says the thing the first move does ("A bitten palm stays put when its old plate slides away"); the corner rule is taught earlier, at The Cut |
+| P6-4 | Water dots read as chimney puffs, start far from the creature | Tinted water cyan, with a pulsing beat at the source |
+| P6-5 | Bubbles far from owners, over rails | Already weighs distance against covering (P5-6); with six creatures and four rails on a small board some trade stays. No change |
+| P6-6 | Phone shows one reason at a time | The line turns through every unhappy creature, 2.6 s each |
+| P6-7 | A drag at a floating rail handle missed once, through the tester's helper | Its aim was the anchor's height with the rail not showing, where nothing is drawn; a drawn rail is grabbable (`markSegments`). A thumb now also reaches 14 px past a plate's edge. Not seen by real aim |
+| P6-8 | Hint panel didn't move up over a plate's edge | It moves for the rail and hand, by design; it covered 25 px of a plate's edge and no handle. No change |
+| P6-9 | Tundra label missing | The tester's build predates labels stepping aside (`382ef3b`); present in `p8\_map.png` |
+| P6-10 | "This plate has to be here" unclear | "Nothing shows yet: this slide sets up the next move" |
+| P6-11 | Small things | Village Green's door now says a creature can be asked; the button sliver beside the phone's results card is gone. Accepted: chip rows change shape as reasons change length, a rail stays lit while its plate is selected, objects over a rail tip, Next goes on in order after a replay, phone map pins over small thumbnails |
+
+### Landscape touch miss on Good Neighbours (Nov 4)
+
+`allplay.mjs` at 844x390 stopped at Good Neighbours' second move in about 1 of 10 runs, never elsewhere. The touch landed at the very top edge of plate 0 (cell 9's centre at plate height projects onto the silhouette, see `p9` scratch `ll4.png`), and `pick` said null there on `pointerdown`, a tick after saying plate 0. The exact flip was not caught: a logged `pick` ran 40 clean runs. The player-facing fix is thumb reach: a touch within 14 px of a plate grabs it (`e2e/phone.spec.ts`). The hint text in that failure was the first move's, not the touch's.
+
 ### Playtest 5 findings (whole game, 28 islands, reached 25)
 
 | Id | Finding | Result |
