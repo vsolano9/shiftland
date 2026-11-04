@@ -26,6 +26,19 @@ async function open(page: Page, i: number) {
   await page.waitForTimeout(2500);
 }
 
+test('a rail handle sits on its own plate, even beside a cell the plate has raised', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 22); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
+  const sol = (await state(page)).sol;
+  for (const m of [sol[0], sol[4], sol[1], sol[1], sol[4]]) {
+    await page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${Number(m[1])}, dir: ${'NESW'.indexOf(m[2])} })`);
+    await page.waitForTimeout(700);
+  }
+  const off = await page.evaluate(`(() => { const a = ${SL}, v = a.view; return [0, 1, 2].filter(p => { const [x, y] = a.world.project(v.railAnchor(p)); return a.world.pick(x, y) !== p; }); })()`);
+  expect(off).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('a chip about the wrong water shows that water, and a hint steps off its plate', async ({ page }) => {
   const errors = await start(page);
   await open(page, 11); // Breakwater: the oasis's water reaches the sea at the start

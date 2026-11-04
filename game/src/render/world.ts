@@ -717,10 +717,12 @@ export class World {
   frames = 0;
   /** 0 full, 1 pixel ratio capped at 1.5, 2 capped at 1, 3 no shadows, 4 below native resolution. Only ever steps down. */
   quality = 0;
-  private slow = { t: 0, n: 0, low: 0 };
+  private slow = { t: 0, n: 0, low: 0, boot: 5 };
   private adaptQuality(raw: number) {
+    const s = this.slow;
+    if (s.boot > 0) { s.boot -= raw; return; } // the first seconds compile shaders and decode fonts: every phone looks slow, and a blurred board would then stay for the session
     if (document.hidden || raw > 1) return; // a background tab or a stall says nothing about the machine
-    const s = this.slow; s.t += raw; s.n++;
+    s.t += raw; s.n++;
     if (s.t < 2) return;
     const fps = s.n / s.t; s.t = 0; s.n = 0;
     if (fps >= 28 || this.quality >= 4) { s.low = 0; return; }
