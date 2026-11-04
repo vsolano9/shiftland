@@ -7,7 +7,7 @@
 import type { Level, State } from '../rules/rules.ts';
 
 export interface StuckRequest { id: number; lv: Level; s: State }
-export interface StuckReply { id: number; canFinish: boolean | null }
+export interface StuckReply { id: number; canFinish: boolean | null; far?: boolean }
 
 /** The part of Worker the client uses, so tests can pass an in-process fake. */
 export interface WorkerLike {
@@ -23,7 +23,7 @@ export class StuckChecker {
   /** Workers spawned so far (tests and the dev overlay read it). */
   spawned = 0;
 
-  constructor(private make: () => WorkerLike, private onStuck: (stuck: boolean) => void) {}
+  constructor(private make: () => WorkerLike, private onStuck: (stuck: boolean, far: boolean) => void) {}
 
   /** Ask about state s; a search still running for an earlier state is killed. */
   check(lv: Level, s: State) {
@@ -42,7 +42,7 @@ export class StuckChecker {
     w.onmessage = e => {
       if (w !== this.worker) return;
       this.busy = false;
-      if (e.data.id === this.latest) this.onStuck(e.data.canFinish === false);
+      if (e.data.id === this.latest) this.onStuck(e.data.canFinish === false || !!e.data.far, !!e.data.far);
     };
     return (this.worker = w);
   }

@@ -41,14 +41,6 @@ test('keys alone solve an island, then restart, undo, hint and map', async ({ pa
   expect(s.solved).toBe(true);
   expect(s.moves).toBe(sol.length);
   await page.waitForTimeout(2200);
-  // Keys select a plate and show its rail: once a move has settled the rail must sit on the plate, not where the plate was
-  const railGap = await page.evaluate(`(() => {
-    const v = ${SL}.view, p = Number(${JSON.stringify(sol[0][1])});
-    v.setSelected(p);
-    const a = v.railAnchor(p), o = v.railParts.stops[v.lv.maxTravel + (v.state.off?.[p] ?? 0)].position;
-    return Math.max(Math.abs(a.x - v.ox - o.x), Math.abs(a.z - v.oz - o.z));
-  })()`) as number;
-  expect(railGap).toBeLessThan(.01);
   await page.keyboard.press('r');
   await page.waitForTimeout(800);
   s = await state(page);
@@ -61,6 +53,12 @@ test('keys alone solve an island, then restart, undo, hint and map', async ({ pa
   await page.keyboard.press(arrow[sol[0][2]]);
   await page.waitForTimeout(600);
   const moved = (await state(page)).moves;
+  // The rail stays up on the selected plate: once the move has settled it must sit on the plate, not where the plate was
+  const railGap = await page.evaluate(`(() => {
+    const v = ${SL}.view, p = v.railPlate, a = v.railAnchor(p), o = v.railParts.stops[v.lv.maxTravel + (v.state.off?.[p] ?? 0)].position;
+    return Math.max(Math.abs(a.x - v.ox - o.x), Math.abs(a.z - v.oz - o.z));
+  })()`) as number;
+  expect(railGap).toBeLessThan(.01);
   await page.keyboard.press('z');
   await page.waitForTimeout(400);
   expect((await state(page)).moves).toBe(Math.max(0, moved - 1));

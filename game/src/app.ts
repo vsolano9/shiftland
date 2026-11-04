@@ -121,7 +121,10 @@ class App {
     this.world.goalsHeight = () => this.fitChips();
     this.world.reducedMotion = this.settings.reduced;
     this.world.fx.reduced = this.settings.reduced;
-    this.stuck = new StuckChecker(createStuckWorker, s => this.controller?.stuckAnswer(s));
+    this.stuck = new StuckChecker(createStuckWorker, (s, far) => {
+      $('stuck').textContent = far ? 'No short way from here. Undo?' : 'No way back from here. Undo?';
+      this.controller?.stuckAnswer(s);
+    });
     this.applyAudioSettings();
     this.audio.setOcean(.7);
     this.buildUi();

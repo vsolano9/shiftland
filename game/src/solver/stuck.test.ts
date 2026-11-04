@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { canFinish, fromJson, shift, type LevelJson } from '../rules/rules';
 import { StuckChecker, type StuckReply, type StuckRequest, type WorkerLike } from './stuck';
+import { stuckVerdict } from './verdict';
 import levels from '../levels/levels.json';
 
 // In-process fake with the real worker's shape: one synchronous search at a time, answered in order on run().
@@ -21,7 +22,26 @@ const pool = () => { const made: FakeWorker[] = []; return { made, make: () => {
 const village = fromJson((levels as LevelJson[]).find(l => l.name === 'Village Green')!);
 const deadEnd = shift(village, village.start, 0, 1)!; // P0E crushes the village: proven dead end
 
+describe('stuckVerdict', () => {
+  const long = fromJson((levels as LevelJson[]).find(l => l.name === 'The Summit')!);
+  it('never calls an unproven board a dead end', () => {
+    // solvable (par 7), but past both a one-state cap and a one-move search: the kind of board Codex's review asked about
+    expect(stuckVerdict(long, long.start, 1, 1)).toEqual({ canFinish: null, far: true });
+    expect(stuckVerdict(long, long.start, 1, 9)).toEqual({ canFinish: null, far: false });
+  });
+  it('still proves a real dead end', () => {
+    expect(stuckVerdict(village, deadEnd)).toEqual({ canFinish: false, far: false });
+  });
+});
+
 describe('StuckChecker', () => {
+  it('says so when the warning comes from the bounded search', () => {
+    const w = new FakeWorker(); const seen: [boolean, boolean][] = [];
+    const c = new StuckChecker(() => w, (s, far) => seen.push([s, far]));
+    c.check(village, deadEnd);
+    w.onmessage!({ data: { id: w.queue[0].id, canFinish: null, far: true } } as MessageEvent<StuckReply>);
+    expect(seen).toEqual([[true, true]]);
+  });
   it('reports a proven dead end and reuses an idle worker', () => {
     const p = pool(); const seen: boolean[] = [];
     const c = new StuckChecker(p.make, s => seen.push(s));
