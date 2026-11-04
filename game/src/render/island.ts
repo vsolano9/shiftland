@@ -4,6 +4,7 @@
 import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite } from 'three';
 import type { MoveDiff } from '../rules/diff.ts';
 import { DX, DY, railMoves, seaMask, shift, stateKey, type Dir, type Level, type State } from '../rules/rules.ts';
+import { beamDir } from '../game/reasons.ts';
 import { Creature, MAT, HEAD_Y, KIND_SCALE, type CreatureKind } from './creatures.ts';
 import * as M from './models.ts';
 import type { LandRect, WaterRect } from './ocean.ts';
@@ -84,7 +85,7 @@ export class IslandView {
   /** With railHint: which way along the rail the hint points (+1 east/south, -1 west/north). */
   railDir = 0;
   private anchors: Mesh[] = [];
-  private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number }[] = [];
+  private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number; grab: boolean }[] = [];
   /**
    * A small slider set into each free plate: a groove, one stud per stop, and a glowing peg at the stop it is on.
    * Without touching anything it says which way the plate runs and how far it has left each way.
@@ -179,7 +180,7 @@ export class IslandView {
       if (lv.pinned?.includes(p)) continue;
       const { m, knob } = this.buildMark(p);
       const [x, z] = this.plateAnchor(p), s = lv.start, cell = (x + (lv.w - 1) / 2) + (z + (lv.h - 1) / 2) * lv.w, [patX, patZ] = this.patOf(s, p, cell);
-      this.marks.push({ m, knob, plate: p, patX, patZ }); this.group.add(m);
+      this.marks.push({ m, knob, plate: p, patX, patZ, grab: false }); this.group.add(m);
     }
     this.reconcile(lv.start, false);
     this.finishTweens();
@@ -343,11 +344,7 @@ export class IslandView {
         c.face(land(x, y + 1) || !land(x + 1, y) ? -.4 : 1.25, !animate);
       }
       if (c.kind === 'light') {
-        // a lighthouse shines out to sea, over its widest stretch of water, and never across the land it stands on
-        const x = cell % this.lv.w, y = Math.floor(cell / this.lv.w), w = this.lv.w, h = this.lv.h;
-        const open = (dx: number, dy: number) => { let n = 0; for (let k = 1; k <= 4; k++) { const a = x + dx * k, b = y + dy * k; if (a < 0 || b < 0 || a >= w || b >= h) { n += 5 - k; break; } if (next.plate[a + b * w] >= 0) break; n++; } return n; };
-        let best = 0, dir: [number, number] | null = null;
-        for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) { const n = open(dx, dy); if (n > best) { best = n; dir = [dx, dy]; } }
+        const dir = beamDir(this.lv, next, cell);
         if (dir) c.aimBeam(dir[0], dir[1]);
       }
     }
@@ -648,8 +645,10 @@ export class IslandView {
     v.needsUpdate = true;
     for (const k of this.marks) {
       const hinted = this.railPlate !== null && this.railHint; // while a hint points at one plate, the others' sliders stay out of its way
-      const c = this.showMarks && this.railPlate !== k.plate && !hinted ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
-      k.m.visible = !!c;
+      const c = this.showMarks ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
+      k.m.visible = !!c && this.railPlate !== k.plate && !hinted;
+      // hovering swaps a slider for its rail: it stays a grab target, or the plate under it steals the press that follows
+      k.grab = !!c && (!hinted || this.railPlate === k.plate);
       if (c) {
         const d = c.plate === dp; k.m.position.set(c.x + (d ? this.dragNow.x : 0), c.y + this.lift[c.plate] + .014, c.z + (d ? this.dragNow.z : 0));
         k.knob.position.x = (this.state.off?.[k.plate] ?? 0) * MARK_STEP;
@@ -726,7 +725,7 @@ export class IslandView {
   }
   /** Every free plate's slider as a screen-picking target: a handle that stays reachable behind tall land. */
   markSegments() {
-    return this.marks.filter(k => k.m.visible).map(k => {
+    return this.marks.filter(k => k.grab).map(k => {
       const ax = this.lv.axis[k.plate] === 1, half = this.lv.maxTravel * MARK_STEP + .06, p = k.m.position;
       return { plate: k.plate, a: new Vector3(this.ox + p.x - (ax ? half : 0), p.y, this.oz + p.z - (ax ? 0 : half)), b: new Vector3(this.ox + p.x + (ax ? half : 0), p.y, this.oz + p.z + (ax ? 0 : half)) };
     });

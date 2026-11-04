@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalsMet, type Level, type State, type Kind } from '../rules/rules.ts';
-import { goalReason } from './reasons.ts';
+import { beamDir, goalReason, hasSplitPlate } from './reasons.ts';
 
 /** A 5x5 grid from rows: '#' land, '.' water; one creature at (x, y). */
 function board(rows: string[], kind: Kind, x: number, y: number, up = 1, buoys: number[] = [], ice = true) {
@@ -14,6 +14,30 @@ function board(rows: string[], kind: Kind, x: number, y: number, up = 1, buoys: 
 // the middle block with a pond and a dry side; (2,2) has the pond at its west
 const POND = ['.....', '.###.', '.#.#.', '.###.', '.....'];
 const SOLID = ['.....', '.###.', '.###.', '.###.', '.....'];
+
+describe('beamDir', () => {
+  it('shines at the sea, never into a lake it has closer', () => {
+    // pond to the south of (2,1), open sea to the north
+    const a = board(POND, 'light', 2, 1);
+    expect(beamDir(a.lv, a.s, 2 + 1 * 5)).toEqual([0, -1]);
+  });
+  it('has nowhere to shine when only a lake touches it', () => {
+    const a = board(['#####', '#####', '##.##', '#####', '#####'], 'light', 2, 1);
+    expect(beamDir(a.lv, a.s, 2 + 1 * 5)).toBeNull(); // land to the north, and the pond to the south doesn't count
+    const b = board(['###', '#.#', '###'], 'light', 1, 0);
+    expect(beamDir(b.lv, b.s, 1)).toEqual([0, -1]); // a cell on the map's edge looks straight off it
+  });
+});
+
+describe('hasSplitPlate', () => {
+  it('sees a plate in two pieces, and not a whole one or diagonal land as whole', () => {
+    expect(hasSplitPlate(board(SOLID, 'goat', 2, 2).lv, board(SOLID, 'goat', 2, 2).s)).toBe(false);
+    const split = board(['.....', '##.##', '.....', '.....', '.....'], 'goat', 0, 1);
+    expect(hasSplitPlate(split.lv, split.s)).toBe(true);
+    const corner = board(['.....', '.#...', '..#..', '.....', '.....'], 'goat', 1, 1);
+    expect(hasSplitPlate(corner.lv, corner.s)).toBe(true);
+  });
+});
 
 describe('goalReason', () => {
   it('goats count their missing steps', () => {

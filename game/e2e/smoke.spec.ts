@@ -34,12 +34,13 @@ test('the camera stays put while playing: a real move and an undo leave the fram
   await openLevelAt(page, '');
   const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
   const cam = () => page.evaluate(() => { const w = window.__shiftland.world as unknown as { dist: number; focus: { x: number; z: number } }; return [w.dist, w.focus.x, w.focus.z]; });
+  const same = async (a: number[]) => (await cam()).forEach((v, i) => expect(v).toBeCloseTo(a[i], 6));
   const before = await cam();
   await drag(page, sol[0]);
-  expect(await cam()).toEqual(before);
+  await same(before);
   await page.click('#b-undo');
   await page.waitForTimeout(500);
-  expect(await cam()).toEqual(before);
+  await same(before);
 });
 
 test('a hint from a dead end never freezes the game', async ({ page }) => {
@@ -48,9 +49,15 @@ test('a hint from a dead end never freezes the game', async ({ page }) => {
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
   await page.click('#btn-play');
   await page.waitForTimeout(1200);
-  await page.evaluate(() => { (window.__shiftland as unknown as { controller: { open(i: number): void } }).controller.open(5); });
+  await page.evaluate(() => {
+    const a = window.__shiftland as unknown as { controller: { open(i: number): void }; progress: { unlocked(): boolean } };
+    a.progress.unlocked = () => true;
+    a.controller.open(5);
+  });
   await page.waitForTimeout(2200);
-  await drag(page, 'P0S');
+  expect(await page.evaluate(() => window.__shiftland.controller.session.lv.name)).toBe('High Pasture');
+  await drag(page, 'P0S'); // this first move can't be finished from: a true dead end
+  expect(await page.evaluate(() => window.__shiftland.controller.session.moves)).toBe(1);
   const gap = await page.evaluate(() => new Promise<number>(done => {
     let last = performance.now(), worst = 0, n = 0;
     document.getElementById('b-hint')!.click();
@@ -58,8 +65,34 @@ test('a hint from a dead end never freezes the game', async ({ page }) => {
     requestAnimationFrame(tick);
   }));
   expect(gap).toBeLessThan(500); // the search took 4.3 s on the main thread before it moved to a worker
-  await expect(page.locator('#hint')).toContainText(/Undo|plate|Thinking/, { timeout: 15000 });
+  await expect(page.locator('#hint')).toContainText(/Undo/, { timeout: 15000 });
   expect(errors).toEqual([]);
+});
+
+test('hovering a slider leaves it grabbable: the same press still takes the same plate', async ({ page }) => {
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  await page.click('#btn-play');
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => {
+    const a = window.__shiftland as unknown as { controller: { open(i: number): void; move(p: number, d: number): void }; progress: { unlocked(): boolean } };
+    a.progress.unlocked = () => true;
+    a.controller.open(8); // Harbour Row: Codex's repro, a slider above a neighbouring plate
+    a.controller.move(0, 2); a.controller.move(1, 3);
+  });
+  await page.waitForTimeout(2600);
+  const points = await page.evaluate(() => {
+    const a = window.__shiftland as unknown as { view: { markSegments(): { plate: number; a: unknown; b: unknown }[] }; world: { project(v: unknown): [number, number]; pick(x: number, y: number): number | null } };
+    return a.view.markSegments().map(m => { const [ax, ay] = a.world.project(m.a), [bx, by] = a.world.project(m.b), x = (ax + bx) / 2, y = (ay + by) / 2; return { plate: m.plate, x, y, picked: a.world.pick(x, y) }; });
+  });
+  expect(points.length).toBeGreaterThan(1);
+  for (const pt of points) {
+    expect(pt.picked).toBe(pt.plate);
+    await page.mouse.move(pt.x, pt.y);
+    await page.waitForTimeout(150);
+    const after = await page.evaluate(([x, y]) => (window.__shiftland as unknown as { world: { pick(x: number, y: number): number | null } }).world.pick(x, y), [pt.x, pt.y]);
+    expect(after).toBe(pt.plate);
+  }
 });
 
 test('title, first island by drag, level complete, next, map, reload keeps progress', async ({ page }) => {
@@ -162,4 +195,28 @@ test('leaving during the celebration does not bring the result panel back over t
   await page.waitForTimeout(2200);
   await expect(page.locator('#done')).toHaveClass(/hidden/);
   await expect(page.locator('#s-map')).not.toHaveClass(/hidden/);
+});
+
+test('blocked storage still plays: a private window starts, moves and finishes a level', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('denied', 'SecurityError'); } }));
+  const errors = errorsOf(page);
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  await page.click('#btn-play');
+  await page.waitForTimeout(1700);
+  const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
+  for (const m of sol) await drag(page, m);
+  expect(await page.evaluate(() => window.__shiftland.controller.session.solved)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('settings survive a reload', async ({ page }) => {
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  const stored = await page.evaluate(() => { const a = window.__shiftland as unknown as { settings: Record<string, unknown>; saveSettings(): void }; a.settings.music = .25; a.settings.reduced = true; a.saveSettings(); return Object.keys(localStorage); });
+  expect(stored.length).toBeGreaterThan(0);
+  await page.reload();
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  const s = await page.evaluate(() => (window.__shiftland as unknown as { settings: { music: number; reduced: boolean } }).settings);
+  expect([s.music, s.reduced]).toEqual([.25, true]);
 });

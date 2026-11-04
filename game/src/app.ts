@@ -15,7 +15,7 @@ import { MOVE_TIME, type IslandView } from './render/island.ts';
 import { BIOMES, type BiomeName } from './render/palette.ts';
 import { World } from './render/world.ts';
 import { previewDiff } from './rules/diff.ts';
-import { goalReason } from './game/reasons.ts';
+import { goalReason, hasSplitPlate } from './game/reasons.ts';
 import { DIR_NAME, fromJson, shift, solve, type Dir, type Level, type LevelJson, type State } from './rules/rules.ts';
 import { createHintWorker, HintSearch, type HintReply } from './solver/hint.ts';
 import { createStuckWorker, StuckChecker } from './solver/stuck.ts';
@@ -63,7 +63,7 @@ const ENDING_KEY = 'shiftland.ending.v1';
 const parseMove = (m: string) => ({ plate: Number(m[1]), dir: DIR_NAME.indexOf(m[2] as 'N') as Dir });
 
 const SETTINGS_KEY = 'shiftland.settings.v1';
-interface Settings { music: number; sfx: number; muted: boolean; reduced: boolean; assist: boolean }
+interface Settings { music: number; sfx: number; muted: boolean; reduced: boolean; assist: boolean; splitSeen?: boolean }
 function loadSettings(): Settings {
   const d: Settings = { music: .7, sfx: .85, muted: false, reduced: matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, assist: false };
   try { const s = JSON.parse(browserStorage()?.getItem(SETTINGS_KEY) ?? 'null'); if (s) { for (const k of ['music', 'sfx'] as const) if (typeof s[k] === 'number' && s[k] >= 0 && s[k] <= 1) d[k] = s[k]; for (const k of ['muted', 'reduced', 'assist'] as const) if (typeof s[k] === 'boolean') d[k] = s[k]; } } catch { /* defaults */ }
@@ -357,21 +357,8 @@ class App {
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
-    const note = this.progress.solved(i) || s.moves ? '' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : i === this.firstSplit() ? 'A plate can be in two pieces. They move together' : '';
+    const note = this.progress.solved(i) || s.moves ? '' : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
-  }
-  /** The first island with a plate in two pieces, by the cells of its start board. */
-  private firstSplit() {
-    return this.levels.findIndex(lv => {
-      const { w, h, start: { plate } } = lv;
-      for (let p = 0; p < lv.plates; p++) {
-        const cells = [...plate.keys()].filter(i => plate[i] === p); if (cells.length < 2) continue;
-        const seen = new Set([cells[0]]), q = [cells[0]];
-        while (q.length) { const i = q.pop()!, x = i % w, y = Math.floor(i / w); for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) if (j >= 0 && plate[j] === p && !seen.has(j)) { seen.add(j); q.push(j); } }
-        if (seen.size < cells.length) return true;
-      }
-      return false;
-    });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
@@ -592,6 +579,11 @@ class App {
     }
     if (r.arrived.length) this.world.after(MOVE_TIME * .7, () => { for (const cell of r.arrived) { const p = v.worldPos(cell, 0); this.world.fx.splash(p.x, p.z, 4); } });
     this.refreshHud();
+    // No start board has a split plate: a player first meets one by making it, so that is when it gets said, once (second playtest P3).
+    if (!s.solved && !this.settings.splitSeen && hasSplitPlate(lv, s.state)) {
+      this.settings.splitSeen = true; this.saveSettings();
+      this.world.after(MOVE_TIME + .1, () => { if (this.controller.session === s && this.screen === 'level') this.flashHint('A plate can be in two pieces. They move together', 5); });
+    }
     // the first island's hand comes back after a wrong move: Moves 2 / Par 1 on a board that looks unchanged reads as broken (second playtest P8)
     if (this.controller.index === 0 && !s.solved) {
       const at = s.state;

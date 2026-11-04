@@ -128,7 +128,9 @@ const FRAG_BODY = /* glsl */`
       rock = mix(rock, mix(rock, vTint, .35), pm*.35);
       top = mix(top, rock, rocky);
       float snow = smoothstep(2.5,2.9,level);
-      top = mix(top, vec3(.97,.98,1.)*(.93+.08*n), snow*smoothstep(.2,.42,fbm(pw*2.7+9.)+.18));
+      // a cap, not a sheet: drifts with blue hollows, and rock showing through where the wind took it
+      vec3 snowC = mix(vec3(.74,.83,.96), vec3(.99,.995,1.), smoothstep(.34,.6,fbm(pw*4.6+2.)));
+      top = mix(top, snowC, snow*smoothstep(.27,.33,fbm(pw*2.4+9.)+.06));
       // ice terrain: pale glass with hairline cracks
       if (vFx.z > .5) {
         // a clear blue next to white snow: the ice is what penguins and the melt rule are about, so it must not read as more snow
