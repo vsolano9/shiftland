@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fromJson, goalsMet, seaMask, shift, solve, type Level, type LevelJson } from '../rules/rules';
+import { canFinish, fromJson, goalsMet, seaMask, shift, solve, type Level, type LevelJson } from '../rules/rules';
+import { goalReason } from '../game/reasons';
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
 import { checkFixture, claimsOf, lakesBeforeTheyAreTaught, shapeProblems, solveWithoutRetreat } from './fixtures';
-import { applyAll, firstMoves, greedySolveRate, shortestSolutions } from './audit';
+import { applyAll, greedySolveRate, shortestSolutions } from './audit';
 
 vi.setConfig({ testTimeout: 60_000 }); // High Pasture's dead-trap proof walks 272k states
 
@@ -25,7 +26,7 @@ describe('a fixture that stops being true fails', () => {
   const problems = (f: Spec, l: Level = lv) => checkFixture(f, l).problems.join('; ');
   it('no fixture at all', () => expect(problems({ ...s, fixture: undefined })).toMatch(/no fixture/));
   it('an intended solution that is not shortest', () => expect(problems(withFix(s, { intended: 'P2E P2E P2W' }))).toMatch(/does not solve|not a shortest|not the intended/));
-  it('a trap whose cost is wrong', () => expect(problems(withFix(s, { trap: { move: 'P2E', finish: 4, why: '' } }))).toMatch(/finishes in 5, fixture says 4/));
+  it('a trap whose cost is wrong', () => expect(problems(withFix(s, { trap: { move: 'P2E', finish: 5, why: '' } }))).toMatch(/finishes in 4, fixture says 5/));
   it('a trap that is the solution', () => expect(problems(withFix(s, { trap: { move: 'P2W', finish: 3, why: '' } }))).toMatch(/on a shortest path/));
   it('a level with par above 1 and no trap', () => expect(problems(withFix(s, { trap: null }))).toMatch(/must name its trap/));
   it('an aha off the shortest path', () => expect(problems(withFix(s, { aha: { move: 'P0N', says: '', shows: [] } }))).toMatch(/not on every shortest path/));
@@ -51,7 +52,7 @@ describe('a fixture that stops being true fails', () => {
 describe('the moments the finale is built on', () => {
   const play = (name: string, moves: string[]) => { const lv = byName(name); return { lv, s: applyAll(lv, lv.start, moves)! }; };
   const met = (name: string, moves: string[]) => { const { lv, s } = play(name, moves); return goalsMet(lv, s).filter(Boolean).length; };
-  const summitLine = ['P0W', 'P0W', 'P1S', 'P1N', 'P0E', 'P0E', 'P0E'];
+  const summitLine = ['P0W', 'P0W', 'P1N', 'P1S', 'P0E', 'P0E', 'P0E'];
   const goals = (moves: string[]) => { const { lv, s } = play('The Summit', moves); return lv.start.objs.map(o => o.kind as string).concat('buoy').filter((_, k) => !goalsMet(lv, s)[k]); };
   it('The Summit: the easy slide ticks four on the first move, and leaves the goat and the buoy', () => {
     expect(met('The Summit', [])).toBe(1);
@@ -64,7 +65,7 @@ describe('the moments the finale is built on', () => {
     expect(solve(lv, 9, s)?.min).toBe(8); // all the way out again, for the bite
   });
   it('The Summit: a cannot come home while b holds its tail, because the village would land on the penguin', () => {
-    const { lv, s } = play('The Summit', ['P0W', 'P0W', 'P1S']);
+    const { lv, s } = play('The Summit', ['P0W', 'P0W', 'P1N']);
     expect(shift(lv, s, 0, 1)).toBeNull();
   });
   it('The Summit: five of six, two given back on the way home, and the last slide ticks three at once', () => {
@@ -73,11 +74,11 @@ describe('the moments the finale is built on', () => {
     expect(goals(summitLine.slice(0, 6)).sort()).toEqual(['light', 'oasis', 'penguin']);
   });
   it('Give and Take: the pond is opened, filled, then opened again', () => {
-    const oasis = (moves: string[]) => { const { lv, s } = play('Give and Take', moves); return goalsMet(lv, s)[0]; };
+    const oasis = (moves: string[]) => { const { lv, s } = play('Give and Take', moves); return goalsMet(lv, s)[lv.start.objs.findIndex(o => o.kind === 'oasis')]; };
     expect([oasis([]), oasis(['P0W']), oasis(['P0W', 'P1W']), oasis(['P0W', 'P1W', 'P0E', 'P0W'])]).toEqual([false, true, false, true]);
   });
   it('Oxbow: the pond and the sea do not touch, not even at a corner: the corner fact is stated and first needed one level later', () => {
-    const { lv, s } = play('Oxbow', ['P0E', 'P2S', 'P1E']);
+    const { lv, s } = play('Oxbow', ['P0W', 'P2N', 'P1W']);
     const sea = seaMask(lv, s);
     const water = (x: number, y: number) => s.plate[x + y * lv.w] < 0 && sea[x + y * lv.w];
     const ponds = [...s.plate.keys()].filter(i => s.plate[i] < 0 && !sea[i]);
@@ -87,45 +88,70 @@ describe('the moments the finale is built on', () => {
       for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) expect(water(x + dx, y + dy), `${x},${y} and its corner ${dx},${dy}`).toBe(false);
     }
   });
-  it('Two Waters: the pond and the open sea end up touching only at a corner, and that corner faces the camera', () => {
-    const { lv, s } = play('Two Waters', ['P1E', 'P2E', 'P0S']);
+  it('Two Waters: the pond and the open sea end up touching only at a corner', () => {
+    const { lv, s } = play('Two Waters', ['P1E', 'P2E', 'P0N']);
     const sea = seaMask(lv, s), buoy = lv.buoys[0];
     const ponds = [...s.plate.keys()].filter(i => s.plate[i] < 0 && !sea[i]);
     expect(ponds).toHaveLength(1);
-    expect(ponds[0] - buoy).toBe(lv.w + 1); // one east, one south: the pond lies straight in front of the buoy for a camera at +x,+z, and nothing raised stands on the pond's near sides
+    expect(ponds[0] - buoy).toBe(1 - lv.w); // one east, one north: for a camera at +x,+z the two lie side by side on the screen
   });
 });
 
 describe('bite and retreat (playtest 3 P1: the technique nothing taught)', () => {
-  const sandbar = byName('Sandbar'), rock = byName('Anchor Rock');
-  it('Sandbar: the one line at par is the bite and the retreat, and greedy play cannot find it', () => {
-    expect(shortestSolutions(sandbar, 2, 16).map(s => s.join(' '))).toEqual(['P0E P0W']);
-    expect(greedySolveRate(sandbar)).toBe(0);
+  const cut = byName('The Cut'), rock = byName('Anchor Rock');
+  it('The Cut: the one line at par clears the door, bites and retreats, and greedy play cannot find it', () => {
+    expect(shortestSolutions(cut, 3, 16).map(s => s.join(' '))).toEqual(['P0E P2E P2W']);
+    expect(greedySolveRate(cut)).toBe(0);
   });
-  it('Sandbar: the bite ticks nothing, the retreat ticks both goals and leaves water on the land it bit', () => {
-    const bite = applyAll(sandbar, sandbar.start, ['P0E'])!;
-    expect(goalsMet(sandbar, bite).filter(Boolean)).toHaveLength(0);
-    const has = claimsOf(sandbar, bite, applyAll(sandbar, bite, ['P0W'])!, 'P0W', ['P0E']);
+  it('The Cut: the bite ticks nothing, the retreat ticks both goals and leaves water on the land it bit', () => {
+    const bite = applyAll(cut, cut.start, ['P0E', 'P2E'])!;
+    expect(goalsMet(cut, bite).filter(Boolean)).toHaveLength(1); // only the village, which was already fine
+    const has = claimsOf(cut, bite, applyAll(cut, bite, ['P2W'])!, 'P2W', ['P0E', 'P2E']);
     expect(has).toContain('carries');
     expect(has).toContain('ticks2');
   });
-  it('Sandbar and Anchor Rock cannot be solved at any length without a retreat: an exhaustive search finds no line', () => {
-    expect(solveWithoutRetreat(sandbar)).toBeNull();
-    expect(solveWithoutRetreat(rock)).toBeNull();
+  it('The Cut: the same bite first thing breaks the village, and nothing brings it back', () => {
+    const early = applyAll(cut, cut.start, ['P2E'])!;
+    expect(goalsMet(cut, early)[1]).toBe(false);
+    expect(canFinish(cut, early)).toBe(false);
   });
-  it('Sandbar: b cannot slide clear of the buoy, on either side', () => {
-    for (const d of [0, 2] as const) expect(goalsMet(sandbar, shift(sandbar, sandbar.start, 1, d)!)[1]).toBe(false);
-    expect(shift(sandbar, shift(sandbar, sandbar.start, 1, 0)!, 1, 0)).toBeNull();
-    expect(shift(sandbar, shift(sandbar, sandbar.start, 1, 2)!, 1, 2)).toBeNull();
+  it('The Cut: after the door opens the lamp says the corner does not count', () => {
+    expect(goalReason(cut, applyAll(cut, cut.start, ['P0E'])!, 0)).toBe("corners don't count");
   });
-  it('Sandbar: no first move is a dead end, and the tempting one still ends in a bite and a retreat', () => {
-    for (const m of firstMoves(sandbar, 9)) expect(m.finish, m.move).not.toBeNull();
-    expect(shortestSolutions(sandbar, 2, 16, applyAll(sandbar, sandbar.start, ['P0W'])!).map(s => s.join(' '))).toEqual(['P2W P2E']); // c bites and backs off instead
+  it('Twin Palms: the second move gives back a tick and the third takes three', () => {
+    const lv = byName('Twin Palms');
+    const counts = ['P1E', 'P1E P0S', 'P1E P0S P0N'].map(l => goalsMet(lv, applyAll(lv, lv.start, l.split(' '))!).filter(Boolean).length);
+    expect(counts).toEqual([2, 1, 3]);
   });
-  it('Mirage, the first puzzle that needs it literally, proves the same claim on its aha', () => {
+  it('Backwater: the plain bite and retreat floats the buoy, and the chip says the water is the sea', () => {
+    const lv = byName('Backwater'), s = applyAll(lv, lv.start, ['P1S', 'P1N'])!;
+    expect(goalsMet(lv, s)).toEqual([false, true]);
+    expect(goalReason(lv, s, 0)).toBe('that water reaches the sea');
+    expect(solve(lv, 9, s)!.min).toBeGreaterThan(lv.par!);
+  });
+  it('Backwater: the solved pond meets the sea only at a corner', () => {
+    const lv = byName('Backwater'), end = applyAll(lv, lv.start, ['P2E', 'P1S', 'P1N'])!, sea = seaMask(lv, end);
+    const pond = 4 + 3 * lv.w, strip = 5 + 4 * lv.w; // the strip one east, one south: their corner faces the camera
+    expect(end.plate[pond]).toBeLessThan(0);
+    expect(sea[pond]).toBe(0);
+    expect(end.plate[strip]).toBeLessThan(0);
+    expect(sea[strip]).toBe(1);
+  });
+  it('Wishing Well: the same slide twice flips which of the two is unhappy', () => {
+    const lv = byName('Wishing Well');
+    const one = applyAll(lv, lv.start, ['P0E'])!, two = applyAll(lv, lv.start, ['P0E', 'P0E'])!;
+    expect(goalsMet(lv, one)).toEqual([false, true, true]); // lamp, oasis, buoy
+    expect(goalReason(lv, one, 0)).toBe('that water is a lake');
+    expect(goalsMet(lv, two)).toEqual([true, false, true]);
+    expect(goalReason(lv, two, 1)).toBe('that water reaches the sea');
+  });
+  it('some islands cannot be solved at any length without a retreat: an exhaustive search finds no line', () => {
+    for (const n of ['Good Neighbours', 'Harbour Row', 'Low Tide', 'Mirage']) expect(solveWithoutRetreat(byName(n)), n).toBeNull();
+  });
+  it('Mirage proves the same claim on its aha', () => {
     expect(spec('Mirage').fixture!.aha.shows).toContain('carries');
   });
-  it('Anchor Rock: the Sandbar bite breaks the village until c has taken the front of a', () => {
+  it('Anchor Rock: the plain bite breaks the village until c has taken it off a', () => {
     const c = applyAll(rock, rock.start, ['P2S'])!;
     const bitten = applyAll(rock, c, ['P0E'])!;
     expect(goalsMet(rock, bitten)[0]).toBe(true);
@@ -164,13 +190,13 @@ describe('claims', () => {
   it('returns', () => expect(claims('Stolen Peak', ['P0E'], 'P0W')).toContain('returns'));
   it('reclaims', () => expect(claims('The Long Pier', [], 'P1E')).toContain('reclaims'));
   it('lake', () => expect(claims('Still Water', [], 'P1E')).toContain('lake'));
-  it('seals', () => expect(claims('Mirage', ['P1E', 'P0E', 'P2W'], 'P2E')).toContain('seals'));
+  it('seals', () => expect(claims('Mirage', ['P1W', 'P2W', 'P0E'], 'P0W')).toContain('seals'));
   it('melts, on the second push and not the first', () => {
     expect(claims('Thin Ice', [], 'P0E')).not.toContain('melts');
     expect(claims('Thin Ice', ['P0E'], 'P0E')).toContain('melts');
   });
   it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P0E')).toContain('hitsrock'));
-  it('unticks', () => expect(claims('The Summit', ['P0W', 'P0W', 'P1S', 'P1N'], 'P0E')).toContain('unticks'));
+  it('unticks', () => expect(claims('The Summit', ['P0W', 'P0W', 'P1N', 'P1S'], 'P0E')).toContain('unticks'));
   it('opens', () => {
     const lv = byName('Breakwater');
     const sealed = applyAll(lv, lv.start, ['P1E', 'P2E'])!;

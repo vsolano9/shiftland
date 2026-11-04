@@ -31,9 +31,9 @@ describe('level build', () => {
 
 describe('the campaign', () => {
   const biomes = CAMPAIGN.map(s => s.biome ?? 'meadow');
-  it('runs Meadow 7, Coast 4, Desert 6, Tundra 5, Finale 3, in that order', () => {
+  it('runs Meadow 7, Coast 5, Desert 7, Tundra 5, Finale 4, in that order', () => {
     const count = (b: string) => biomes.filter(x => x === b).length;
-    expect(['meadow', 'coast', 'desert', 'tundra', 'finale'].map(count)).toEqual([7, 4, 6, 5, 3]);
+    expect(['meadow', 'coast', 'desert', 'tundra', 'finale'].map(count)).toEqual([7, 5, 7, 5, 4]);
     const order = biomes.filter((b, i) => b !== biomes[i - 1]);
     expect(order).toEqual(['meadow', 'coast', 'desert', 'tundra', 'finale']);
   });
@@ -42,14 +42,19 @@ describe('the campaign', () => {
     expect(new Set(names).size).toBe(names.length);
     for (const n of names) { expect(n.split(' ').length).toBeLessThanOrEqual(3); expect(n).not.toMatch(/puzzle|level|\d/i); }
   });
+  it('the height code is said out loud before the wall (phone playtest: stuck six tries on High Pasture, first told there on tapping a goat)', () => {
+    const firstDots = CAMPAIGN.findIndex(s => /corner dots/i.test(s.blurb!));
+    expect(firstDots).toBeGreaterThanOrEqual(0);
+    expect(firstDots).toBeLessThanOrEqual(3);
+  });
   it('every level has a blurb of one plain sentence, within 60 characters', () => {
     for (const s of CAMPAIGN) {
       expect(s.blurb, s.name).toMatch(/^[A-Z][^.!?]*\.$/);
       expect(s.blurb!.length, s.name).toBeLessThanOrEqual(60);
     }
   });
-  it("each biome's first level teaches its twist in at most 3 moves, and the Finale runs 5-7", () => {
+  it("each biome's first level teaches its twist in at most 3 moves, and the Finale runs 4-7", () => {
     for (const [i, s] of CAMPAIGN.entries()) if (i > 0 && biomes[i] !== biomes[i - 1] && biomes[i] !== 'finale') expect(s.expectPar, s.name).toBeLessThanOrEqual(3);
-    for (const s of CAMPAIGN.filter(x => x.biome === 'finale')) { expect(s.expectPar).toBeGreaterThanOrEqual(5); expect(s.expectPar).toBeLessThanOrEqual(7); }
+    for (const s of CAMPAIGN.filter(x => x.biome === 'finale')) { expect(s.expectPar).toBeGreaterThanOrEqual(4); expect(s.expectPar).toBeLessThanOrEqual(7); }
   });
 });

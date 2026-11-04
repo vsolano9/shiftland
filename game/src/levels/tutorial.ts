@@ -38,6 +38,8 @@ export interface Spec {
   seed?: [number, number, number, number];
   biome?: Biome; role?: 'tutorial' | 'puzzle'; pinned?: string; maxTravel?: number; blurb?: string;
   fixture?: Fixture;
+  /** Why a creature the camera mostly cannot see on the start or solved board is fine here (solver/occlusion.ts). Rare. */
+  hiddenOk?: string;
 }
 
 const KIND: Record<string, Obj['kind']> = { G: 'goat', V: 'village', L: 'light', O: 'oasis', P: 'penguin' };
@@ -110,7 +112,7 @@ export const TUTORIAL: Spec[] = [
   },
   {
     name: 'Village Green', teaches: 'the obvious push also lifts a village and crushes it: look first, undo', axis: '-|', expectPar: 2, expectTempting: true,
-    blurb: 'A goat wants a peak, but a village on a peak breaks.',
+    blurb: 'Two corner dots mean a peak: goats love it, villages break.',
     map: `
       ~  ~  ~  ~  ~  ~  ~
       ~  ~  a0 ~  b0 ~  ~
@@ -149,28 +151,34 @@ export const TUTORIAL: Spec[] = [
   {
     name: 'High Pasture', role: 'puzzle', teaches: 'a push takes everything in its row: step the second goat out from under it, then bring it back to climb the edge the push raised', axis: '||-', expectPar: 3,
     blurb: 'A push lifts a cell one above the taller side.',
+    // Both goats end on neighbouring cells of one edge and overlap a little on screen (playtest 4). That is the design, not an
+    // accident: the stack refusal between them is the lesson, and every map that parts them collapses it (the second goat a cell
+    // along opens 7 shortest lines, a higher edge makes it par 1). Neither is hidden: the check measures both at under 50%.
+    // Mirrored east to west (phone playtest): the push left a raised cell between the camera and the goat by the shore, on 6 of
+    // the 103 boards within three moves; this way round it is 1.
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  a0 a1G a0 a0 a0 ~  ~
-      ~  c0G c0 c0 c0 c0 ~  ~
-      ~  ~  b0 b0 b0 c0 c0 ~
-      ~  ~  ~  b0 b0 c0 ~  ~
+      ~  ~  a0 a0 a0 a1G a0 ~
+      ~  ~  c0 c0 c0 c0 c0G ~
+      ~  c0 c0 b0 b0 b0 ~  ~
+      ~  ~  c0 b0 b0 ~  ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P2W P0S P2E', trap: { move: 'P0S', finish: 'dead', why: 'the first goat has its peak at once, but the second is swallowed in the same push: it now stands on a, and a plate cannot lift itself' },
-      aha: { move: 'P2W', says: 'the second goat steps aside before a comes down, so it stays on its own plate and can come back to climb the raised edge', shows: ['quiet'] } },
+    fixture: { intended: 'P2E P0S P2W', trap: { move: 'P0S', finish: 'dead', why: 'the first goat has its peak at once, but the second is swallowed in the same push: it now stands on a, and a plate cannot lift itself' },
+      aha: { move: 'P2E', says: 'the second goat steps aside before a comes down, so it stays on its own plate and can come back to climb the raised edge', shows: ['quiet'] } },
   },
   {
     name: "Shepherd's Hill", role: 'puzzle', teaches: 'three lessons in one: clear the village out of the row, bring a flat neighbour in front of the goat, push in and pull back', axis: '--|', expectPar: 4,
     blurb: 'A village is fine on a low hill; only a peak breaks it.',
+    // Mirrored north to south (playtest 4): the village stood right in front of the buoy on the solved board.
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  ~  a0 c0 c1 ~  ~
-      ~  ~  a0 a0 c0 c0 c0 ~
-      ~  a1 a0 a0 c0* c0 c0 ~
-      ~  a0 a0 a1G b0V b0 ~  ~
       ~  ~  a0 a0 b0 b0 ~  ~
+      ~  a0 a0 a1G b0V b0 ~  ~
+      ~  a1 a0 a0 c0* c0 c0 ~
+      ~  ~  a0 a0 c0 c0 c0 ~
+      ~  ~  ~  a0 c0 c1 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P1E P2S P0E P0W', trap: { move: 'P2N', finish: 6, why: 'the buoy floats at once, but the tick is worth nothing: c is needed south, in front of the goat, and coming back covers the buoy again' },
-      aha: { move: 'P1E', says: 'b steps aside with the village: c can now come down over open water, staying flat, and stand in front of the goat', shows: ['quiet'] } },
+    fixture: { intended: 'P1E P2N P0E P0W', trap: { move: 'P2S', finish: 6, why: 'the buoy floats at once, but the tick is worth nothing: c is needed north, in front of the goat, and coming back covers the buoy again' },
+      aha: { move: 'P1E', says: 'b steps aside with the village: c can now come up over open water, staying flat, and stand in front of the goat', shows: ['quiet'] } },
   },
 ];

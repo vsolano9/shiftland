@@ -10,7 +10,7 @@ const all = (levels as LevelJson[]).map(fromJson);
 const puzzles = all.filter(l => l.role === 'puzzle');
 
 describe('quality bar on the exported puzzles', () => {
-  it('has 15 puzzles', () => expect(puzzles.length).toBe(15));
+  it('has 19 puzzles', () => expect(puzzles.length).toBe(19));
   for (const lv of puzzles) {
     it(`${lv.name} passes (par ${lv.par})`, () => {
       const a = audit(lv, lv.par! + 2)!;
@@ -45,7 +45,7 @@ describe('ship check (npm run levels:audit)', () => {
 });
 
 describe('tutorial levels keep their designed traps', () => {
-  const trap: Record<string, string> = { 'Village Green': 'P0E', 'The Long Pier': 'P0W', Sandbar: 'P0W' };
+  const trap: Record<string, string> = { 'Village Green': 'P0E', 'The Long Pier': 'P0W' };
   for (const [name, move] of Object.entries(trap)) {
     it(`${name}: tempting ${move}`, () => {
       const a = audit(all.find(l => l.name === name)!, 6, 1)!;
@@ -83,12 +83,12 @@ describe('greedy play: always take the move the preview shows ticking most goals
 describe('effort: the moves a player tries without reading the board (the ramp)', () => {
   const effort = new Map(all.map(l => [l.name!, effortOf(l).effort]));
   it('is repeatable', () => expect(effortOf(all[4])).toEqual(effortOf(all[4])));
-  it('counts the cheaper of two strategies: Oxbow falls to brute force first, Low Tide to chasing ticks', () => {
-    const oxbow = effortOf(all.find(l => l.name === 'Oxbow')!), tide = effortOf(all.find(l => l.name === 'Low Tide')!);
+  it('counts the cheaper of two strategies: Oxbow falls to brute force first, Cold Feet to chasing ticks', () => {
+    const oxbow = effortOf(all.find(l => l.name === 'Oxbow')!), feet = effortOf(all.find(l => l.name === 'Cold Feet')!);
     expect(oxbow.blind).toBeLessThan(oxbow.follow);
     expect(oxbow.effort).toBe(oxbow.blind);
-    expect(tide.follow).toBeLessThan(tide.blind);
-    expect(tide.effort).toBe(tide.follow);
+    expect(feet.follow).toBeLessThan(feet.blind);
+    expect(feet.effort).toBe(feet.follow);
   });
   it('The Summit, the last level, resists both strategies at least as well as any level before it', () => {
     const summit = effort.get('The Summit')!;

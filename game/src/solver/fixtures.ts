@@ -5,6 +5,7 @@ import { previewDiff } from '../rules/diff.ts';
 import { canFinish, DIR_NAME, goalsMet, railMoves, seaMask, shift, solve, solved, stateKey, type Level, type State } from '../rules/rules.ts';
 import type { Claim, Spec } from '../levels/tutorial.ts';
 import { applyAll, greedySolveRate, landShare, minPlateKept, partsOf, randomSolveRate, shortestSolutions } from './audit.ts';
+import { hiddenOn, SOLVED_SCREENS } from './occlusion.ts';
 
 /** Deepest search the audit runs; the Finale's par is 5-7 and a trap's cost is measured a little past it. */
 export const AUDIT_DEPTH = 9;
@@ -208,5 +209,17 @@ export function checkFixture(spec: Spec, lv: Level): FixtureReport {
 
   for (const p of lakesBeforeTheyAreTaught(lv, intended)) why.push(p);
   for (const p of shapeProblems(lv)) why.push(p);
+  // The player cannot turn the camera: what a goal is about has to be seen (playtest 4: buoys and a lamp behind land and a village;
+  // the phone playtest: a goat and most of a plate behind a ridge, in the middle of a line). So every board the level leads them past.
+  if (!spec.hiddenOk) {
+    why.push(...hiddenOn(lv, lv.start, 'start'));
+    intended.forEach((_, k) => {
+      const s = applyAll(lv, lv.start, intended.slice(0, k + 1));
+      if (s) why.push(...hiddenOn(lv, s, k === intended.length - 1 ? 'solved' : `after ${intended.slice(0, k + 1).join(' ')}`));
+    });
+    if (end) why.push(...hiddenOn(lv, end, 'solved', SOLVED_SCREENS));
+    const trapped = fx.trap ? applyAll(lv, lv.start, [fx.trap.move]) : null;
+    if (trapped) why.push(...hiddenOn(lv, trapped, `after the trap ${fx.trap!.move}`));
+  }
   return { problems: why, rate, greedy, plateKept, land, solutions: shortest.length };
 }
