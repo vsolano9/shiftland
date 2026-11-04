@@ -1,6 +1,6 @@
 // A goal creature on the board: its model, pose, wish bubble and reactions (concepts/shiftland-creatures.png).
 // The island view owns where it stands; this class owns how it feels about it.
-import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, CustomBlending, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, OneMinusSrcAlphaFactor, SphereGeometry, SrcAlphaFactor, type Sprite } from 'three';
+import { AdditiveBlending, BoxGeometry, BufferGeometry, Color, CustomBlending, DoubleSide, Float32BufferAttribute, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, OneMinusSrcAlphaFactor, SphereGeometry, SrcAlphaFactor, type Sprite } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as M from './models.ts';
 import type { Particles } from './particles.ts';
@@ -86,13 +86,18 @@ export class Creature {
     } else if (this.kind === 'light') {
       b.add(mesh(M.lighthouse));
       const lampMesh = new Mesh(M.lamp, this.lampMat = new MeshBasicMaterial({ vertexColors: true, color: 0x555555 })); b.add(lampMesh);
-      const cone = new ConeGeometry(.42, 2, 16, 1, true); cone.translate(0, -1, 0); cone.rotateZ(Math.PI / 2 + 0.08);
-      // brightest at the lamp and gone by the far end: a flat cone laid over the land reads as a wedge of fog
-      const beamMat = new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, vertexColors: true, blending: AdditiveBlending });
-      const lp = cone.attributes.position, cols = new Float32Array(lp.count * 3);
-      for (let i = 0; i < lp.count; i++) { const f = Math.max(0, 1 - lp.getX(i) / 2); for (let c = 0; c < 3; c++) cols[i * 3 + c] = f * f; }
-      cone.setAttribute('color', new BufferAttribute(cols, 3));
-      this.beam = new Mesh(cone, beamMat);
+      // a soft fan and not a cone: a cone's sides are hard lines, and laid over the land they read as a pane of glass.
+      // Brightest at the lamp and along its middle, gone at the far end and both sides
+      const U = 8, V = 8, pos: number[] = [], col: number[] = [], idx: number[] = [];
+      for (let u = 0; u <= U; u++) for (let v = 0; v <= V; v++) {
+        const a = u / U, s = v / V * 2 - 1, f = (1 - a) ** 1.4 * (1 - s * s) ** 1.5;
+        pos.push(a * 2.1, -a * .16, s * (.03 + a * .52)); col.push(f, f, f);
+        if (u < U && v < V) { const i = u * (V + 1) + v; idx.push(i, i + 1, i + V + 1, i + 1, i + V + 2, i + V + 1); }
+      }
+      const fan = new BufferGeometry();
+      fan.setAttribute('position', new Float32BufferAttribute(pos, 3)); fan.setAttribute('color', new Float32BufferAttribute(col, 3)); fan.setIndex(idx);
+      const beamMat = new MeshBasicMaterial({ color: '#fff0a8', transparent: true, opacity: 0, side: DoubleSide, depthWrite: false, depthTest: false, vertexColors: true, blending: AdditiveBlending });
+      this.beam = new Mesh(fan, beamMat);
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {
       b.add(mesh(M.buoy));
@@ -141,6 +146,9 @@ export class Creature {
   bubbleHome: [number, number, number] = [.2, .1, -.18];
   private bubbleAt: [number, number, number] = [.2, .1, -.18];
 
+  private beamAim = 0; private beamAt = 0;
+  /** Point the lamp along a board direction: +x and +z are the world's. */
+  aimBeam(dx: number, dz: number) { this.beamAim = Math.atan2(-dz, dx); }
   private faceY = -.4;
   face(y: number, snap: boolean) { this.faceY = y; if (snap) this.body.rotation.y = y; }
   celebrate(on: boolean) { this.celebrating = on ? 1 : 0; this.people.forEach(p => { p.visible = on; }); }
@@ -218,8 +226,11 @@ export class Creature {
       case 'light': {
         this.lampMat!.color.setRGB(.33 + k * .9, .33 + k * .85, .34 + k * .6);
         this.beam!.visible = !this.far;
-        (this.beam!.material as MeshBasicMaterial).opacity = k * (.3 + .04 * Math.sin(ph * 2.3));
-        this.beam!.rotation.y = ph * .55;
+        (this.beam!.material as MeshBasicMaterial).opacity = k * (.62 + .08 * Math.sin(ph * 2.3));
+        // a slow sweep across the water; a move that changes the coast turns it round gently
+        let da = this.beamAim - this.beamAt; da = Math.atan2(Math.sin(da), Math.cos(da));
+        this.beamAt += da * Math.min(1, dt * 2.5);
+        this.beam!.rotation.y = this.beamAt - this.body.rotation.y + Math.sin(ph * .6) * .5;
         // away from the sea it leans over, dark, like the sheet's unhappy tower
         this.body.rotation.z = (1 - k) * (.27 + Math.sin(ph * 1.4) * .012) + pulse * .04;
         this.body.position.y = hop * .08;

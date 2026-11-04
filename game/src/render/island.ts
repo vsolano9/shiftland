@@ -336,6 +336,14 @@ export class IslandView {
         const land = (a: number, b: number) => a >= 0 && b >= 0 && a < this.lv.w && b < this.lv.h && next.plate[a + b * this.lv.w] >= 0;
         c.face(land(x, y + 1) || !land(x + 1, y) ? -.4 : 1.25, !animate);
       }
+      if (c.kind === 'light') {
+        // a lighthouse shines out to sea, over its widest stretch of water, and never across the land it stands on
+        const x = cell % this.lv.w, y = Math.floor(cell / this.lv.w), w = this.lv.w, h = this.lv.h;
+        const open = (dx: number, dy: number) => { let n = 0; for (let k = 1; k <= 4; k++) { const a = x + dx * k, b = y + dy * k; if (a < 0 || b < 0 || a >= w || b >= h) { n += 5 - k; break; } if (next.plate[a + b * w] >= 0) break; n++; } return n; };
+        let best = 0, dir: [number, number] | null = null;
+        for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) { const n = open(dx, dy); if (n > best) { best = n; dir = [dx, dy]; } }
+        if (dir) c.aimBeam(dir[0], dir[1]);
+      }
     }
   }
 
