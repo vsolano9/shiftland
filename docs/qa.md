@@ -87,7 +87,7 @@ The critic kept calling the phone board soft, and it was right. The first second
 
 ### Landscape touch miss on Good Neighbours (Nov 4)
 
-`allplay.mjs` at 844x390 stopped at Good Neighbours' second move in about 1 of 10 runs, never elsewhere. The touch landed at the very top edge of plate 0 (cell 9's centre at plate height projects onto the silhouette, see `p9` scratch `ll4.png`), and `pick` said null there on `pointerdown`, a tick after saying plate 0. The exact flip was not caught: a logged `pick` ran 40 clean runs. The player-facing fix is thumb reach: a touch within 14 px of a plate grabs it (`e2e/phone.spec.ts`). The hint text in that failure was the first move's, not the touch's.
+`allplay.mjs` at 844x390 stopped at Good Neighbours' second move in about 1 of 10 runs, never elsewhere. The touch landed at the very top edge of plate 0 (cell 9's centre at plate height projects onto the silhouette, see `p9` scratch `ll4.png`), and `pick` said null there on `pointerdown`, a tick after saying plate 0. The exact flip was not caught: a logged `pick` ran 40 clean runs. The player-facing fix is thumb reach: a touch within 14 px of a plate grabs it (`e2e/phone.spec.ts`). The hint text in that failure was the first move's, not the touch's. After the fix: 10 of 10 repeats of the flow passed (scratch `ll2after.log`), against about 1 miss per 10 before; 10 runs alone can't prove the rate is zero.
 
 ### Playtest 5 findings (whole game, 28 islands, reached 25)
 
