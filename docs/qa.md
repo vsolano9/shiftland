@@ -20,14 +20,15 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 
 | Build | Input | Shape | Result | Evidence |
 |---|---|---|---|---|
-| 25 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `a28.log` |
-| 25 islands | Real touch | 390x844 | Reached the ending | `a28p.log` |
-| 25 islands | Real touch | 844x390 | Reached the ending | `a28l.log` |
+| 28 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p6\a28.log` |
+| 28 islands | Real touch | 390x844 | Reached the ending | `p6\a28p.log` |
+| 28 islands | Real touch | 844x390 | Reached the ending | `p6\a28l.log` |
+| 28 islands, random walk | Controller | 1280x720 | 14 random moves on each island: 27 px past the screen edge on Still Water, none on the rest | `wander.mjs`, design row "Camera holds par moves' reach" |
 | Scenario run | Real mouse | 1280x720 | Pinned, ice, penguins, undo, restart, cancel: 11 checks, 0 fails, 0 errors | `q7.log` |
-| Random input | Real mouse | 1280x720 | 400 steps, 0 errors | `mk3.log` |
+| Random input | Real mouse | 1280x720 | 700 steps with reloads, 0 errors | `p6\mk.log` |
 | Long session | Controller | 1280x720 | 27 islands opened, solved and restarted: geometries steady at 243, heap 47 to 55 MB, 0 errors | session scratch `mem.mjs` |
-| Cross-origin iframe | Real mouse | 1024x640, 640x480 | Solved island 1, audio runs, save works, fullscreen works, 0 errors | `if\` |
-| Firefox, WebKit | Real mouse | 1280x720 | First island solved, 0 errors | `br3\` |
+| Cross-origin iframe | Real mouse | 1024x640, 640x480 | Solved island 1, audio runs, save works, fullscreen works, 0 errors | `p6\if` |
+| Firefox, WebKit | Real mouse | 1280x720 | First island solved, 0 errors | `p6\br` |
 | Software GL (SwiftShader, no GPU) | Real mouse | 1280x720 | About 14 fps; islands 1 to 3 solved by real drags, each script drag registered in about 2.5 s, 0 errors. Slow but it works | session scratch `nogl.mjs`, `softplay.mjs` |
 | No WebGL at all | None | 1280x720 | Plain message asking to enable hardware acceleration or try another browser, no crash | `p3\nogl\none.png` |
 | Slow connection (1.6 Mbit/s, 150 ms) | None | 1280x720 | Blue screen with name and breathing dots from the start, title at about 6 s, playable at about 10 s | `p3\slow\2\` |
