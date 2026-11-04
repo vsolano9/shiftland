@@ -121,7 +121,7 @@ const DESERT: Spec[] = [
   },
   {
     name: 'Two Waters', biome: 'desert', role: 'puzzle', teaches: 'lake or sea is decided by what walls it: make one hole of each, side by side', axis: '|--', expectPar: 3,
-    blurb: 'What a plate bites, it can carry off.', // playtest 7 P7-1: this is the island that needs it, and the note used to come one island too late
+    blurb: 'Pull back after a push and the land you took comes along.', // playtest 7 P7-1: this island needs it, the note came one island too late, and "bites" was a word nothing had defined
     // Mirrored north to south (phone playtest): the finished buoy stood half behind the ridge. Pond and buoy now sit side by side
     // on the screen. The corner they share lies behind the tip of c, a trade: the two waters still read apart by colour, and the
     // way round that shows the corner leaves the buoy nearly half hidden.
