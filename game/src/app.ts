@@ -52,7 +52,7 @@ const GOAL_RULE: Record<CreatureKind, string> = {
   village: 'The village wants ground below the rock: one dot at most. If the land rises to rock under it, it crumbles.',
   light: 'The lighthouse wants open sea on a side next to it. Pull plates apart, or sail its plate to the shore.',
   buoy: 'A buoy is chained to the sea floor: it stays where it is while the plates move. Land slid under it beaches it. It wants open sea.',
-  oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it.',
+  oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it. Sea on another side does no harm.',
   penguin: 'Penguins want their ice touching the sea. Ice lifted to rock melts into open water, and a plate carries what stands on it.',
 };
 /** The ending's tour: what each biome's creatures got. */

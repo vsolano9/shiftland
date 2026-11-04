@@ -16,6 +16,7 @@ import { MAT, Creature, type CreatureKind } from './creatures.ts';
 
 const AZ = CAM_AZ, EL = CAM_EL;
 const CAM_DIR = new Vector3(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(AZ) * Math.cos(EL));
+const sunGoal = new Vector3();
 
 const smooth = (a: number, b: number, k: number, dt: number) => a + (b - a) * (1 - Math.exp(-k * dt));
 const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -711,9 +712,13 @@ export class World {
     }
     if (this.path) this.path.visible = this.map && !this.homes && !this.drive && !this.peekAt; // at the ending tour's close range the dots are big ovals
     updateVisibleMatrices(this.scene);
+    // a settled map's shadows don't change: drawing every island a second time each frame cost a slow laptop half its map (18 fps at 4x throttle)
+    const still = this.map && !this.fly && !this.peekAt && !this.homes && !this.drive && !this.views.some(v => v.busy) && this.sunFrom.distanceToSquared(sunGoal.set(...this.dayTarget.from)) < .001;
+    if (still !== this.shadowsStill) { this.shadowsStill = still; this.renderer.shadowMap.autoUpdate = !still; if (still) this.renderer.shadowMap.needsUpdate = true; }
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }
+  private shadowsStill = false;
   frames = 0;
   /** 0 full, 1 pixel ratio capped at 1.5, 2 capped at 1, 3 no shadows, 4 below native resolution. Only ever steps down. */
   quality = 0;

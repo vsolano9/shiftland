@@ -72,7 +72,7 @@ Verdict from the tester: not proven. Three real solves, Frost Line and The Summi
 
 | Id | Finding | Result |
 |---|---|---|
-| P7-1 | Two Waters needs a rule whose note came one island later; stuck for 7 min with 6 hint presses | Fixed: the carry note moved to Two Waters, Twin Palms got its own. Whether the note is enough is unproven: no one has played it since |
+| P7-1 | Two Waters needs a rule whose note came one island later; stuck for 7 min with 6 hint presses | Fixed: the carry note moved to Two Waters, Twin Palms got its own. Playtest 8 (below): the note helped, the island is still hard |
 | P7-2 | Give and Take can die at move 2 of 6 with a board that looks fine | Open as a design risk, kept: it is the second-to-last island, the warning and "Restart is shorter" both say so, and Undo gets out. The six-creature start is daunting |
 | P7-3 | Thin Ice's melt rule seemed to sit behind a tap | Not reproduced: the note says it and shows for 11 s after the chapter card (`p7.mjs`). The tester's flow skipped past it; tapping the name card repeats it |
 | P7-4 | Chip badges don't preview water | By design: from island 4 the player judges moves unless Settings brings the + and − back. Hatching reads alike over sea and land: accepted, the dots answer after the move |
@@ -80,6 +80,17 @@ Verdict from the tester: not proven. Three real solves, Frost Line and The Summi
 | P7-6 | A rail drew on and the drag answered "No room that way" | Accepted: the far end's stop is the red one in `i13-s3.png`; a long drag counts one step by design |
 | P7-7 | An oasis bubble slid under Undo on Two Waters after 5 moves | Accepted: off-par state only, tapping the chip or creature still answers |
 | P7-8 | The phone reason line overlaps the note during its crossfade | Fixed: it leaves at once and comes back after the note has faded |
+
+### Playtest 8 findings (Two Waters cold, an earlier wording of the note)
+
+Solved at par in 3 moves after 9.5 minutes: 8 failed lines, the first hint at 7.4 minutes, 4 hint presses in all, star spent. The tester took the hint because of the clock, not because it was out of ideas. Twin Palms only probed. Shots: `playtest8\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P8-1 | The note worked: bite then pull was tried within two minutes and freed the buoy | Kept. The wall moved one step on: a hole travels with its plate, and red can slide it next to the palm. This is the puzzle, not a fault |
+| P8-2 | Oasis passes with sea beside it if a lake also touches it; only learned by inference, and "that water reaches the sea" misled | Fixed: the oasis explanation ends "Sea on another side does no harm." Fits on 390x844, 844x390, 360x640 (`p11\note\`) |
+| P8-3 | Biting the buoy's cell with red is a tempting false lead | Kept: it answers "that water is a lake", which is true and teaches |
+| P8-4 | The finished buoy stands half behind raised violet | Accepted: the level comment records the trade. Turning the island hides it more; the chip confirms it, and the buoy's top still shows (`playtest8\j-13.png`) |
 
 ### Phone board blurred for the whole session (Nov 4, critic T20)
 
