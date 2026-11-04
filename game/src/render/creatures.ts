@@ -130,6 +130,13 @@ export class Creature {
     }
   }
 
+  /** A chip holds one penguin, belly to the camera: three at 28 px were a dark smudge. */
+  portraitPenguin() {
+    this.pens.forEach((p, i) => { p.g.visible = i === 0; });
+    this.pens[0].g.position.set(0, 0, 0);
+    this.pens[0].g.rotation.set(0, .55, 0);
+  }
+
   /** Called when the goal turns true or false. animate=false sets it silently (level open, map islands). */
   setMet(m: boolean, animate = true, react = true) {
     if (m === this.met && animate) return;

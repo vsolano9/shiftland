@@ -609,10 +609,11 @@ export class World {
         // a chip says who; the tick or cross says how they feel. A flopped goat at 28 px is only a white blob, so every portrait stands.
         cr.setMet(true, false); cr.far = true; cr.update(0, 0);
         if (kind === 'goat') cr.body.rotation.y = 1.05; // a goat reads from the side, by its horns and back
+        if (kind === 'penguin') cr.portraitPenguin();
         if (cr.bubble) cr.bubble.visible = false;
         cr.badge.visible = false;
         scene.add(cr.root);
-        const [cy, dist] = ({ goat: [.34, 1.7], village: [.17, 2], light: [.44, 2.25], buoy: [.2, 1.25], oasis: [.24, 2], penguin: [.12, 1.65] } as Record<CreatureKind, [number, number]>)[kind];
+        const [cy, dist] = ({ goat: [.34, 1.7], village: [.17, 2], light: [.44, 2.25], buoy: [.23, 1.35], oasis: [.24, 2], penguin: [.2, .9] } as Record<CreatureKind, [number, number]>)[kind];
         cam.position.set(1.1 * dist * .5, cy + dist * .42, dist * .86); cam.lookAt(0, cy, 0);
         this.renderer.setRenderTarget(rt); this.renderer.clear(); this.renderer.render(scene, cam);
         this.renderer.readRenderTargetPixels(rt, 0, 0, size, size, pixels);
