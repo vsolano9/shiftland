@@ -47,7 +47,11 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .chip.met .badge { background: var(--ok); }
 .chip .delta { position: absolute; right: -6px; top: -9px; width: 25px; height: 25px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; line-height: 1; border: 2px solid #fff; animation: pop .22s cubic-bezier(.3, 2, .5, 1); }
 .chip .delta.plus { background: var(--ok); } .chip .delta.minus { background: var(--bad); }
-.chip.bump { transform: translateY(-7px) scale(1.07); background: #fff; }
+.chip.cheer { animation: chipcheer .6s ease-out; background: #fff; }
+.chip.lose { animation: chiplose .42s ease-out; }
+@keyframes chipcheer { 28% { transform: translateY(-18px) scale(1.12); } 55% { transform: translateY(0) scale(.97, 1.03); } 76% { transform: translateY(-6px) scale(1.03); } }
+@keyframes chiplose { 18% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 62% { transform: translateX(-3px); } 82% { transform: translateX(2px); } }
+body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: none !important; } /* the Reduced motion setting, which starts from the system's */
 .count { position: absolute; left: 3px; top: -7px; background: var(--ink); color: #fff; border-radius: 11px; font-size: 13px; font-weight: 600; padding: 1px 7px; }
 @keyframes pop { from { transform: scale(0); } }
 #hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; width: max-content; max-width: min(640px, 94vw); transition: opacity .3s; pointer-events: none; }

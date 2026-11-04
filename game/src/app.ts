@@ -120,6 +120,7 @@ class App {
     this.world = new World(canvas, this.levels, (s, o) => this.audio.play(s, o), archipelago(this.levels, innerWidth / innerHeight));
     this.world.goalsHeight = () => this.fitChips();
     this.world.reducedMotion = this.settings.reduced;
+    document.body.classList.toggle('calm', this.settings.reduced);
     this.world.fx.reduced = this.settings.reduced;
     this.stuck = new StuckChecker(createStuckWorker, (s, far) => {
       $('stuck').textContent = far ? 'No short way from here. Undo?' : 'No way back from here. Undo?';
@@ -214,7 +215,7 @@ class App {
     music.oninput = () => { this.settings.music = +music.value; this.saveSettings(); };
     sfx.oninput = () => { this.settings.sfx = +sfx.value; this.saveSettings(); this.audio.play('select', { plate: 1 }); };
     muted.onchange = () => { this.settings.muted = muted.checked; this.saveSettings(); };
-    reduced.onchange = () => { this.settings.reduced = reduced.checked; this.world.reducedMotion = reduced.checked; this.world.fx.reduced = reduced.checked; this.saveSettings(); };
+    reduced.onchange = () => { this.settings.reduced = reduced.checked; this.world.reducedMotion = reduced.checked; this.world.fx.reduced = reduced.checked; document.body.classList.toggle('calm', reduced.checked); this.saveSettings(); };
     const assist = $<HTMLInputElement>('s-assist');
     assist.onchange = () => { this.settings.assist = assist.checked; this.saveSettings(); };
     this.pinEls = this.levels.map((_, i) => {
@@ -496,7 +497,8 @@ class App {
       const n = e.goals.filter(k => g[k]).length, all = n === e.goals.length;
       const wasMet = e.el.classList.contains('met');
       e.el.classList.toggle('met', all);
-      if (all !== wasMet) { e.el.classList.add('bump'); setTimeout(() => e.el.classList.remove('bump'), 260); }
+      // 10 px for 120 ms went unseen (playtest 4): a win hops, a loss shudders, each long enough to catch from the board
+      if (all !== wasMet) { const k = all ? 'cheer' : 'lose'; e.el.classList.remove('cheer', 'lose'); void e.el.offsetWidth; e.el.classList.add(k); setTimeout(() => e.el.classList.remove(k), 620); }
       e.el.querySelector('.badge')!.innerHTML = all ? icon.check : icon.cross;
       (e.el.querySelector('img') as HTMLImageElement).src = this.thumbs[kind][all ? 'ok' : 'sad'];
       // the second line says what is wrong right now: a chip that flips with no reason teaches nothing (second playtest P2)
