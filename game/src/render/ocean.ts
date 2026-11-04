@@ -128,9 +128,10 @@ const FRAG = /* glsl */`
     float d = dist + wob*.1;
     float n1 = fbm(p*.33+vec2(t*.016,t*.011));
     float n2 = fbm(p*.8-vec2(t*.03,t*.018));
-    vec3 col = mix(uDeep, uDeep*1.1+vec3(0.,.018,.018), smoothstep(.34,.66,n1));
+    float calm = 1.-.8*smoothstep(.04,.1,fwidth(p.x)); // mottling that adds depth up close reads as dirt from the map
+    vec3 col = mix(uDeep, uDeep*1.1+vec3(0.,.018,.018), smoothstep(.34,.66,n1)*calm);
     col = mix(col, uShallow, smoothstep(1.7,.12,d)*.95);
-    col += .035*smoothstep(.45,.75,n2)*uShallow;
+    col += .035*smoothstep(.45,.75,n2)*uShallow*calm;
     // one or two ripple bands hugging the shore
     float ripple = sin(d*9. - t*1.15 + n2*3.);
     float rs = smoothstep(.72,.98,ripple)*smoothstep(1.05,.3,d);
@@ -140,10 +141,17 @@ const FRAG = /* glsl */`
     float foam = smoothstep(breathe+.05, breathe, d + (fbm(p*5.+t*.14)-.5)*.12);
     // a broken lace of foam just off the shore
     float ring = smoothstep(.055,.0,abs(d-(.33+.06*sin(t*.7+p.x*.35)))) * smoothstep(.42,.6,fbm(p*3.6-t*.08));
-    float wl = wavelets(p, t)*smoothstep(.55,1.3,dist)*(1.-smoothstep(.025,.06,fwidth(p.x)));
+    // from the map the near waves would alias away, so a coarser set takes over and the sea stays alive and clean
+    float px = fwidth(p.x), farView = smoothstep(.025,.06,px);
+    float wl = wavelets(p, t)*smoothstep(.55,1.3,dist)*(1.-farView) + wavelets(p*.24+vec2(31.,17.), t)*smoothstep(1.2,3.,dist)*farView*.85;
     col += vec3(.62)*wl;
     // lake: still, green-teal water, its own colour
-    col = mix(col, uLake*(.92+.2*n2) + .12*smoothstep(.74,.98,sin(d*9.-t*.8+n2*3.)), m.g);
+    // a sandy rim and a green unlike any sea, so a lake can't be taken for the shallows
+    vec3 lake = uLake*(.92+.2*n2) + .1*smoothstep(.74,.98,sin(d*9.-t*.8+n2*3.));
+    vec2 lp = p*2.2; vec2 li = floor(lp); float lr = h21(li+5.);
+    lake = mix(lake, vec3(.42,.78,.36), step(.8,lr)*(1.-smoothstep(.13,.17,length(fract(lp)-.5-(vec2(h21(li+9.),h21(li+2.))-.5)*.5))));
+    lake = mix(lake, vec3(.93,.84,.6), smoothstep(.2,.07,d));
+    col = mix(col, lake, m.g);
     // rift floor before the sea reaches it
     vec3 flr = uFloor*(.72+.5*fbm(p*4.))*mix(.55,1.,smoothstep(0.,.3,dist));
     col = mix(col, flr, m.b);
@@ -162,9 +170,9 @@ export class Ocean {
       uTime: time, uStatic: { value: staticMask.tex }, uStaticB: { value: staticMask.bounds },
       uActive: { value: activeMask.tex }, uActiveB: { value: activeMask.bounds },
       uDeep: { value: new Color('#0e7fae') }, uShallow: { value: new Color('#1fcdcf') },
-      uLake: { value: new Color('#3fd6a8') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
+      uLake: { value: new Color('#1f9a62') }, uFloor: { value: new Color('#b58a57') }, uRange: { value: MASK_RANGE }, uMotion: { value: 1 },
     };
-    const g = new PlaneGeometry(1200, 1200); g.rotateX(-Math.PI / 2);
+    const g = new PlaneGeometry(6000, 6000); g.rotateX(-Math.PI / 2);
     this.mesh = new Mesh(g, new ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.uniforms }));
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = -1;

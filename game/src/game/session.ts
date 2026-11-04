@@ -24,8 +24,10 @@ export class Session {
   get par(): number | undefined { return this.lv.par; }
   get solved(): boolean { return solved(this.lv, this.state); }
   get goals(): boolean[] { return goalsMet(this.lv, this.state); }
-  /** 1 star for finishing at or under par, 0 otherwise (stars are never required: design-plates.md) */
-  get stars(): number { return this.solved && this.par !== undefined && this.moves <= this.par ? 1 : 0; }
+  /** The player asked to be shown a whole move this run. Restart clears it. */
+  hinted = false;
+  /** 1 star for finishing at or under par without being shown a move, 0 otherwise (stars are never required: design-plates.md) */
+  get stars(): number { return this.solved && !this.hinted && this.par !== undefined && this.moves <= this.par ? 1 : 0; }
 
   preview(p: number, d: Dir): { next: State; diff: MoveDiff } | null {
     if (this.solved) return null;
@@ -52,6 +54,7 @@ export class Session {
   restart() {
     this.history = [this.lv.start];
     this.stuck = false;
+    this.hinted = false;
     this.stuckPort?.cancel();
   }
 

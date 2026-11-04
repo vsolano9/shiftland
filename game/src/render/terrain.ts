@@ -157,6 +157,18 @@ const FRAG_BODY = /* glsl */`
       top = mix(top, vBandC*(1.+.06*n), band);
       float inner = (1.-aa(B+.03, d))*aa(B, d);
       top = mix(top, top*.72, inner*.65);
+      // height pips: one stud per level in the corner nearest the camera, so a peak can be counted, not guessed
+      if (level > .5) {
+        float pips = 0., ring = 0.;
+        for (int i = 0; i < 3; i++) {
+          if (float(i) < level - .5) {
+            float r = length(uvC - vec2(.8 - float(i)*.15, .8));
+            pips = max(pips, 1. - aa(.046, r)); ring = max(ring, 1. - aa(.068, r));
+          }
+        }
+        top = mix(top, top*.55, ring*.8);
+        top = mix(top, vec3(1.,.97,.86), pips);
+      }
       col = top;
       // selection glow
       col += vFx.x * (vBandC*.16 + vec3(.05));
@@ -204,6 +216,6 @@ export function makeTerrainMaterial(time: { value: number }): MeshLambertMateria
     shader.vertexShader = VERT_HEAD + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERT_BODY}`);
     shader.fragmentShader = FRAG_HEAD + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\n${FRAG_BODY}`);
   };
-  m.customProgramCacheKey = () => 'shiftland-terrain-1';
+  m.customProgramCacheKey = () => 'shiftland-terrain-2';
   return m;
 }

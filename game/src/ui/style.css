@@ -10,7 +10,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0e7fae; ove
 #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
 #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 48%, transparent 62%, rgba(2, 30, 60, .26) 100%); }
 #ui { position: fixed; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; }
-#ui button, #ui input, #ui .pin { pointer-events: auto; }
+#ui button, #ui input, #ui .pin, #ui .chip, #ui #hud-tl { pointer-events: auto; }
+#ui .chip, #ui #hud-tl { cursor: pointer; }
+#ending.touring .panel { display: none; }
+#e-thanks { margin-top: 12px; font-size: 14px; color: var(--ink2); }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
 .screen { position: absolute; inset: 0; transition: opacity .28s ease; }
 .screen.hidden { opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility 0s .2s; }
@@ -46,7 +49,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .chip.bump { transform: translateY(-7px) scale(1.07); background: #fff; }
 .count { position: absolute; left: 3px; top: -7px; background: var(--ink); color: #fff; border-radius: 11px; font-size: 13px; font-weight: 600; padding: 1px 7px; }
 @keyframes pop { from { transform: scale(0); } }
-#hint { position: absolute; left: 50%; bottom: calc(92px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; white-space: nowrap; max-width: 94vw; transition: opacity .3s; }
+#hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; width: max-content; max-width: min(640px, 94vw); transition: opacity .3s; pointer-events: none; }
 #hint.off { opacity: 0; }
 #stuck { position: absolute; left: 16px; top: calc(92px + var(--safe-t)); background: #ffd9d3; color: #a12a20; font-weight: 600; font-size: 17px; border-radius: 13px; padding: 8px 16px; box-shadow: var(--sh); animation: slide .3s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes slide { from { transform: translateY(-14px); opacity: 0; } }
@@ -131,7 +134,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   .chip { padding: 3px 8px 3px 4px; font-size: 13px; gap: 5px; border-radius: 12px; }
   .chip img { width: 32px; height: 32px; } .chip .tx { min-width: 0; } .chip .tx span { font-size: 12px; }
   .badge { width: 22px; height: 22px; } .badge svg { width: 13px; height: 13px; }
-  #hint { font-size: 15px; padding: 6px 13px; bottom: calc(72px + var(--safe-b)); white-space: normal; width: max-content; }
+  #hint { font-size: 15px; padding: 6px 13px; bottom: calc(var(--goals-h, 40px) + 16px + var(--safe-b)); }
   #stuck { top: calc(70px + var(--safe-t)); left: 10px; font-size: 14px; padding: 6px 11px; }
   .pin { width: 28px; height: 28px; font-size: 14px; } .pin svg.st { width: 16px; height: 16px; right: -8px; top: -8px; }
   .pin.locked { width: 24px; height: 24px; } .pin svg.lock { width: 14px; height: 14px; }

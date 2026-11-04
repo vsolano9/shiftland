@@ -81,6 +81,12 @@ export class IslandView {
   railPlate: number | null = null;
   railHint = 0;
   private anchors: Mesh[] = [];
+  private markMat = new MeshBasicMaterial({ color: '#fffaf0', transparent: true, opacity: .62, depthWrite: false });
+  private marks: { m: Mesh; plate: number; patX: number; patZ: number }[] = [];
+  /** Axis marks show on the island being played, until it is solved. */
+  showMarks = false;
+  /** Bubbles step aside while a plate is dragged. */
+  setQuiet(q: boolean) { for (const c of this.creatures) c.quiet = q; }
 
   constructor(readonly lv: Level, readonly index: number, readonly ox: number, readonly oz: number, private host: IslandHost) {
     this.biome = ((lv as Level & { biome?: BiomeName }).biome ?? 'meadow') as BiomeName;
@@ -101,6 +107,13 @@ export class IslandView {
       const m = new Mesh(M.anchorRock, MAT); m.castShadow = true; m.scale.setScalar(1.55); m.userData.plate = p;
       const [x, z] = this.plateAnchor(p); m.position.set(x, 0, z);
       this.anchors.push(m); this.group.add(m);
+    }
+    // a faint double arrow on every free plate: a plan can be read without touching anything
+    for (let p = 0; p < lv.plates; p++) {
+      if (lv.pinned?.includes(p)) continue;
+      const m = new Mesh(M.axisMark, this.markMat); m.rotation.y = lv.axis[p] === 1 ? 0 : Math.PI / 2; m.renderOrder = 6; m.visible = false;
+      const [x, z] = this.plateAnchor(p), s = lv.start, cell = (x + (lv.w - 1) / 2) + (z + (lv.h - 1) / 2) * lv.w, [patX, patZ] = this.patOf(s, p, cell);
+      this.marks.push({ m, plate: p, patX, patZ }); this.group.add(m);
     }
     this.reconcile(lv.start, false);
     this.finishTweens();
@@ -199,8 +212,9 @@ export class IslandView {
       if (c.dead || seen.has(`${c.plate}:${c.patX}:${c.patZ}`) || c.removing) continue;
       c.removing = true;
       if (animate) { c.fx = c.x; c.fy = c.y; c.fz = c.z; c.ty = -.5; c.t = 0; c.dur = dirSlow * 1.1; c.yDelay = dirSlow * .55; c.yDur = dirSlow * .55; c.bouncy = false; }
-      else c.t = c.dur = c.y = c.ty = -9;
+      else this.kill(c); // a snap frees the column now: nothing will tween it to its end
     }
+    this.cols = this.cols.filter(c => !c.dead);
     // dry floors for land that just became water; the flood runs outward from the old water
     const flooded: number[] = [];
     if (animate) {
@@ -533,6 +547,11 @@ export class IslandView {
       }
     }
     v.needsUpdate = true;
+    for (const k of this.marks) {
+      const c = this.showMarks && this.railPlate !== k.plate ? this.cols.find(q => q.plate === k.plate && q.patX === k.patX && q.patZ === k.patZ && !q.removing && !q.dead) : undefined;
+      k.m.visible = !!c;
+      if (c) { const d = c.plate === dp; k.m.position.set(c.x + (d ? this.dragNow.x : 0), c.y + this.lift[c.plate] + .012, c.z + (d ? this.dragNow.z : 0)); }
+    }
   }
 
   /** Coastline rectangles in world space, for the ocean masks. */
@@ -546,12 +565,12 @@ export class IslandView {
     }
     return out;
   }
-  waterRects(out: WaterRect[] = []) {
+  waterRects(out: WaterRect[] = [], settled = false) {
     const { lv, state: s } = this, sea = seaMask(lv, s), t = this.time;
     for (let i = 0; i < lv.w * lv.h; i++) {
       if (s.plate[i] >= 0) continue;
       const [x, z] = this.xz(i), d = this.dry.get(i);
-      const dry = d ? Math.max(0, Math.min(1, (d.at + .16 - t) / .16)) : 0;
+      const dry = d && !settled ? Math.max(0, Math.min(1, (d.at + .16 - t) / .16)) : 0;
       if (!sea[i] || dry > 0) out.push({ x0: this.ox + x - .5, z0: this.oz + z - .5, x1: this.ox + x + .5, z1: this.oz + z + .5, lake: sea[i] ? 0 : 1 - dry, dry });
     }
     return out;

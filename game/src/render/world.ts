@@ -49,7 +49,7 @@ export class World {
     const renderer = this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFShadowMap;
-    this.camera = new PerspectiveCamera(20, 1, 1, 900);
+    this.camera = new PerspectiveCamera(20, 1, 2, 3000);
 
     const terrain = makeTerrainMaterial(this.time);
     this.fx = new Particles(this.scene);
@@ -86,7 +86,7 @@ export class World {
     for (let i = 0; i < 6; i++) {
       const o = new Mesh(M.cloud, cloudMat);
       o.position.set(x0 + Math.random() * sw, 10 + Math.random() * 6, z0 + Math.random() * sh);
-      o.scale.setScalar(.55 + Math.random() * .5); o.rotation.y = -.72 + (Math.random() - .5) * .6;
+      o.scale.setScalar(1.5 + Math.random() * 1.2); o.rotation.y = -.72 + (Math.random() - .5) * .6;
       this.scene.add(o); this.clouds.push({ o, v: .25 + Math.random() * .3 });
     }
     for (let i = 0; i < 6; i++) {
@@ -167,31 +167,45 @@ export class World {
     return { top: 60 / h, bottom: 84 / h, left: 0, right: 0 };
   }
   /** Centre of the islands as the camera sees them (screen-aligned box), a little low so the title bar stays clear. */
-  private mapCenter() {
+  private mapCenter() { return this.mapFrame().focus; }
+  private mapDistance() { return this.mapFrame().dist; }
+  /** The camera that fits every island into the screen, between the title bar and whatever fills the bottom. */
+  private mapFrame() {
     const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(); const up = new Vector3().crossVectors(CAM_DIR, right).normalize();
-    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    for (const v of this.views) { const p = new Vector3(v.ox, 0, v.oz), a = p.dot(right), b = p.dot(up); x0 = Math.min(x0, a); x1 = Math.max(x1, a); y0 = Math.min(y0, b); y1 = Math.max(y1, b); }
-    const c = new Vector3().addScaledVector(right, (x0 + x1) / 2).addScaledVector(up, (y0 + y1) / 2 + 1.5);
-    // keep it on the ground plane along the view direction
-    return c.addScaledVector(CAM_DIR, -c.y / CAM_DIR.y);
+    // every island's corners, its height and its pin must land inside the free part of the screen
+    const pts: Vector3[] = [];
+    for (const v of this.views) {
+      const b = v.frameBox();
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) for (const y of [0, b.top]) pts.push(new Vector3(v.ox + b.cx + sx * b.hx, y, v.oz + b.cz + sz * b.hz));
+      const a = this.mapAnchors(v); pts.push(a.pin, a.label);
+    }
+    const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
+    // screen limits in NDC: room for the title bar on top, a pin's half size all round, and whatever fills the bottom
+    const yHi = 1 - 2 * (66 + 26) / innerHeight, yLo = -1 + 2 * (this.mapBottom + 28 / innerHeight), xHi = 1 - 2 * 30 / innerWidth;
+    const focus = new Vector3(); for (const v of this.views) focus.add(new Vector3(v.ox, 0, v.oz)); focus.divideScalar(this.views.length);
+    let dist = 60;
+    // perspective makes the fit depend on itself; a few rounds of projecting and correcting settle it
+    for (let k = 0; k < 8; k++) {
+      let xa = 1e9, xb = -1e9, ya = 1e9, yb = -1e9;
+      for (const q of pts) {
+        const d = q.clone().sub(focus), depth = dist - d.dot(CAM_DIR);
+        const nx = d.dot(right) / (depth * tanH), ny = d.dot(up) / (depth * tanV);
+        xa = Math.min(xa, nx); xb = Math.max(xb, nx); ya = Math.min(ya, ny); yb = Math.max(yb, ny);
+      }
+      dist *= Math.max((xb - xa) / (2 * xHi), (yb - ya) / (yHi - yLo));
+      focus.addScaledVector(right, (xa + xb) / 2 * tanH * dist).addScaledVector(up, ((ya + yb) - (yHi + yLo)) / 2 * tanV * dist);
+      focus.addScaledVector(CAM_DIR, -focus.y / CAM_DIR.y); // keep it on the ground plane along the view direction
+    }
+    return { focus, dist: Math.max(20, dist) };
   }
+  /** Fraction of the screen height the map must leave free at the bottom (the ending panel). */
+  private mapBottom = 0;
   /** Reframe the active island into the free part of the screen (fractions of the height reserved at top and bottom). */
   frameActive(kind: PadKind, dur: number) {
     const v = this.active; if (!v) return;
     this.padKind = kind; this.hudPad = this.pads(kind);
     this.flyTo(this.focusOf(v), this.fitDistance(v), dur);
   }
-  private mapDistance() {
-    const right = new Vector3().crossVectors(new Vector3(0, 1, 0), CAM_DIR).normalize(); const up = new Vector3().crossVectors(CAM_DIR, right).normalize();
-    const tanV = Math.tan((this.camera.fov * Math.PI / 180) / 2), tanH = tanV * this.camera.aspect;
-    let best = 20; const c = this.mapCenter(), m = 6.5;
-    for (const v of this.views) {
-      const d = new Vector3(v.ox, 0, v.oz).sub(c), x = Math.abs(d.dot(right)) + m, y = Math.abs(d.dot(up)) + m, z = d.dot(CAM_DIR);
-      best = Math.max(best, x / (tanH * .98) + z, y / (tanV * .8) + z);
-    }
-    return best;
-  }
-
   flyTo(target: Vector3, dist: number, dur: number, done?: () => void) {
     if (dur <= 0 || this.reducedMotion) { this.focus.copy(target); this.dist = dist; this.fly = null; done?.(); return; }
     const hop = this.focus.distanceTo(target);
@@ -205,8 +219,10 @@ export class World {
     this.setShadowSpan(13);
     this.flyTo(this.focusOf(v), this.fitDistance(v), dur, done);
   }
-  showMap(dur = 1.1, done?: () => void) {
-    this.map = true;
+  showMap(dur = 1.1, bottom = 0, done?: () => void) {
+    this.map = true; this.peekAt = null;
+    this.mapBottom = bottom;
+    this.seaTarget = ['#0f8fb4', '#26cfcb'];
     this.setShadowSpan(70);
     this.flyTo(this.mapCenter(), this.mapDistance(), dur, done);
   }
@@ -224,12 +240,21 @@ export class World {
     const b = v.frameBox(), r = Math.max(b.hx, b.hz) * .78, fx = Math.sin(AZ), fz = Math.cos(AZ);
     return { pin: new Vector3(v.ox + b.cx + fx * r, 0, v.oz + b.cz + fz * r), label: new Vector3(v.ox + b.cx - fx * (r + 1.2), 1, v.oz + b.cz - fz * (r + 1.2)) };
   }
+  /** A stop on the ending's tour: one island large in the frame, while the rest of the map stays alive. */
+  peek(i: number, dur: number, done?: () => void) {
+    const v = this.views[i];
+    this.map = true; this.peekAt = new Vector3(v.ox, 0, v.oz);
+    this.padKind = 'level'; this.hudPad = this.pads('level');
+    this.setShadowSpan(13);
+    this.flyTo(this.focusOf(v), this.fitDistance(v) * 1.15, dur, done);
+  }
+  private peekAt: Vector3 | null = null;
   zoomBump(k: number, dur: number) { this.pull = k; this.pullDur = dur; this.pullT = 0; }
   private pull = 0; private pullDur = 1; private pullT = 0;
 
   setActive(v: IslandView | null) {
     if (v === this.active) return;
-    if (this.active) { this.active.clearPreview(); this.active.setSelected(null); this.active.setHover(null); this.active.celebrate(false); }
+    if (this.active) { this.active.clearPreview(); this.active.setSelected(null); this.active.setHover(null); this.active.celebrate(false); this.active.showMarks = false; this.active.update(0, this.time.value); }
     this.active = v;
     if (v) {
       const span = v.span + 7;
@@ -245,7 +270,8 @@ export class World {
 
   private writeActive(v: IslandView) { this.activeMask.write(v.landRects(), v.waterRects()); }
   writeStatic() {
-    const land = this.views.flatMap(v => v.landRects()), water = this.views.flatMap(v => v.waterRects());
+    // the static mask is written once and stays: a flood still under way must not freeze here as dry ground
+    const land = this.views.flatMap(v => v.landRects()), water = this.views.flatMap(v => v.waterRects([], true));
     this.staticMask.write(land, water);
     this.ocean.syncBounds();
   }
@@ -297,11 +323,12 @@ export class World {
       for (const mood of ['ok', 'sad'] as const) {
         const cr = new Creature(kind, 0, fxStub, 0);
         cr.setMet(mood === 'ok', false); cr.update(0, 0);
+        if (kind === 'goat') cr.body.rotation.y = 1; // a goat reads from the side, by its horns and back
         if (cr.bubble) cr.bubble.visible = false;
         cr.badge.visible = false;
         scene.add(cr.root);
         const h = HEAD_Y[kind] * .72;
-        const dist = kind === 'light' ? 2.6 : kind === 'goat' ? 1.5 : kind === 'buoy' ? 1.7 : kind === 'penguin' ? 1.5 : 2;
+        const dist = kind === 'light' ? 2.6 : kind === 'goat' ? 1.15 : kind === 'buoy' ? 1.7 : kind === 'penguin' ? 1.5 : 2;
         cam.position.set(1.1 * dist * .5, h * .5 + dist * .42, dist * .86); cam.lookAt(0, h * .5, 0);
         this.renderer.setRenderTarget(rt); this.renderer.clear(); this.renderer.render(scene, cam);
         this.renderer.readRenderTargetPixels(rt, 0, 0, size, size, pixels);
@@ -319,8 +346,9 @@ export class World {
   }
 
   private frame() {
-    const now = performance.now(), dt = Math.min((now - this.lastNow) / 1000, .05);
+    const now = performance.now(), raw = (now - this.lastNow) / 1000, dt = Math.min(raw, .05);
     this.lastNow = now;
+    this.adaptQuality(raw);
     const t = (this.time.value += dt);
     for (let i = this.timers.length - 1; i >= 0; i--) if (this.timers[i].at <= t) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     this.frameHook?.(dt, t);
@@ -336,7 +364,8 @@ export class World {
     // camera
     let focus = this.focus, dist = this.dist;
     if (this.fly) {
-      const f = this.fly; f.t += dt;
+      // flights run on real time, so a slow machine lands on schedule instead of in slow motion
+      const f = this.fly; f.t += Math.min(raw, .25);
       const u = Math.min(1, f.t / f.dur), e = ease(u);
       this.focus.lerpVectors(f.from, f.to, e);
       this.dist = f.d0 + (f.d1 - f.d0) * e + Math.sin(e * Math.PI) * f.arc;
@@ -354,7 +383,7 @@ export class World {
     }
     this.camera.lookAt(focus);
     // sun follows the view so shadows stay crisp
-    const sc = this.map ? this.mapCenter() : (this.active ? new Vector3(this.active.ox, 0, this.active.oz) : focus);
+    const sc = this.map ? (this.peekAt ?? this.mapCenter()) : (this.active ? new Vector3(this.active.ox, 0, this.active.oz) : focus);
     this.sun.target.position.copy(sc); this.sun.position.copy(sc).add(new Vector3(-7, 16, 8));
     for (const p of this.pins) {
       if (p.hide?.()) { p.el.style.display = 'none'; continue; }
@@ -366,6 +395,26 @@ export class World {
     this.frames++;
   }
   frames = 0;
+  /** 0 full, 1 pixel ratio capped at 1, 2 no shadows, 3 below native resolution. Only ever steps down. */
+  quality = 0;
+  private slow = { t: 0, n: 0 };
+  private adaptQuality(raw: number) {
+    if (document.hidden || raw > 1) return; // a background tab or a stall says nothing about the machine
+    const s = this.slow; s.t += raw; s.n++;
+    if (s.t < 2) return;
+    const fps = s.n / s.t; s.t = 0; s.n = 0;
+    if (fps >= 28 || this.quality >= 3) return;
+    this.quality++;
+    if (this.quality === 1) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
+    if (this.quality === 2) { this.renderer.shadowMap.enabled = false; this.sun.castShadow = false; this.scene.traverse(o => { const m = (o as Mesh).material as MeshLambertMaterial | undefined; if (m) m.needsUpdate = true; }); }
+    if (this.quality === 3) this.renderer.setPixelRatio(.7);
+    this.resize();
+  }
+  /** Land a camera flight at once (the player tapped to skip it). */
+  finishFly() {
+    const f = this.fly; if (!f) return;
+    this.focus.copy(f.to); this.dist = f.d1; this.fly = null; f.done?.();
+  }
   private reducedClouds() { return !this.map && !this.fly; }
   get flying() { return !!this.fly; }
   get cameraFocus() { return this.focus; }

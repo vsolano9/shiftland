@@ -47,14 +47,14 @@ export const goatHead = merge([
   { g: box(0.125, 0.125, 0.15), c: CREAM, p: [0, 0, 0.03] },
   { g: box(0.09, 0.075, 0.085), c: '#fff7ea', p: [0, -0.032, 0.125] },
   { g: box(0.032, 0.022, 0.012), c: '#c98a7a', p: [0, -0.016, 0.17] },
-  { g: box(0.036, 0.1, 0.03), c: '#fff7ea', p: [0, -0.112, 0.125] },                       // beard
+  { g: box(0.036, 0.06, 0.03), c: '#fff7ea', p: [0, -0.092, 0.125] },                      // beard
   { g: box(0.024, 0.038, 0.012), c: DARK, p: [-0.04, 0.025, 0.106] }, { g: box(0.024, 0.038, 0.012), c: DARK, p: [0.04, 0.025, 0.106] },
   { g: box(0.1, 0.032, 0.05), c: SHADE, p: [-0.105, 0.012, -0.01], r: [0, 0, 0.42] }, { g: box(0.1, 0.032, 0.05), c: SHADE, p: [0.105, 0.012, -0.01], r: [0, 0, -0.42] },
   ...horn(-1), ...horn(1),
 ]);
 export const goatBrows = merge([
-  { g: box(0.042, 0.012, 0.012), c: DARK, p: [-0.04, 0.056, 0.108], r: [0, 0, -0.5] },
-  { g: box(0.042, 0.012, 0.012), c: DARK, p: [0.04, 0.056, 0.108], r: [0, 0, 0.5] },
+  { g: box(0.042, 0.012, 0.012), c: DARK, p: [-0.04, 0.056, 0.108], r: [0, 0, 0.5] },   // inner ends up: sad, not cross
+  { g: box(0.042, 0.012, 0.012), c: DARK, p: [0.04, 0.056, 0.108], r: [0, 0, -0.5] },
 ]);
 
 // VILLAGE: one house; a village is three, placed and tilted by the creature view.
@@ -176,7 +176,16 @@ export const flag = merge([
 export const cloud = merge([
   { g: ico(1, 1), c: '#ffffff', p: [0, 0, 0], s: [1.4, 0.75, 1] }, { g: ico(0.8, 1), c: '#f6fbff', p: [1.15, -0.1, 0.1], s: [1.2, 0.7, 1] },
   { g: ico(0.75, 1), c: '#fafdff', p: [-1.15, -0.12, -0.1], s: [1.2, 0.68, 1] },
+  { g: ico(0.7, 1), c: '#ffffff', p: [0.35, 0.05, 0.9], s: [1.15, 0.7, 1] }, { g: ico(0.62, 1), c: '#f2f8fd', p: [-0.55, -0.05, -0.85], s: [1.2, 0.66, 1] },
+  { g: ico(0.5, 1), c: '#f6fbff', p: [1.95, -0.2, -0.45], s: [1.1, 0.6, 1] },
 ]);
+/** A flat double-headed arrow along x, lying on a plate: which way the plate slides. */
+export const axisMark = (() => {
+  const s = new Shape(), L = .3, H = .13, W = .035, N = .15;
+  s.moveTo(-L, 0); s.lineTo(-L + N, H); s.lineTo(-L + N, W); s.lineTo(L - N, W); s.lineTo(L - N, H); s.lineTo(L, 0);
+  s.lineTo(L - N, -H); s.lineTo(L - N, -W); s.lineTo(-L + N, -W); s.lineTo(-L + N, -H); s.closePath();
+  return new ExtrudeGeometry(s, { depth: .004, bevelEnabled: false }).rotateX(-Math.PI / 2);
+})();
 export const gull = merge([
   { g: box(0.34, 0.012, 0.075), c: '#ffffff', p: [-0.16, 0.02, 0], r: [0, 0, 0.32] }, { g: box(0.34, 0.012, 0.075), c: '#ffffff', p: [0.16, 0.02, 0], r: [0, 0, -0.32] },
   { g: box(0.05, 0.05, 0.2), c: '#f2f4f6', p: [0, 0, 0] },

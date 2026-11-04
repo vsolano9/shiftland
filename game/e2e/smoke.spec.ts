@@ -36,7 +36,7 @@ test('title, first island by drag, level complete, next, map, reload keeps progr
   await expect(page.locator('#btn-play')).toBeVisible();
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
   await page.click('#btn-play');
-  await page.waitForTimeout(1700);
+  await page.waitForTimeout(1700); // flights run on real time, at any frame rate
   const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
   expect(sol.length).toBeGreaterThan(0);
   await expect(page.locator('#hud-moves')).toContainText('Moves 0');
@@ -56,24 +56,78 @@ test('title, first island by drag, level complete, next, map, reload keeps progr
   expect(errors).toEqual([]);
 });
 
-test('undo and restart through the buttons, Escape cancels a drag', async ({ page }) => {
+/** Save with the first levels solved, so a level with a multi-move solution can be opened. */
+async function openLevelAt(page: Page, name: string) {
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  await page.evaluate(n => {
+    const a = window.__shiftland as unknown as { progress: { unlocked: () => boolean }; pickLevel(i: number): void; levels: { name: string; par: number }[] };
+    a.progress.unlocked = () => true;
+    a.pickLevel(n === '' ? a.levels.findIndex(l => l.par >= 3) : a.levels.findIndex(l => l.name === n));
+  }, name);
+  await page.waitForTimeout(1900);
+}
+
+test('undo and restart through the buttons, Escape cancels a real drag, map and back keeps the moves', async ({ page }) => {
   const errors = errorsOf(page);
+  await openLevelAt(page, '');
+  const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
+  const moves = () => page.evaluate(() => window.__shiftland.controller.session.moves);
+  expect(sol.length).toBeGreaterThan(1);
+  // Escape during a drag commits nothing
+  const pts = await page.evaluate(m => {
+    const a = window.__shiftland, p = Number(m[1]), d = ({ N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] } as Record<string, number[]>)[m[2]];
+    const A = a.view.railAnchor(p), B = A.clone(); B.x += d[0]; B.z += d[1];
+    return [a.world.project(A), a.world.project(B)];
+  }, sol[0]);
+  await page.mouse.move(pts[0][0], pts[0][1]);
+  await page.mouse.down();
+  await page.mouse.move(pts[1][0], pts[1][1], { steps: 8 });
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  expect(await moves()).toBe(0);
+  // a real move, then the undo button
+  await drag(page, sol[0]);
+  expect(await moves()).toBe(1);
+  await page.click('#b-undo');
+  expect(await moves()).toBe(0);
+  // moves survive a trip to the map
+  await drag(page, sol[0]);
+  await page.click('#b-map');
+  await page.waitForTimeout(1300);
+  await page.evaluate(() => (window.__shiftland as unknown as { pickLevel(i: number): void; controller: { index: number } }).pickLevel((window.__shiftland as unknown as { controller: { index: number } }).controller.index));
+  await page.waitForTimeout(1700);
+  expect(await moves()).toBe(1);
+  // the restart button clears them
+  await page.click('#b-restart');
+  await page.waitForTimeout(600);
+  expect(await moves()).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('reduced motion still plays: a level opens and accepts a drag', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const errors = errorsOf(page);
+  await page.goto('./');
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
+  await page.click('#btn-play');
+  await page.waitForTimeout(400);
+  const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
+  await drag(page, sol[0]);
+  expect(await page.evaluate(() => window.__shiftland.controller.session.moves)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('leaving during the celebration does not bring the result panel back over the map', async ({ page }) => {
   await page.goto('./');
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5);
   await page.click('#btn-play');
   await page.waitForTimeout(1700);
   const sol = await page.evaluate(() => window.__shiftland.controller.session.lv.sol!);
-  const moves = () => page.evaluate(() => window.__shiftland.controller.session.moves);
-  await page.keyboard.press('Tab');
-  await page.keyboard.press(sol[0][2] === 'E' ? 'ArrowRight' : sol[0][2] === 'W' ? 'ArrowLeft' : sol[0][2] === 'N' ? 'ArrowUp' : 'ArrowDown');
-  await page.waitForTimeout(600);
-  const m1 = await moves();
-  if (m1 > 0 && !(await page.evaluate(() => window.__shiftland.controller.session.solved))) {
-    await page.click('#b-undo');
-    expect(await moves()).toBe(m1 - 1);
-  }
-  await page.keyboard.press('r');
-  await page.waitForTimeout(600);
-  expect(await moves()).toBe(0);
-  expect(errors).toEqual([]);
+  await drag(page, sol[0]);
+  await page.keyboard.press('m');
+  await page.waitForTimeout(2200);
+  await expect(page.locator('#done')).toHaveClass(/hidden/);
+  await expect(page.locator('#s-map')).not.toHaveClass(/hidden/);
 });

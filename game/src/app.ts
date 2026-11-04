@@ -41,8 +41,22 @@ const icon = {
 };
 
 const GOAL_TEXT: Record<CreatureKind, [string, string]> = {
-  goat: ['Goat', 'on a peak'], village: ['Village', 'stays low'], light: ['Lighthouse', 'by the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'by a lake'], penguin: ['Penguins', 'ice by the sea'],
+  goat: ['Goat', 'height 2 or more'], village: ['Village', 'height 1 or less'], light: ['Lighthouse', 'beside the sea'], buoy: ['Buoy', 'open sea'], oasis: ['Oasis', 'beside a lake'], penguin: ['Penguins', 'ice by the sea'],
 };
+/** The full rule, shown when a goal chip is tapped. */
+const GOAL_RULE: Record<CreatureKind, string> = {
+  goat: 'The goat wants a peak: height 2 or more. Count the dots. Pushing two plates together lifts the seam one higher than either side.',
+  village: 'The village wants low ground: height 1 or less. If the land rises under it, it is unhappy.',
+  light: 'The lighthouse wants open sea on a side next to it. Pull plates apart, or sail its plate to the shore.',
+  buoy: 'The buoy never moves. Land can slide under it and beach it. It wants open sea around it.',
+  oasis: 'The oasis wants a lake on a side next to it. A lake is water the sea cannot reach: close the gap around it.',
+  penguin: 'Penguins want their ice touching the sea. Lifting ice melts it, and a plate carries what stands on it.',
+};
+/** The ending's tour: what each biome's creatures got. */
+const TOUR: [BiomeName, string][] = [
+  ['meadow', 'The goats have their peaks'], ['coast', 'The lights reach the sea'], ['desert', 'The oases have their water'], ['tundra', 'The penguins kept their ice'], ['finale', 'And the land is at rest'],
+];
+const ENDING_KEY = 'shiftland.ending.v1';
 
 const parseMove = (m: string) => ({ plate: Number(m[1]), dir: DIR_NAME.indexOf(m[2] as 'N') as Dir });
 
@@ -55,16 +69,16 @@ function loadSettings(): Settings {
 }
 
 /** Islands along a serpentine path across the screen-aligned ocean. */
-function archipelago(levels: Level[], tall: boolean): [number, number][] {
+function archipelago(levels: Level[], aspect: number): [number, number][] {
   const AZ = .72, right = [Math.cos(AZ), -Math.sin(AZ)], fwd = [-Math.sin(AZ), -Math.cos(AZ)];
   const out: [number, number][] = [];
-  // a phone held upright gets fewer islands per row, so each stays big enough to read and tap
-  const perRow = tall ? 3 : levels.length <= 15 ? 5 : levels.length <= 20 ? 6 : 7;
-  const rows = Math.ceil(levels.length / perRow), du = 15.5, dv = 18;
+  // rows that suit the screen's shape, so the whole sea fills it and each island stays big enough to read and tap
+  const perRow = aspect < .9 ? 3 : aspect > 1.95 ? 7 : 5;
+  const rows = Math.ceil(levels.length / perRow), du = perRow === 3 ? 13 : 13.5, dv = perRow === 3 ? 13.5 : 14.5;
   levels.forEach((_, i) => {
     const r = Math.floor(i / perRow), k = i - r * perRow;
-    const u = (r % 2 ? perRow - 1 - k : k) * du - (perRow - 1) * du / 2 + Math.sin(i * 1.7) * 2.2;
-    const v = (rows - 1) * dv / 2 - r * dv + Math.sin(i * 2.3 + 1) * 3.2 + (k % 2 ? 2.8 : -2.8);
+    const u = (r % 2 ? perRow - 1 - k : k) * du - (perRow - 1) * du / 2 + Math.sin(i * 1.7) * 1.4;
+    const v = (rows - 1) * dv / 2 - r * dv + Math.sin(i * 2.3 + 1) * 1.6 + (k % 2 ? 1.6 : -1.6);
     // first row at the bottom of the map, so the player climbs the screen
     const V = -v;
     out.push([right[0] * u + fwd[0] * V, right[1] * u + fwd[1] * V]);
@@ -95,11 +109,12 @@ class App {
     this.levels = (raw as unknown as LevelJson[]).map(fromJson);
     const names = this.levels.map(l => l.name!);
     this.progress = new Progress(names, browserStorage(), tutorialCount(this.levels));
-    this.world = new World(canvas, this.levels, (s, o) => this.audio.play(s, o), archipelago(this.levels, innerHeight > innerWidth * 1.1));
+    this.world = new World(canvas, this.levels, (s, o) => this.audio.play(s, o), archipelago(this.levels, innerWidth / innerHeight));
     this.world.reducedMotion = this.settings.reduced;
     this.world.fx.reduced = this.settings.reduced;
     this.stuck = new StuckChecker(createStuckWorker, s => this.controller?.stuckAnswer(s));
     this.applyAudioSettings();
+    this.audio.setOcean(.7);
     this.buildUi();
     this.thumbs = this.world.thumbs();
     this.controller = new Controller(this.levels, this.progress, this.stuck, e => this.onEvent(e));
@@ -146,7 +161,7 @@ class App {
       </div>
       <div id="done" class="screen hidden"><div class="panel"><h2 id="d-title"></h2><div id="d-star"></div><div class="score" id="d-score"></div><div class="sub" id="d-sub"></div>
         <div class="row"><button class="btn" id="d-replay">Replay</button><button class="btn" id="d-map">Map</button><button class="btn primary" id="d-next">Next</button></div></div></div>
-      <div id="ending" class="screen hidden"><div class="panel"><h2>Every creature is happy.</h2><p id="e-sub"></p><div class="row" style="display:flex;gap:10px;justify-content:center"><button class="btn primary" id="e-map">Back to the islands</button></div></div></div>
+      <div id="ending" class="screen hidden"><div class="panel"><h2>Every creature is happy.</h2><p id="e-sub"></p><div class="row" style="display:flex;gap:10px;justify-content:center"><button class="btn primary" id="e-map">Back to the islands</button></div><div id="e-thanks">Thanks for playing Shiftland. Made for GitHub Game Off 2026, theme: Shift.</div></div></div>
       <div id="settings" class="screen hidden"><div class="panel"><h2>Settings</h2>
         <div class="set-row"><label for="s-music">Music</label><input type="range" id="s-music" min="0" max="1" step=".01"></div>
         <div class="set-row"><label for="s-sfx">Sounds</label><input type="range" id="s-sfx" min="0" max="1" step=".01"></div>
@@ -164,6 +179,7 @@ class App {
     click('b-restart', () => this.controller.act({ kind: 'restart' }));
     click('b-map', () => this.toMap());
     click('b-hint', () => this.showHint());
+    $('hud-tl').addEventListener('click', () => this.showBlurb(4));
     click('d-replay', () => this.controller.act({ kind: 'restart' }));
     click('d-map', () => this.toMap());
     click('d-next', () => this.next());
@@ -225,6 +241,7 @@ class App {
   }
 
   private show(s: Screen) {
+    if (s !== this.screen) this.solveGen++;
     this.screen = s;
     for (const [id, name] of [['s-title', 'title'], ['s-map', 'map'], ['s-level', 'level'], ['ending', 'ending']] as const) $(id).classList.toggle('hidden', s !== name);
     if (s !== 'level') $('done').classList.add('hidden');
@@ -233,7 +250,7 @@ class App {
   // ---- navigation
   private toTitle() {
     this.show('title');
-    this.audio.setMusic('title');
+    this.audio.setMusic('title'); this.audio.setOcean(.7);
     this.world.focusTitle(this.controller.index, 1);
   }
   private toMap(fromTitle = false) {
@@ -242,7 +259,7 @@ class App {
     this.world.setActive(null);
     this.refreshIslands();
     this.world.writeStatic();
-    this.audio.setMusic('title');
+    this.audio.setMusic('title'); this.audio.setOcean(.6);
     this.audio.play('whoosh');
     this.world.showMap(1.1);
   }
@@ -262,7 +279,9 @@ class App {
       v.setDim(unlocked ? 0 : 1);
       if (v !== this.world.active) {
         v.setBloom(solved);
-        const s = solved ? this.solvedState(i) : v.lv.start;
+        // the island left unfinished stays as the player left it; solved ones as their creatures left them
+        const cur = this.controller.session, left = i === this.controller.index && cur.moves > 0 && !cur.solved;
+        const s = left ? cur.state : solved ? this.solvedState(i) : v.lv.start;
         v.reconcile(s, false); v.applyGoals(v.goalsFn(v.lv, s), false); v.update(0, this.world.time.value);
       }
     });
@@ -279,6 +298,8 @@ class App {
   private pickLevel(i: number) {
     if (!this.progress.unlocked(i)) { this.audio.play('blocked'); return; }
     this.audio.play('ui');
+    const cur = this.controller.session;
+    if (i === this.controller.index && cur.moves > 0 && !cur.solved) { this.enterLevel(i, true); return; } // back to the unfinished island, moves and all
     this.openLevel(i);
   }
   private openLevel(i: number) {
@@ -295,48 +316,69 @@ class App {
     this.show('level');
     $('done').classList.add('hidden');
     this.firstMoveMade = false; this.completeTimer = false;
+    const s = this.controller.session; // a fresh session is the level's start; one left for the map comes back as it was
     v.setDim(0);
     v.celebrate(false); v.setBloom(false);
-    v.reconcile(lv.start, true, { fromRestart: true });
+    v.reconcile(s.state, true, { fromRestart: true });
+    $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
+    this.hintLevel = 0;
+    this.firstMoveMade = s.moves > 0;
+    this.setFlying(true); // before the flight: with reduced motion it lands, and unlocks, inside this call
     this.setActiveLevel(v, fly);
-    v.applyGoals(v.goalsFn(lv, lv.start), this.world.active === v && !fly);
+    v.showMarks = true;
+    v.applyGoals(s.goals, this.world.active === v && !fly);
     v.setSelected(null);
     this.buildChips();
     this.refreshHud();
     this.audio.setMusic(((lv.biome ?? 'meadow') as Biome));
-    this.showCard(lv.name!, lv.blurb ?? BIOMES[(lv.biome ?? 'meadow') as BiomeName].label);
-    const tut = i < 2;
+    this.audio.setOcean(.35);
+    const tut = i < 2 && s.moves === 0;
     const h = $('hint');
-    h.textContent = i === 0 ? 'Drag a plate along its rail' : '';
-    h.classList.toggle('off', i !== 0);
+    h.textContent = i === 0 && tut ? 'Drag a plate along its rail' : '';
+    h.classList.toggle('off', !(i === 0 && tut));
     this.handStart = tut ? this.world.time.value : 0;
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
     if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.showRail(this.handMove.plate); } });
-    this.setFlying(fly);
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
     this.world.setActive(v);
-    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => this.setFlying(false));
+    this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false); if (this.view === v) this.showBlurb(3.4); });
     if (fly) this.audio.play('whoosh');
   }
+  /** The level's name and line; shown on landing and whenever the name card is tapped. */
+  private showBlurb(sec = 3.4) {
+    const lv = this.view.lv;
+    this.showCard(lv.name!, lv.blurb ?? BIOMES[(lv.biome ?? 'meadow') as BiomeName].label, sec);
+  }
   private setFlying(on: boolean) { this.busyUntil = on ? Infinity : 0; }
-  private showCard(big: string, small: string) {
+  private showCard(big: string, small: string, sec = 3.4) {
     const c = $('card'); (c.children[0] as HTMLElement).textContent = big; (c.children[1] as HTMLElement).textContent = small;
     c.classList.add('show');
     clearTimeout(this.hintTimer);
-    this.hintTimer = window.setTimeout(() => c.classList.remove('show'), 2200);
+    this.hintTimer = window.setTimeout(() => c.classList.remove('show'), sec * 1000);
   }
 
-  /** Works out the next move from wherever the player is, and shows it with the hand. Hints never cost the star: the par does that by itself. */
+  /**
+   * Works out the next move from wherever the player is. The first press only points at a plate and keeps the star;
+   * the second shows the whole move with the hand and gives up the star for this run (restart wins it back).
+   */
   private showHint() {
     if (!this.canPlay) return;
     const s = this.controller.session, v = this.view, sol = solve(s.lv, 16, s.state);
     if (!sol) { this.flashHint('No way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.firstSolution[0]);
+    v.setSelected(null); v.railHint = 1; v.showRail(m.plate);
+    const late = s.par !== undefined && s.moves + sol.min > s.par;
+    if (this.hintLevel === 0) {
+      this.hintLevel = 1;
+      this.flashHint(late ? 'Try this plate. Restart if you want the star' : 'Try this plate. Press Hint again to see the move', 4);
+      return;
+    }
+    s.hinted = true;
     this.handMove = m; this.handStart = this.world.time.value;
-    v.railHint = 1; v.setSelected(null); v.showRail(m.plate);
-    this.flashHint(`Slide this plate. ${sol.min} move${sol.min === 1 ? '' : 's'} to go`);
+    this.flashHint(`${sol.min} move${sol.min === 1 ? '' : 's'} to go. No star this run: Restart to win it back`, 4);
   }
+  private hintLevel = 0;
 
   // ---- HUD
   private buildChips() {
@@ -347,10 +389,13 @@ class App {
       const el = document.createElement('div'); el.className = 'chip';
       const [a, b] = GOAL_TEXT[c.kind];
       el.innerHTML = `<img alt="" src="${this.thumbs[c.kind].sad}"><div class="tx"><b>${a}</b><span>${b}</span></div><div class="badge">${icon.cross}</div>`;
+      el.title = GOAL_RULE[c.kind];
+      el.addEventListener('click', () => { this.audio.play('ui'); this.flashHint(GOAL_RULE[c.kind], 6); });
       box.appendChild(el);
       this.chips.set(c.kind, { el, goals: [c.goalIndex], delta: null });
     }
     for (const [, e] of this.chips) if (e.goals.length > 1) { const n = document.createElement('div'); n.className = 'count'; e.el.appendChild(n); }
+    $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`); // the hint sits above however many rows the chips take
   }
   private refreshChips() {
     const g = this.controller.session.goals;
@@ -411,9 +456,13 @@ class App {
       case 'finished': this.toEnding(); break;
     }
   }
-  private flashHint(t: string) {
+  private flashHint(t: string, sec = 1.5) {
     const h = $('hint'); h.textContent = t; h.classList.remove('off');
-    clearTimeout(this.flashT); this.flashT = window.setTimeout(() => { if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off'); }, 1500);
+    clearTimeout(this.flashT);
+    this.flashT = window.setTimeout(() => {
+      if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off');
+      else h.textContent = 'Drag a plate along its rail';
+    }, sec * 1000);
   }
   private flashT = 0;
   private panOf(cell: number) { const v = this.view, [x] = v.xz(cell); return Math.max(-1, Math.min(1, x / v.lv.w * 1.4)); }
@@ -421,6 +470,7 @@ class App {
   private restartView() {
     const v = this.view, s = this.controller.session;
     $('done').classList.add('hidden'); v.celebrate(false); v.setBloom(false); this.completeTimer = false;
+    this.hintLevel = 0; v.showMarks = true; this.solveGen++;
     this.world.frameActive('level', .5);
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     v.clearPreview(); v.setSelected(null);
@@ -433,7 +483,8 @@ class App {
     const v = this.view, s = this.controller.session, lv = s.lv;
     this.firstMoveMade = true;
     this.handStart = 0; this.handMove = null; v.railHint = 0;
-    $('hint').classList.add('off'); $('b-undo').classList.remove('glow');
+    $('hint').classList.add('off'); $('b-undo').classList.remove('glow'); $('stuck').classList.add('hidden-el');
+    this.hintLevel = 0;
     v.absorbDrag(plate);
     const before = v.creatures.map(c => c.met);
     const melted = previewDiff(lv, v.state, s.state).melt;
@@ -493,14 +544,16 @@ class App {
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     this.world.after(MOVE_TIME * .8, () => { if (this.controller.session === s) v.applyGoals(s.goals, true); });
     this.refreshHud();
-    if (this.completeTimer) { $('done').classList.add('hidden'); this.completeTimer = false; v.celebrate(false); v.setBloom(false); this.world.frameActive('level', .5); }
+    if (this.completeTimer) { $('done').classList.add('hidden'); this.completeTimer = false; this.solveGen++; v.showMarks = true; v.celebrate(false); v.setBloom(false); this.world.frameActive('level', .5); }
   }
   private afterSolved(moves: number, par: number | undefined, stars: number) {
-    const v = this.view, lv = v.lv, s = this.controller.session;
+    const v = this.view, lv = v.lv, s = this.controller.session, gen = ++this.solveGen;
+    const stale = () => gen !== this.solveGen || this.screen !== 'level' || this.controller.session !== s || !s.solved;
     this.completeTimer = true;
-    v.railHint = 0; v.setHover(null); v.setSelected(null);
+    v.railHint = 0; v.setHover(null); v.setSelected(null); v.showMarks = false;
+    $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     this.world.after(MOVE_TIME + .45, () => {
-      if (this.controller.session !== s || !s.solved) return;
+      if (stale()) return;
       v.celebrate(true); v.setBloom(true);
       this.world.frameActive('solved', .7);
       this.world.fx.confetti(v.ox, 0, v.oz, 110, Math.max(lv.w, lv.h) * .45);
@@ -508,30 +561,67 @@ class App {
       this.audio.play('complete');
       if (stars) this.world.after(.5, () => this.audio.play('star'));
       this.world.after(.95, () => {
-        if (this.controller.session !== s || !s.solved) return;
+        if (stale()) return;
         const titles = ['Island settled!', 'All happy!', 'Lovely shift!', 'Land ho!', 'Well moved!'];
         $('d-title').textContent = titles[this.controller.index % titles.length];
         $('d-star').innerHTML = (stars ? icon.star : icon.starEmpty).replace('<svg', `<svg class="star${stars ? '' : ' empty'}"`);
         $('d-score').textContent = par !== undefined ? `Moves ${moves} / Par ${par}` : `Moves ${moves}`;
-        $('d-sub').textContent = stars ? '' : `Finish in ${par} for the star`;
+        const kept = !stars && !!this.progress.record(lv.name!)?.stars;
+        $('d-star').innerHTML = (stars || kept ? icon.star : icon.starEmpty).replace('<svg', `<svg class="star${stars || kept ? '' : ' empty'}"`);
+        $('d-sub').textContent = stars ? '' : kept ? 'Star kept from your best run' : s.hinted && moves <= (par ?? 0) ? 'Solve it without seeing a move for the star' : `Finish in ${par} for the star`;
         const allDone = this.levels.every((_, i) => this.progress.solved(i));
-        $('d-next').textContent = allDone && this.controller.index === this.levels.length - 1 ? 'Finish' : 'Next';
+        $('d-next').textContent = allDone && this.controller.index === this.levels.length - 1 ? (this.endingDue() ? 'Finish' : 'Map') : 'Next';
         $('done').classList.remove('hidden');
       });
     });
     this.refreshHud();
   }
+  /** Bumped by every solve and every leaving of the level: a celebration still scheduled from before gives up. */
+  private solveGen = 0;
+  /** The ending plays when the game is first finished, and again only when a replay has won more stars. */
+  private endingDue() {
+    let seen = -1;
+    try { const v = browserStorage()?.getItem(ENDING_KEY); if (v !== null && v !== undefined && /^\d+$/.test(v)) seen = Number(v); } catch { /* memory only */ }
+    return this.progress.totalStars() > seen;
+  }
   private toEnding() {
+    if (!this.endingDue()) { this.toMap(); return; }
+    const stars = this.progress.totalStars(), total = this.levels.length;
+    try { browserStorage()?.setItem(ENDING_KEY, String(stars)); } catch { /* memory only */ }
     this.show('ending');
+    $('ending').classList.add('touring');
     this.world.setActive(null);
     this.refreshIslands();
     this.world.writeStatic();
     this.world.views.forEach(v => v.celebrate(true));
-    this.audio.setMusic('ending'); this.audio.play('complete');
-    const stars = this.progress.totalStars();
-    $('e-sub').textContent = stars === this.levels.length ? `All ${stars} stars. You move mountains, literally.` : `${stars} of ${this.levels.length} stars. The goats would like a word about the others.`;
-    this.world.showMap(2.4);
+    this.audio.setMusic('ending'); this.audio.setOcean(.5); this.audio.play('complete');
+    const moves = this.levels.reduce((n, l) => n + (this.progress.record(l.name!)?.best ?? 0), 0);
+    $('e-sub').textContent = stars === total ? `All ${stars} stars in ${moves} moves. You move mountains, literally.` : `${stars} of ${total} stars. The goats would like a word about the others.`;
     this.endingFire = 0;
+    // a short tour of the creatures the player made happy, one stop per biome; any tap skips it
+    const stops = TOUR.flatMap(([b, line]) => { let at = -1; this.levels.forEach((l, i) => { if (l.biome === b) at = i; }); return at >= 0 ? [{ at, line }] : []; });
+    const tour = ++this.tourGen;
+    const step = (k: number) => {
+      if (tour !== this.tourGen) return;
+      if (k >= stops.length || this.settings.reduced) { this.endTour(); return; }
+      this.world.peek(stops[k].at, k ? 1.15 : 1.6, () => {
+        if (tour !== this.tourGen) return;
+        const v = this.world.views[stops[k].at];
+        this.showCard(stops[k].line, '', 1.5);
+        this.world.fx.confetti(v.ox, 0, v.oz, 50, 4);
+        this.audio.play('star');
+        this.world.after(1.45, () => step(k + 1));
+      });
+    };
+    step(0);
+  }
+  private tourGen = 0;
+  private touring() { return this.screen === 'ending' && $('ending').classList.contains('touring'); }
+  private endTour() {
+    this.tourGen++;
+    $('ending').classList.remove('touring');
+    $('card').classList.remove('show');
+    this.world.showMap(1.8, .3);
   }
   private endingFire = 0;
 
@@ -581,6 +671,8 @@ class App {
   private pointerDown(e: PointerEvent) {
     if (this.screen === 'map') { const i = this.world.pickIsland(e.clientX, e.clientY); if (i !== null) this.pickLevel(i); return; }
     if (this.screen === 'title') { this.toMap(true); return; }
+    if (this.touring()) { this.endTour(); return; }
+    if (this.screen === 'level' && this.world.flying && this.busyUntil !== 0) this.world.finishFly(); // a touch during the fly-in lands at once and starts the drag
     if (!this.canPlay) return;
     let plate = this.world.pick(e.clientX, e.clientY);
     // a touch on the water or another spot keeps working on the selected plate (tap, then swipe anywhere)
@@ -593,6 +685,7 @@ class App {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     this.drag = { plate, start, y, pointer: e.pointerId, moved: false };
     this.dragging = true;
+    v.setQuiet(true);
     this.controller.act({ kind: 'select', plate });
   }
   private pointerMove(e: PointerEvent) {
@@ -622,6 +715,7 @@ class App {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
     const p = this.drag.plate;
     this.drag = null; this.dragging = false;
+    this.view.setQuiet(false);
     this.view.noteDragEnd(p);
     this.view.setDrag(null);
     this.controller.release();
@@ -631,6 +725,7 @@ class App {
     if (!this.drag) return;
     const p = this.drag.plate;
     this.drag = null; this.dragging = false;
+    this.view.setQuiet(false);
     this.view.noteDragEnd(p); this.view.setDrag(null);
     this.controller.cancelDrag();
     this.controller.release();
@@ -644,6 +739,7 @@ class App {
       if (e.key === 'Enter') this.pickLevel(this.progress.next());
       return;
     }
+    if (this.touring() && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { this.endTour(); return; }
     if (this.screen === 'ending' && e.key === 'Enter') { this.toMap(); return; }
     if (this.screen !== 'level' || this.busyUntil !== 0) return;
     if (e.key === 'm' || e.key === 'M') { this.toMap(); return; }

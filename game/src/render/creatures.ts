@@ -116,6 +116,8 @@ export class Creature {
     this.badge.visible = true; this.badgeLife = 1.25;
   }
   hideWish(hidden: boolean) { if (this.bubble) this.bubble.userData.hidden = hidden; }
+  /** Bubbles step aside while a plate is being dragged, so they never hide the board being read. */
+  quiet = false;
 
   celebrate(on: boolean) { this.celebrating = on ? 1 : 0; this.people.forEach(p => { p.visible = on; }); }
 
@@ -126,7 +128,7 @@ export class Creature {
     this.pose(dt, t);
     // wish bubble: shown while unhappy, bobbing gently, gone when happy
     if (this.bubble) {
-      const s = (.54 / KIND_SCALE[this.kind]) * back(Math.max(0, 1 - this.metK * 1.8)) * (this.bubble.userData.hidden ? 0 : 1);
+      const s = (.54 / KIND_SCALE[this.kind]) * back(Math.max(0, 1 - this.metK * 1.8)) * (this.bubble.userData.hidden || this.quiet ? 0 : 1);
       this.bubble.scale.setScalar(Math.max(s, 0.0001));
       this.bubble.visible = s > .01;
       this.bubble.position.y = HEAD_Y[this.kind] + .12 + Math.sin(t * 1.7 + this.phase) * .02;
@@ -149,11 +151,13 @@ export class Creature {
       case 'goat': {
         const pivot = this.head!.userData.pivot as Group;
         // unhappy: folded down with a drooped head, looking up with a sigh; happy: proud, tail up, a little hop
-        const squat = (1 - k) * .34;
+        // (concepts/shiftland-creatures.png: flopped on its belly, head low and turned aside)
+        const squat = (1 - k) * .58;
         this.legs!.scale.y = 1 - squat; this.legs!.position.y = 0;
-        pivot.position.y = .4 - squat * .42 + Math.sin(ph * 1.8) * .006;
-        pivot.rotation.x = k > .5 ? Math.sin(ph * .8) * .1 - .05 : -.42 + Math.sin(ph * .8) * .05;
-        pivot.rotation.z = (1 - k) * Math.sin(ph * .6) * .1;
+        pivot.position.y = .4 - squat * .46 + Math.sin(ph * 1.8) * .006;
+        pivot.rotation.x = k > .5 ? Math.sin(ph * .8) * .1 - .05 : .18 + Math.sin(ph * .8) * .04;
+        pivot.rotation.y = (1 - k) * .55;
+        pivot.rotation.z = (1 - k) * (.16 + Math.sin(ph * .6) * .06);
         this.brows!.visible = k < .5;
         this.body.position.y = hop * .2 + pulse * .22;
         this.body.scale.setScalar(1 + pulse * .08);

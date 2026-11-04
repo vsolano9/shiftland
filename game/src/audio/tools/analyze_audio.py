@@ -40,7 +40,8 @@ def lufs(mono_stereo, sr):
     # shelf and RLB high-pass, bilinear from the standard's analogue prototypes
     f0, g, q = 1681.974, 3.9998, 0.7072
     k = np.tan(np.pi * f0 / sr)
-    vh, vb = 10 ** (g / 20), 10 ** (g / 20) ** 0.4996
+    vh = 10 ** (g / 20)
+    vb = vh ** 0.4996
     a0 = 1 + k / q + k * k
     shelf_b = [(vh + vb * k / q + k * k) / a0, 2 * (k * k - vh) / a0, (vh - vb * k / q + k * k) / a0]
     shelf_a = [1, 2 * (k * k - 1) / a0, (1 - k / q + k * k) / a0]
