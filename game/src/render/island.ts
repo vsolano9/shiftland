@@ -745,12 +745,12 @@ export class IslandView {
   /**
    * While playing the camera never moves: it is set once to hold what the level can become (second playtest P1: a camera stepping
    * back between moves slid the plates out from under the finger and made the island look different each time). These points are the
-   * tallest each cell gets within par + 1 moves of the start. Holding every reachable state would cost a third of the board's size for
+   * tallest each cell gets within par moves of the start. Holding every reachable state would cost a third of the board's size for
    * boards nobody plays; a plate pushed further than that may run under the HUD or a little off the edge, and it can still be pulled back.
    */
   reachPoints() {
     if (this.reach) return this.reach;
-    const { lv } = this, moves = railMoves(lv), tops = new Float32Array(lv.w * lv.h).fill(-1), reachDepth = (lv.par ?? 4) + 1;
+    const { lv } = this, moves = railMoves(lv), tops = new Float32Array(lv.w * lv.h).fill(-1), reachDepth = lv.par ?? 4;
     const seen = new Set([stateKey(lv.start)]), q: State[] = [lv.start], depth = [0];
     for (let k = 0; k < q.length; k++) {
       const s = q[k], objs = new Set(s.objs.map(o => o.cell));

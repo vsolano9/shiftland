@@ -3,7 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 
 interface Shiftland {
   controller: { index: number; session: { moves: number; solved: boolean; lv: { name: string; sol?: string[] } } };
-  view: { railAnchor(p: number): { clone(): { x: number; z: number } } };
+  view: {
+    railAnchor(p: number): { clone(): { x: number; z: number } };
+    markSegments(): { plate: number; a: { clone(): { lerp(b: unknown, k: number): { x: number; z: number; clone(): { x: number; z: number } } } }; b: unknown }[];
+  };
   world: { project(v: unknown): [number, number, boolean]; frames: number };
 }
 declare global { interface Window { __shiftland: Shiftland } }
@@ -19,7 +22,8 @@ const errorsOf = (page: Page) => {
 async function drag(page: Page, m: string) {
   const pts = await page.evaluate(m => {
     const a = window.__shiftland, p = Number(m[1]), d = ({ N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] } as Record<string, number[]>)[m[2]];
-    const A = a.view.railAnchor(p), B = A.clone(); B.x += d[0]; B.z += d[1];
+    // the visible slider, where a player takes hold: the rail's anchor sits at the plate's top height and can project off the plate
+    const s = a.view.markSegments().find(k => k.plate === p)!, A = s.a.clone().lerp(s.b, .5), B = A.clone(); B.x += d[0]; B.z += d[1];
     return [a.world.project(A), a.world.project(B)];
   }, m);
   await page.mouse.move(pts[0][0], pts[0][1]);
@@ -78,7 +82,7 @@ test('hovering a slider leaves it grabbable: the same press still takes the same
     const a = window.__shiftland as unknown as { controller: { open(i: number): void; move(p: number, d: number): void }; progress: { unlocked(): boolean } };
     a.progress.unlocked = () => true;
     a.controller.open(8); // Harbour Row: Codex's repro, a slider above a neighbouring plate
-    a.controller.move(0, 2); a.controller.move(1, 3);
+    a.controller.move(0, 2); a.controller.move(1, 1);
   });
   await page.waitForTimeout(2600);
   const points = await page.evaluate(() => {

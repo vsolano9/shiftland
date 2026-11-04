@@ -51,6 +51,17 @@ export class Mask {
         dist[x + y * w] = 0;
       }
     }
+    // land just past the mask's edge still has a shore: without this a neighbour's shallows end in a straight line at the border
+    const X1 = this.x0 + this.size[0], Z1 = this.z0 + this.size[1];
+    const past = land.filter(r => r.x0 < this.x0 || r.z0 < this.z0 || r.x1 > X1 || r.z1 > Z1);
+    if (past.length) for (let y = 0; y < h; y++) {
+      const step = y === 0 || y === h - 1 ? 1 : w - 1, wz = this.z0 + (y + .5) / sz;
+      for (let x = 0; x < w; x += step) {
+        const wx = this.x0 + (x + .5) / sx; let d = dist[x + y * w];
+        for (const r of past) d = Math.min(d, Math.hypot(Math.max(r.x0 - wx, 0, wx - r.x1), Math.max(r.z0 - wz, 0, wz - r.z1)) * sx);
+        dist[x + y * w] = d;
+      }
+    }
     // chamfer distance (3-4 metric), in pixels
     const A = 1, B = Math.SQRT2;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

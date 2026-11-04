@@ -302,7 +302,7 @@ describe('penguin (Tundra): stands on ice that touches the sea', () => {
 
 describe('levels.json (the shipped campaign)', () => {
   const all = (levels as LevelJson[]).map(fromJson);
-  it('starts with the first tutorial and has 20-25 levels', () => {
+  it('starts with the first tutorial and has 20-30 levels', () => {
     expect(all[0].name).toBe('First Peak');
     expect(all.length).toBeGreaterThanOrEqual(20);
     expect(all.length).toBeLessThanOrEqual(30);
