@@ -115,7 +115,7 @@ describe('canFinish (the "no way back" warning)', () => {
   };
   it('answers fast in breadth-first order (Codex chain 4: depth-first wandered to the 200k cap for 2+ s)', () => {
     let t = performance.now();
-    expect(play('The Summit', 'P0N')).toBe(true); // the longest level, a first move on its solution: a far finish, still found
+    expect(play('The Summit', 'P0W')).toBe(true); // the longest level, a first move on its solution: a far finish, still found
     expect(performance.now() - t).toBeLessThan(5000);
     t = performance.now();
     expect(play('Mirage', 'P2W')).toBe(false); // the bite comes too soon: a dead end proven by search, not by a lost village
@@ -137,9 +137,9 @@ describe('canFinish (the "no way back" warning)', () => {
 describe('solver speed', () => {
   it('searches the largest shipped level to depth 9 within a few seconds', () => {
     const summit = (levels as LevelJson[]).map(fromJson).find(l => l.name === 'The Summit')!;
-    const t = shift(summit, summit.start, 0, 2)!; // P0S: the wrong way, 8 moves to finish through it
+    const t = shift(summit, summit.start, 0, 1)!; // P0E: the easy slide, too early: 9 moves to finish through it
     const at = performance.now();
-    expect(solve(summit, 9, t)?.min).toBe(7);
+    expect(solve(summit, 9, t)?.min).toBe(8);
     expect(performance.now() - at).toBeLessThan(5000);
   });
 });

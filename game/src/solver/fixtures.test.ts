@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { canFinish, fromJson, goalsMet, seaMask, type Level, type LevelJson } from '../rules/rules';
+import { fromJson, goalsMet, seaMask, shift, solve, type Level, type LevelJson } from '../rules/rules';
 import { CAMPAIGN } from '../levels/campaign';
 import type { Spec } from '../levels/tutorial';
 import levels from '../levels/levels.json';
@@ -32,7 +32,7 @@ describe('a fixture that stops being true fails', () => {
   it('an aha that does not do what it claims', () => expect(problems(withFix(s, { aha: { move: 'P2E', says: '', shows: ['melts'] } }))).toMatch(/does not show: melts/));
   it('a dead end is a proof, not "nothing within the search depth"', () => {
     const summit = spec('The Summit');
-    expect(problems(withFix(summit, { trap: { move: 'P0S', finish: 'dead', why: '' } }), byName('The Summit'))).toMatch(/fixture says dead/);
+    expect(problems(withFix(summit, { trap: { move: 'P0E', finish: 'dead', why: '' } }), byName('The Summit'))).toMatch(/fixture says dead/);
   });
   it('a part that changes nothing is a decoy', () => {
     const open = byName('Open Water');
@@ -51,18 +51,41 @@ describe('a fixture that stops being true fails', () => {
 describe('the moments the finale is built on', () => {
   const play = (name: string, moves: string[]) => { const lv = byName(name); return { lv, s: applyAll(lv, lv.start, moves)! }; };
   const met = (name: string, moves: string[]) => { const { lv, s } = play(name, moves); return goalsMet(lv, s).filter(Boolean).length; };
-  it('The Summit: five of six in two moves, and the slide for the sixth breaks the village', () => {
-    expect(met('The Summit', ['P0N', 'P2E'])).toBe(5);
-    const { lv, s } = play('The Summit', ['P0N', 'P2E', 'P1N']);
-    expect(canFinish(lv, s)).toBe(false);
+  const summitLine = ['P0W', 'P0W', 'P1S', 'P1N', 'P0E', 'P0E', 'P0E'];
+  const goals = (moves: string[]) => { const { lv, s } = play('The Summit', moves); return lv.start.objs.map(o => o.kind as string).concat('buoy').filter((_, k) => !goalsMet(lv, s)[k]); };
+  it('The Summit: the easy slide ticks four on the first move, and leaves the goat and the buoy', () => {
+    expect(met('The Summit', [])).toBe(1);
+    expect(goals(['P0E'])).toEqual(['goat', 'buoy']);
   });
-  it('The Summit: the last slide ticks the last two at once', () => {
-    expect(met('The Summit', ['P0N', 'P2E', 'P0N', 'P2W', 'P2W'])).toBe(4);
-    expect(met('The Summit', ['P0N', 'P2E', 'P0N', 'P2W', 'P2W', 'P1N'])).toBe(6);
+  it('The Summit: fetching the goat and coming straight home is five of six, with the tail on the buoy and out of reach', () => {
+    const near = ['P0W', 'P0W', 'P0E', 'P0E', 'P0E'];
+    expect(goals(near)).toEqual(['buoy']);
+    const { lv, s } = play('The Summit', near);
+    expect(solve(lv, 9, s)?.min).toBe(8); // all the way out again, for the bite
+  });
+  it('The Summit: a cannot come home while b holds its tail, because the village would land on the penguin', () => {
+    const { lv, s } = play('The Summit', ['P0W', 'P0W', 'P1S']);
+    expect(shift(lv, s, 0, 1)).toBeNull();
+  });
+  it('The Summit: five of six, two given back on the way home, and the last slide ticks three at once', () => {
+    expect(summitLine.map((_, k) => met('The Summit', summitLine.slice(0, k + 1)))).toEqual([3, 4, 5, 5, 4, 3, 6]);
+    expect(goals(summitLine.slice(0, 4))).toEqual(['oasis']);
+    expect(goals(summitLine.slice(0, 6)).sort()).toEqual(['light', 'oasis', 'penguin']);
   });
   it('Give and Take: the pond is opened, filled, then opened again', () => {
     const oasis = (moves: string[]) => { const { lv, s } = play('Give and Take', moves); return goalsMet(lv, s)[0]; };
     expect([oasis([]), oasis(['P0W']), oasis(['P0W', 'P1W']), oasis(['P0W', 'P1W', 'P0E', 'P0W'])]).toEqual([false, true, false, true]);
+  });
+  it('Oxbow: the pond and the sea do not touch, not even at a corner: the corner fact is stated and first needed one level later', () => {
+    const { lv, s } = play('Oxbow', ['P0E', 'P2S', 'P1E']);
+    const sea = seaMask(lv, s);
+    const water = (x: number, y: number) => s.plate[x + y * lv.w] < 0 && sea[x + y * lv.w];
+    const ponds = [...s.plate.keys()].filter(i => s.plate[i] < 0 && !sea[i]);
+    expect(ponds.length).toBeGreaterThan(0);
+    for (const i of ponds) {
+      const x = i % lv.w, y = Math.floor(i / lv.w);
+      for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) expect(water(x + dx, y + dy), `${x},${y} and its corner ${dx},${dy}`).toBe(false);
+    }
   });
   it('Two Waters: the pond and the open sea end up touching only at a corner, and that corner faces the camera', () => {
     const { lv, s } = play('Two Waters', ['P1E', 'P2E', 'P0S']);
@@ -105,7 +128,7 @@ describe('claims', () => {
     expect(claims('Thin Ice', ['P0E'], 'P0E')).toContain('melts');
   });
   it('hitsrock', () => expect(claims('Anchor Rock', ['P2S'], 'P2S')).toContain('hitsrock'));
-  it('unticks', () => expect(claims('The Summit', ['P0N', 'P2E', 'P0N'], 'P2W')).toContain('unticks'));
+  it('unticks', () => expect(claims('The Summit', ['P0W', 'P0W', 'P1S', 'P1N'], 'P0E')).toContain('unticks'));
   it('opens', () => {
     const lv = byName('Breakwater');
     const sealed = applyAll(lv, lv.start, ['P1E', 'P2E'])!;

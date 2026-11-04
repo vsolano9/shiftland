@@ -83,9 +83,16 @@ describe('greedy play: always take the move the preview shows ticking most goals
 describe('effort: the moves a player tries without reading the board (the ramp)', () => {
   const effort = new Map(all.map(l => [l.name!, effortOf(l).effort]));
   it('is repeatable', () => expect(effortOf(all[4])).toEqual(effortOf(all[4])));
-  it('counts the cheaper of two strategies: The Summit falls to chasing ticks far sooner than to brute force', () => {
-    const { follow, blind } = effortOf(all.find(l => l.name === 'The Summit')!);
-    expect(follow).toBeLessThan(blind / 5);
+  it('counts the cheaper of two strategies: Oxbow falls to brute force first, Low Tide to chasing ticks', () => {
+    const oxbow = effortOf(all.find(l => l.name === 'Oxbow')!), tide = effortOf(all.find(l => l.name === 'Low Tide')!);
+    expect(oxbow.blind).toBeLessThan(oxbow.follow);
+    expect(oxbow.effort).toBe(oxbow.blind);
+    expect(tide.follow).toBeLessThan(tide.blind);
+    expect(tide.effort).toBe(tide.follow);
+  });
+  it('The Summit, the last level, resists both strategies at least as well as any level before it', () => {
+    const summit = effort.get('The Summit')!;
+    for (const l of puzzles) expect(summit, l.name).toBeGreaterThanOrEqual(effort.get(l.name!)!);
   });
   it('no puzzle falls within 30 tries (Ice Dam at 22 fell to following ticks in the Nov 4 playtest)', () => {
     for (const l of puzzles) expect(effort.get(l.name!), l.name).toBeGreaterThanOrEqual(30);

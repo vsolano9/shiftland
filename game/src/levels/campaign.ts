@@ -93,12 +93,12 @@ const DESERT: Spec[] = [
     blurb: 'A strip of land can keep a lake and the sea apart.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  ~  b0 b0 ~  ~  ~
+      ~  ~  ~  b0 b0 a0 ~  ~
       ~  ~  b0 b0 c0 a0 a0 ~
       ~  c0 c0 c0* c0 a0O a0 ~
-      ~  c0 c0 a0 a0 a0 a0 ~
+      ~  c0 c0 c0 a0 a0 a0 ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P0E P2S P1E', trap: { move: 'P2S', finish: 4, why: "the buoy floats at once, but c has bitten a's south shore too soon: a now needs a detour before it can open water beside the oasis" },
+    fixture: { intended: 'P0E P2S P1E', trap: { move: 'P2S', finish: 4, why: "the buoy floats at once, but c has bitten a's south shore too soon: a's slide would now open the rift at both ends, and one cap cannot close both" },
       aha: { move: 'P1E', says: 'b slides over the open end: the east half of the rift is shut in as a lake, and the stub of c keeps the west half open to the sea', shows: ['seals'] } },
   },
   {
@@ -232,19 +232,19 @@ const FINALE: Spec[] = [
       aha: { move: 'P0E', says: 'b has filled the pond, so a bites the land that filled it: when a pulls back the pond is open again, and b never moves', shows: ['quiet'] } },
   },
   {
-    name: 'The Summit', biome: 'finale', role: 'puzzle', pinned: 'd', teaches: 'five of six come in two moves: the sixth means giving two back, and then one slide ticks the last pair at once', axis: '||--', expectPar: 6,
-    blurb: 'All six must hold at the same moment.',
+    name: 'The Summit', biome: 'finale', role: 'puzzle', pinned: 'd', teaches: 'the easy slide ticks four and strands the goat: a has to go out to the rock for it, lose its tail to b, and come all the way home, giving goals back, so the same slide ticks the last three at once', axis: '-||-', expectPar: 7,
+    blurb: 'The easy slide is right; it just has to come last.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
-      ~  ~  c0 c0 c1 b0G ~  ~
-      ~  c0 c0 c0 c0V b0 b0 ~
-      ~  a0 c0L c0 b0O b0 ~  ~
-      ~  a0 a0 a1i d0 b1iP b0 ~
-      ~  ~  a0 a0 d0 d0 ~  ~
-      ~  a0 a0* ~  d0 ~  ~  ~
+      ~  ~  d0 b0 b0 b0 ~  ~
+      ~  d0 d0 b0iP b0 b0 ~  ~
+      ~  d0 d0G a0 a0V a0 a0* ~
+      ~  ~  ~  a0O a0 ~  ~  ~
+      ~  ~  c0 c1L ~  c0 c0 ~
+      ~  ~  ~  c0 c0 c0 ~  ~
       ~  ~  ~  ~  ~  ~  ~  ~`,
-    fixture: { intended: 'P0N P2E P0N P2W P2W P1N', trap: { move: 'P2W', finish: 7, why: 'two goals tick at once, but the goat is left behind on b: c has to come all the way back for it' },
-      aha: { move: 'P2W', says: 'five of six are met and the slide for the last would break the village: give them up, and c carries the goat and the village home out of its path', shows: ['unticks', 'returns'] } },
+    fixture: { intended: 'P0W P0W P1S P1N P0E P0E P0E', trap: { move: 'P0E', finish: 9, why: "four goals tick at once, and this is the level's last move: but a has backed away from the only land that can lift the goat, and its tail still sits on the buoy" },
+      aha: { move: 'P1S', says: 'while a is out at the rock, b comes down on its tail and carries it off: now a comes home short, the buoy stays afloat, and the easy slide is right at last', shows: ['lifts'] } },
   },
 ];
 

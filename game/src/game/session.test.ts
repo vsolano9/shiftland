@@ -19,7 +19,7 @@ describe('Session plays every shipped level', () => {
   for (const lv of all) {
     it(`${lv.name}: the solver's solution finishes at par with the star`, () => {
       const s = new Session(lv);
-      const sol = solve(lv, 6)!.firstSolution.join(' ');
+      const sol = solve(lv, 7)!.firstSolution.join(' ');
       expect(play(s, sol).every(r => r.ok)).toBe(true);
       expect([s.solved, s.moves, s.stars]).toEqual([true, lv.par, 1]);
     });

@@ -17,6 +17,7 @@ describe('level build', () => {
     expect(summit.biome).toBe('finale');
     expect(summit.pinned).toEqual([3]);
     expect(summit.ice!.length).toBeGreaterThan(0);
+    expect(summit.par).toBe(7);
     expect(summit.sol.length).toBe(summit.par);
     expect(summit.blurb).toBeTruthy();
     const peak = built.find(l => l.name === 'First Peak')!;

@@ -13,12 +13,12 @@ const make = (storage = mem()) => {
 };
 const DIRS: Record<string, Dir> = { N: 0, E: 1, S: 2, W: 3 };
 const playSolution = (c: Controller) => {
-  for (const m of solve(c.session.lv, 6)!.firstSolution) c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
+  for (const m of solve(c.session.lv, 7)!.firstSolution) c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
 };
 
 /** Redo the last move of the solution from the current state (after one undo). */
 const playSolution2 = (c: Controller) => {
-  const m = solve(c.session.lv, 6)!.firstSolution.at(-1)!;
+  const m = solve(c.session.lv, 7)!.firstSolution.at(-1)!;
   c.act({ kind: 'move', plate: Number(m[1]), dir: DIRS[m[2]] });
 };
 
