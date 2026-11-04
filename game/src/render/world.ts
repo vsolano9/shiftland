@@ -1,6 +1,6 @@
 // The whole game world: one continuous ocean with an island per level. The camera flies between islands: the level
 // select is simply the camera pulled back over the real archipelago, and each island shows its real level.
-import { AmbientLight, BoxGeometry, BufferAttribute, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+import { AmbientLight, BoxGeometry, BufferAttribute, CatmullRomCurve3, Color, CylinderGeometry, DirectionalLight, Group, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, type Object3D, PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import { goalsMet, type Level, type State } from '../rules/rules.ts';
 import { fillGaps, packContinent } from './continent.ts';
 import { heroLevel, heroPushed } from './hero.ts';
@@ -19,6 +19,14 @@ const CAM_DIR = new Vector3(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), Math.cos(
 
 const smooth = (a: number, b: number, k: number, dt: number) => a + (b - a) * (1 - Math.exp(-k * dt));
 const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+/** Three's own pass visits every object each frame, and about nine in ten here are hidden detail. Anything that reads a hidden object's place asks through its parents, which still works. */
+function updateVisibleMatrices(o: Object3D) {
+  if (o.matrixAutoUpdate) o.updateMatrix();
+  if (o.parent) o.matrixWorld.multiplyMatrices(o.parent.matrixWorld, o.matrix); else o.matrixWorld.copy(o.matrix);
+  o.matrixWorldNeedsUpdate = false;
+  const kids = o.children;
+  for (let i = 0; i < kids.length; i++) if (kids[i].visible) updateVisibleMatrices(kids[i]);
+}
 
 export interface WorldSfx { (s: 'bleat' | 'fish', o?: { pan?: number }): void }
 export type PadKind = 'level' | 'solved' | 'title';
@@ -46,6 +54,8 @@ export class World {
   private timers: { at: number; fn: () => void }[] = [];
   private aabb = { x0: 0, x1: 0, z0: 0, z1: 0 };
   hudPad: Pad = { top: 0.12, bottom: 0.2, left: 0, right: 0 };
+  /** How tall the goal chips stand right now; the app knows, the framing asks. */
+  goalsHeight = () => 0;
   private padKind: PadKind = 'level';
   private path: Mesh | InstancedMesh | null = null;
   pins: { el: HTMLElement; pos: Vector3; hide?: () => boolean }[] = [];
@@ -53,6 +63,7 @@ export class World {
   /** The title loop's sounds; silent until the audio is unlocked by a first touch. */
   heroSfx?: (s: 'slide' | 'uplift', o: { plate?: number; intensity?: number }) => void;
   constructor(canvas: HTMLCanvasElement, levels: Level[], sfx: WorldSfx, positions: [number, number][]) {
+    this.scene.matrixWorldAutoUpdate = false; // updateVisibleMatrices does it, once a frame
     const renderer = this.renderer = new WebGLRenderer({ canvas, antialias: true, stencil: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFShadowMap;
@@ -198,7 +209,7 @@ export class World {
   }
   /** The screen fractions the UI takes in each framing. Short landscape screens move the UI to the sides. */
   private pads(kind: PadKind): Pad {
-    const w = innerWidth, h = innerHeight, short = h <= 560 && w > h;
+    const w = innerWidth, h = innerHeight, short = h <= 560 && w > h, big = w >= 1600 && h >= 900; // big: the larger HUD in style.css
     if (kind === 'title') {
       if (short || w / h >= 1.3) return { top: .05, bottom: .05, left: .48, right: .02 };
       return { top: (Math.max(.03 * h, 72) + Math.min(780, .92 * w) / 3 + 24) / h, bottom: (.055 * h + 128) / h, left: 0, right: 0 };
@@ -206,11 +217,11 @@ export class World {
     if (kind === 'solved') {
       if (short) return { top: .04, bottom: .04, left: .02, right: .46 };
       // a wide screen has the panel at the side, so the finished island keeps its size: this is the picture the level was for
-      if (w / h >= 1.3) return { top: .04, bottom: .06, left: .03, right: (Math.min(360, .92 * w) + .05 * w + 24) / w };
+      if (w / h >= 1.3) return { top: .04, bottom: .06, left: .03, right: ((big ? 450 : Math.min(360, .92 * w)) + .05 * w + 24) / w };
       return { top: .03, bottom: Math.min(.46, 290 / h), left: 0, right: 0 };
     }
     if (short) return { top: .05, bottom: .08, left: .2, right: .02 };
-    return { top: 60 / h, bottom: 84 / h, left: 0, right: 0 };
+    return { top: (big ? 76 : 60) / h, bottom: Math.max(84, this.goalsHeight() + 22) / h, left: 0, right: 0 };
   }
   /** Centre of the islands as the camera sees them (screen-aligned box), a little low so the title bar stays clear. */
   private mapCenter() { return this.mapFrame().focus; }
@@ -636,6 +647,7 @@ export class World {
       p.el.style.display = ''; p.el.style.transform = `translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     }
     if (this.path) this.path.visible = this.map && !this.homes && !this.drive && !this.peekAt; // at the ending tour's close range the dots are big ovals
+    updateVisibleMatrices(this.scene);
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }

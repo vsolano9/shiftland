@@ -19,6 +19,16 @@ All audio is synthesised in code at runtime (game jam rule): no audio files ship
 - `play('complete')` ducks the music through its own fanfare, so callers need not.
 - `slide`: `intensity` is plate size 0-1 (larger plates sound lower). `tick`: `variant` picks the pitch per creature. `plate` is 0-based.
 
+## How the game uses it (`src/app.ts`)
+
+- Every move: `slide`, then `uplift` when land rose, `crack` and `pour` when a rift opened; goals tick with a pitch per creature, and the last one plays `complete`.
+- The ocean bed runs under every screen; each biome crossfades to its song on a flight.
+- `setMood` follows goals met: the song opens from a muffled low pass to the full band as creatures get happy, also on undo.
+- The title loop plays `slide` and a soft `uplift` through `world.heroSfx`, only once the browser has unlocked audio.
+- `hover` plays on plate hover and `chord` on the ending's last shift.
+
+Nobody has heard this yet: it is checked by renders and metrics only (`e2e/audio.spec.ts`, `report.md`). The first person to listen should judge the mix.
+
 ## Checks
 
 ```

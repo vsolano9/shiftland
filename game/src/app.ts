@@ -118,6 +118,7 @@ class App {
     const names = this.levels.map(l => l.name!);
     this.progress = new Progress(names, browserStorage(), tutorialCount(this.levels), this.levels.flatMap((l, i) => (l.role === 'tutorial' ? [i] : [])));
     this.world = new World(canvas, this.levels, (s, o) => this.audio.play(s, o), archipelago(this.levels, innerWidth / innerHeight));
+    this.world.goalsHeight = () => this.fitChips();
     this.world.reducedMotion = this.settings.reduced;
     this.world.fx.reduced = this.settings.reduced;
     this.stuck = new StuckChecker(createStuckWorker, s => this.controller?.stuckAnswer(s));
@@ -340,12 +341,11 @@ class App {
     this.hintLevel = 0;
     this.firstMoveMade = s.moves > 0;
     this.setFlying(true); // before the flight: with reduced motion it lands, and unlocks, inside this call
+    this.buildChips(); this.refreshHud(); // before the flight: the framing leaves room for however many rows they take, reasons included
     this.setActiveLevel(v, fly);
     v.showMarks = true;
     v.applyGoals(s.goals, this.world.active === v && !fly);
     v.setSelected(null);
-    this.buildChips();
-    this.refreshHud();
     this.audio.setMusic(((lv.biome ?? 'meadow') as Biome));
     this.audio.setOcean(.35);
     const tut = i < 2 && s.moves === 0;
@@ -369,6 +369,12 @@ class App {
   private showBlurb(sec = 3.4) {
     const lv = this.view.lv, c = $('blurb');
     c.textContent = lv.blurb ?? BIOMES[(lv.biome ?? 'meadow') as BiomeName].label;
+    // between the name card and the buttons when it fits there, else under them: never over a button
+    const tl = $('hud-tl').getBoundingClientRect(), tr = $('hud-tr').getBoundingClientRect(), free = tr.left - tl.right - 24, s = c.style;
+    const beside = free >= 300;
+    s.left = beside ? `${(tl.right + tr.left) / 2}px` : '';
+    s.maxWidth = beside ? `${Math.min(560, free)}px` : '';
+    s.top = beside ? '' : `${Math.max(tl.bottom, tr.bottom) + 8}px`;
     c.classList.remove('off');
     clearTimeout(this.blurbTimer);
     this.blurbTimer = window.setTimeout(() => c.classList.add('off'), sec * 1000);
@@ -402,7 +408,7 @@ class App {
   private dropHint() { clearTimeout(this.hintSlow); this.hints.cancel(); }
   private answerHint(sol: HintReply['sol']) {
     const s = this.controller.session, v = this.view;
-    if (!sol) { this.flashHint('No way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
+    if (!sol) { /* "see": a few boards are solvable past the search's depth */ this.flashHint('I can see no way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.first);
     v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
     // once the star is out of reach this run, the hints stop warning about it (second playtest P10)
@@ -437,7 +443,17 @@ class App {
     }
     box.classList.toggle('many', this.chips.size > 4); // a phone can't hold six labelled chips: icons only there (tap one for its rule)
     for (const [, e] of this.chips) if (e.goals.length > 1) { const n = document.createElement('div'); n.className = 'count'; e.el.appendChild(n); }
-    $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`); // the hint sits above however many rows the chips take
+  }
+  /** Two even rows and not five chips and a straggler; returns how tall they stand, and the hint sits above that. */
+  private fitChips() {
+    const box = $('goals'), kids = [...box.children] as HTMLElement[], gap = parseFloat(getComputedStyle(box).columnGap) || 0;
+    box.style.maxWidth = ''; box.style.marginInline = '';
+    const widths = kids.map(k => k.offsetWidth), total = widths.reduce((a, b) => a + b + gap, -gap);
+    if (kids.length > 2 && box.offsetHeight > kids[0].offsetHeight * 1.5 && getComputedStyle(box).flexDirection === 'row') {
+      box.style.maxWidth = `${Math.ceil(total / 2 + Math.max(...widths) + gap + 24)}px`; box.style.marginInline = 'auto'; // a reason can grow its chip mid-play: one chip's room to spare
+    }
+    $('s-level').style.setProperty('--goals-h', `${box.offsetHeight}px`);
+    return box.offsetHeight;
   }
   private refreshChips() {
     const g = this.controller.session.goals;

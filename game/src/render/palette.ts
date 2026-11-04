@@ -23,7 +23,7 @@ export const DAYLIGHT: Record<BiomeName, DayLight> = {
   coast: { sun: '#fff8ea', sunI: 2.45, sky: '#f6fbff', under: '#86b4bc', hemi: 1.5, from: [-6, 17, 7] },
   desert: { sun: '#ffdcaa', sunI: 2.6, sky: '#ffefd4', under: '#b08e76', hemi: 1.35, from: [-9, 14, 8] },
   tundra: { sun: '#e8f0ff', sunI: 2.1, sky: '#e4f0ff', under: '#7f9dc4', hemi: 1.6, from: [-8, 13, 9] },
-  finale: { sun: '#ffb98a', sunI: 2.5, sky: '#f7d9d6', under: '#6c6ea8', hemi: 1.25, from: [-11, 11, 8] },
+  finale: { sun: '#ffd8b4', sunI: 2.4, sky: '#faeae2', under: '#6c6ea8', hemi: 1.25, from: [-11, 11, 8] },
 };
 
 export interface BiomeLook { ground: string; mix: number; rock: string; sand: string; sea: [string, string]; accent: string; label: string }

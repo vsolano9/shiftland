@@ -183,3 +183,17 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   #done h2 { font-size: 23px; } #done .star { width: 46px; height: 46px; } #done .score { font-size: 16px; margin: 0; } #done .sub { margin-bottom: 8px; font-size: 13px; }
   .btn { font-size: 16px; padding: 8px 13px; }
 }
+
+/* A big screen: the same HUD at a size that reads from a chair. world.ts pads() keeps its numbers in step (top bar, panel width). */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .round { width: 66px; height: 66px; } .round svg { width: 34px; height: 34px; }
+  #hud-tl { padding: 11px 24px 12px; left: 22px; top: calc(18px + var(--safe-t)); } #hud-name { font-size: 28px; } #hud-moves { font-size: 20px; }
+  #hud-tr, #title-tr { right: 22px; top: calc(18px + var(--safe-t)); gap: 12px; }
+  #goals { gap: 12px; bottom: calc(18px + var(--safe-b)); }
+  .chip { font-size: 19px; padding: 8px 15px 8px 9px; border-radius: 18px; gap: 10px; } .chip img { width: 56px; height: 56px; } .chip .tx span { font-size: 17px; }
+  .badge { width: 34px; height: 34px; } .badge svg { width: 21px; height: 21px; }
+  #hint { font-size: 23px; padding: 11px 26px; } #blurb { font-size: 22px; padding: 10px 24px; top: calc(24px + var(--safe-t)); } #stuck { font-size: 20px; top: calc(112px + var(--safe-t)); left: 22px; }
+  #done .panel, #settings .panel, #ending .panel { zoom: 1.25; }
+  #map-tl { left: 22px; top: calc(18px + var(--safe-t)); } #map-title { font-size: 30px; top: calc(18px + var(--safe-t)); } #map-stars { font-size: 24px; right: 22px; top: calc(18px + var(--safe-t)); } #map-stars svg { width: 28px; height: 28px; } #map-note { font-size: 23px; }
+  .pin { width: 42px; height: 42px; font-size: 21px; } .pin svg.st { width: 27px; height: 27px; } .pin.locked { width: 36px; height: 36px; } .pin svg.lock { width: 20px; height: 20px; }
+}
