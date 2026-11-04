@@ -26,6 +26,31 @@ async function open(page: Page, i: number) {
   await page.waitForTimeout(2500);
 }
 
+test('a chip about the wrong water shows that water, and a hint steps off its plate', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 11); // Breakwater: the oasis's water reaches the sea at the start
+  const dots = () => page.evaluate(`${SL}.view.leakDots.filter(d => d.visible).length`) as Promise<number>;
+  expect(await dots()).toBe(0);
+  await page.locator('.chip').first().hover();
+  await page.waitForTimeout(200);
+  expect(await dots()).toBeGreaterThan(1);
+  await page.locator('.chip').first().click();
+  await expect(page.locator('#hint')).toContainText('that water reaches the sea');
+  await page.mouse.move(5, 5);
+  await open(page, 15); // Wishing Well: the first hinted plate's rail runs under the panel at this size
+  await page.click('#b-hint');
+  await expect(page.locator('#hint')).not.toHaveClass(/off/, { timeout: 15_000 });
+  await page.waitForTimeout(1100);
+  await page.click('#b-hint');
+  await page.waitForTimeout(800);
+  const clear = await page.evaluate(`(() => {
+    const a = ${SL}, r = document.getElementById('hint').getBoundingClientRect(), [x, y] = a.world.project(a.view.railAnchor(a.handMove.plate));
+    return !(x > r.left && x < r.right && y > r.top && y < r.bottom);
+  })()`);
+  expect(clear).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test('keys alone solve an island, then restart, undo, hint and map', async ({ page }) => {
   const errors = await start(page);
   await open(page, 8); // Salt Point

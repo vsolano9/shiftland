@@ -643,7 +643,13 @@ export class World {
     const alone = !this.map && !this.homes && !this.drive && !this.peekAt && !!this.active && this.active !== this.hero && (!this.fly || this.fly.arc < 6);
     if (alone !== this.alone) { this.alone = alone; if (this.active) this.writeActive(this.active); }
     const lone = this.ocean.uniforms.uAlone as { value: number }; lone.value = alone ? Math.min(1, lone.value + raw / .4) : 0;
-    for (const v of this.views) { v.group.visible = !alone || v === this.active; v.setFar(this.map); if (v === this.active || v.busy || this.map) v.update(dt, t); }
+    // from map height a creature is a few pixels: its islands take turns, a third a frame, which a slow laptop's map needs (21 fps at 4x throttle)
+    const turn = this.map && !this.peekAt && !this.homes && !this.drive;
+    this.views.forEach((v, i) => {
+      v.group.visible = !alone || v === this.active; v.setFar(this.map);
+      if (v === this.active || v.busy) v.update(dt, t);
+      else if (this.map) { if (!turn) v.update(dt, t); else if ((i + this.frames) % 3 === 0) v.update(dt * 3, t); }
+    });
     this.heroBeat(dt);
     if (this.hero.group.visible) { this.hero.update(dt, t); if (this.active !== this.hero && !this.fly) this.hero.group.visible = false; }
     if (this.active && (this.active.busy || this.fly)) this.writeActive(this.active);
