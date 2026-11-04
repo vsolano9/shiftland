@@ -58,6 +58,31 @@ Agents told to play as a new player, each on a newer build.
 | P7 | Rail one step off after Undo | Rail counts from the destination; `e2e/player.spec.ts` checks it after a move and after Undo |
 | P8 | Bubbles over objects, rails across houses | Accepted: the rail shows one stop each way and a thought belongs above its owner |
 
+### Phone playtest (Chromium touch emulation, `phone1\`; not a real phone)
+
+Rechecked by real touch in `phone1\fix\` and `e2e/phone.spec.ts`.
+
+| Id | Finding | Result |
+|---|---|---|
+| PH1 | Map blank after a turn of the phone (camera started among the islands) or a tiny cluster | Map relayouts on rotation; pins and labels follow; both ways, and turning on an island |
+| PH2 | A pinch spent a move | A second finger cancels the drag; e2e |
+| PH3 | Upright board looks small | Answered with numbers: boards are 66-87% wide, and always limited by what their plates can reach (97%). A bigger board would crop moves. `fill.mjs` |
+| PH4 | Restart unconfirmed, beside Undo | Restart can be undone; upright, it stands a hand's width from Undo in a row under the thumb; e2e |
+| PH5, PH6 | Occlusion on 5, 6; dot code taught late | With the level rework |
+| PH7 | A swipe on the water after a move spent another | Only a tap on a plate arms the water swipe; e2e |
+| PH8 | Camera seems to reframe | Measured, rejected: focus and distance identical across two touch moves on island 24 |
+| PH9, PH16 | HUD pills overlap at 360-390 | Map and Settings have the top row, the name card the rest; map title left at 400 and under |
+| PH10 | Next island behind the HUD | Top gradient upright |
+| PH11 | "Goat in the way of the goat" | "One goat is in the way of the other"; the chip line shows the first unhappy creature, a tap asks any other |
+| PH12 | Double tap on Hint skips to the full answer | 1 s guard |
+| PH13 | Blurb cut off after rotating | Hidden on any resize; in landscape it fades after 3.4 s |
+| PH14 | Landscape win buttons 36 px | 44 px |
+| PH15 | Hover stuck after a touch | Hover styles only on `(hover: hover)` |
+| PH17 | Settings: keys listed on a phone, no outside tap | Keys hidden on coarse pointers; a tap outside closes |
+| PH18 | The hand covers the goat on island 1 | Accepted: it moves, and is gone on the first move |
+
+Biome labels that land on a pin on a small phone hide themselves (`world.ts`): a pin matters more than its region's name.
+
 ## Colour-blind check
 
 Deuteranopia and greyscale simulation of Give and Take (`p3\cvd23.jpg`): red and yellow plate edges merge under deuteranopia, and plates stay apart through their patterns (stripes, zigzag, dots, checks) and dark seams. The check and cross badges differ by glyph. The page's "colour-blind safe plate patterns" holds for that board.
