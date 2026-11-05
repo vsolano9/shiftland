@@ -21,6 +21,8 @@ export class Session {
 
   get state(): State { return this.history[this.history.length - 1]; }
   get moves(): number { return this.history.length - 1; }
+  /** The board before the last move, or undefined at the start. */
+  get previous(): State | undefined { return this.history[this.history.length - 2]; }
   get par(): number | undefined { return this.lv.par; }
   get solved(): boolean { return solved(this.lv, this.state); }
   get goals(): boolean[] { return goalsMet(this.lv, this.state); }

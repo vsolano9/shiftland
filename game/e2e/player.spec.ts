@@ -232,6 +232,24 @@ test('the hinted plate moved the other way says so and lights Undo; the hinted w
   expect(errors).toEqual([]);
 });
 
+test('a hint to slide a plate back after its bite says the land it bit comes with it (The Cut, playtest 11)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 8);
+  expect(await page.evaluate(`${SL}.controller.session.lv.name`)).toBe('The Cut');
+  await page.evaluate(`(() => { const c = ${SL}.controller; c.act({ kind: 'move', plate: 0, dir: 1 }); c.act({ kind: 'move', plate: 2, dir: 1 }); })()`); // P0E, then P2E bites
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('h'); await page.waitForTimeout(1300);
+  await page.keyboard.press('h'); await page.waitForTimeout(1300);
+  expect((await state(page)).hint).toBe('Slide it back: the land it bit comes with it. 1 move to go, no star this time');
+  // a plain step back with no bite gets the plain reason
+  await page.keyboard.press('r'); await page.waitForTimeout(500);
+  await page.evaluate(`${SL}.controller.act({ kind: 'move', plate: 0, dir: 1 })`); await page.waitForTimeout(1500);
+  await page.keyboard.press('h'); await page.waitForTimeout(1300);
+  await page.keyboard.press('h'); await page.waitForTimeout(1300);
+  expect((await state(page)).hint).not.toMatch(/Slide it back/);
+  expect(errors).toEqual([]);
+});
+
 test('a nudge says drag further, a short confident drag moves, and a hint names its plate until Restart', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);

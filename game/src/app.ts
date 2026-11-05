@@ -483,7 +483,11 @@ class App {
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value; this.hinted = { ...m, at: s.state };
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
-    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}, no star this time`}`.trim(), 6); // the first hint already said it costs the star; the long version took two lines over the board (playtest 10)
+    // the plate going straight back where it came from read as "undo" to a cold player on The Cut (playtest 11): say it carries the land it bit
+    const last = s.log[s.log.length - 1], why = moveWhy(v.lv, s.state, m.plate, m.dir);
+    const prev = s.previous, bit = !!prev && s.state.plate.some((q, i) => q === m.plate && prev.plate[i] >= 0 && prev.plate[i] !== m.plate);
+    const back = last !== undefined && last >> 2 === m.plate && (last & 3) === (m.dir + 2) % 4 && bit && why; // only after a bite: it carries that land back
+    this.flashHint(`${back ? 'Slide it back: the land it bit comes with it.' : why} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}, no star this time`}`.trim(), 6); // the first hint already said it costs the star; the long version took two lines over the board (playtest 10)
     this.hintOffPlate(m.plate, m.dir);
   }
   /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */
