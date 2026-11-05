@@ -49,7 +49,7 @@ test('a pinch spends no move, and a one-finger drag still works after it', async
 
 test('Restart stands apart from Undo, and Undo takes it back', async ({ page, context }) => {
   const errors = await start(page);
-  await page.evaluate(`${SL}.controller.open(8)`); // two goals, several moves
+  await page.evaluate(`${SL}.controller.open(9)`); // two goals, several moves
   await page.waitForTimeout(2500);
   const cdp = await context.newCDPSession(page);
   const boxes = await page.evaluate(`['b-restart', 'b-undo', 'b-hint'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom]; })`) as number[][];
@@ -70,7 +70,7 @@ test('Restart stands apart from Undo, and Undo takes it back', async ({ page, co
 
 test('a swipe on the water is not a move, even just after one', async ({ page, context }) => {
   const errors = await start(page);
-  await page.evaluate(`${SL}.controller.open(8)`);
+  await page.evaluate(`${SL}.controller.open(9)`);
   await page.waitForTimeout(2500);
   const cdp = await context.newCDPSession(page);
   const r = await railOf(page, await firstMove(page));
@@ -107,19 +107,19 @@ test('a thumb landing just off a plate still grabs it', async ({ page, context }
 test('a reload puts the player back on the same board', async ({ page, context }) => {
   const errors = await start(page);
   const cdp = await context.newCDPSession(page);
-  await page.evaluate(`${SL}.controller.open(8)`);
+  await page.evaluate(`${SL}.controller.open(9)`);
   await page.waitForTimeout(2500);
   const r = await railOf(page, await firstMove(page));
   await swipe(cdp, page, r.a, r.b);
   const before = await page.evaluate(`[...${SL}.controller.session.state.plate].join()`);
-  await page.evaluate(`for (let i = 0; i < 7; i++) ${SL}.progress.complete(i, 1, 1)`); // a player who really got here: the test's unlock doesn't outlive the reload
+  await page.evaluate(`for (let i = 0; i < 8; i++) ${SL}.progress.complete(i, 1, 1)`); // a player who really got here: the test's unlock doesn't outlive the reload
   await page.reload();
   await page.waitForFunction(`${SL} && ${SL}.world.frames > 5`, undefined, { timeout: 60_000 });
   await page.evaluate(`${SL}.progress.unlocked = () => true`);
   await page.tap('#btn-play'); // Play goes straight back to an unfinished run
   await page.waitForTimeout(2200);
   await expect(page.locator('#hint')).toContainText('where you left off');
-  expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([8, 1]);
+  expect(await page.evaluate(`[${SL}.controller.index, ${SL}.controller.session.moves]`)).toEqual([9, 1]);
   expect(await page.evaluate(`[...${SL}.controller.session.state.plate].join()`)).toBe(before);
   expect(errors).toEqual([]);
 });

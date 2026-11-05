@@ -54,8 +54,8 @@ for (const q of [0, 3]) test(`shadows rest only on the settled map and come back
 
 test('a long fruitless try lights Hint once and says the next island is open', async ({ page }) => {
   const errors = await start(page);
-  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 8; p.solved = i => i < 7; })()`); // seven solved: The Cut and the one after it are open
-  await open(page, 7); // The Cut, par 3: the nudge waits for 14 moves
+  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 9; p.solved = i => i < 8; })()`); // eight solved: The Cut and the one after it are open
+  await open(page, 8); // The Cut, par 3: the nudge waits for 14 moves
   const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
   const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
   for (let k = 0; k < 13; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(120); } // a back and forth on a, which never solves
@@ -63,7 +63,7 @@ test('a long fruitless try lights Hint once and says the next island is open', a
   expect(await glow()).toBe(false);
   await move(0, 3); // move 14
   await expect.poll(glow, { timeout: 8_000 }).toBe(true);
-  expect((await state(page)).hint).toBe('Stuck? Hint names a plate to try, or play island 9 from the map and come back');
+  expect((await state(page)).hint).toBe('Stuck? Hint names a plate to try, or play island 10 from the map and come back');
   await page.keyboard.press('h');
   expect(await glow()).toBe(false);
   for (let k = 0; k < 16; k++) { await move(0, k % 2 ? 1 : 3); await page.waitForTimeout(100); }
@@ -78,13 +78,13 @@ test('a hint asked for before the nudge, or while it waits, keeps the nudge away
   const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
   const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
   const back = async (n: number) => { for (let k = 0; k < n; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(110); } };
-  await open(page, 7);
+  await open(page, 8);
   await page.keyboard.press('h'); // before the threshold
   await back(16);
   await page.waitForTimeout(2500);
   expect(await glow()).toBe(false);
   expect((await state(page)).hint).not.toContain('Stuck?');
-  await open(page, 6); await open(page, 7); // a new visit
+  await open(page, 6); await open(page, 8); // a new visit
   await back(14); // the nudge is now waiting out its delay
   await page.keyboard.press('h'); // the search answers from a worker ("Thinking it over…" first), inside the nudge's delay
   await page.waitForTimeout(2500); // past the delay
@@ -95,7 +95,7 @@ test('a hint asked for before the nudge, or while it waits, keeps the nudge away
 
 test('a rail handle sits on its own plate, even beside a cell the plate has raised', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 22); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
+  await open(page, 23); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
   const sol = (await state(page)).sol;
   for (const m of [sol[0], sol[4], sol[1], sol[1], sol[4]]) {
     await page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${Number(m[1])}, dir: ${'NESW'.indexOf(m[2])} })`);
@@ -108,7 +108,7 @@ test('a rail handle sits on its own plate, even beside a cell the plate has rais
 
 test('a chip about the wrong water shows that water, and a hint steps off its plate', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 11); // Breakwater: the oasis's water reaches the sea at the start
+  await open(page, 12); // Breakwater: the oasis's water reaches the sea at the start
   const dots = () => page.evaluate(`${SL}.view.leakDots.filter(d => d.visible).length`) as Promise<number>;
   expect(await dots()).toBe(0);
   await page.locator('.chip').first().hover();
@@ -117,7 +117,7 @@ test('a chip about the wrong water shows that water, and a hint steps off its pl
   await page.locator('.chip').first().click();
   await expect(page.locator('#hint')).toContainText('that water reaches the sea');
   await page.mouse.move(5, 5);
-  await open(page, 15); // Wishing Well: the first hinted plate's rail runs under the panel at this size
+  await open(page, 16); // Wishing Well: the first hinted plate's rail runs under the panel at this size
   await page.click('#b-hint');
   await expect(page.locator('#hint')).not.toHaveClass(/off/, { timeout: 15_000 });
   await page.waitForTimeout(1100);
@@ -133,7 +133,7 @@ test('a chip about the wrong water shows that water, and a hint steps off its pl
 
 test('keys alone solve an island, then restart, undo, hint and map', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 8); // Salt Point
+  await open(page, 9); // Salt Point
   const { sol } = await state(page);
   const arrow: Record<string, string> = { N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' };
   for (const m of sol) {
@@ -176,7 +176,7 @@ test('keys alone solve an island, then restart, undo, hint and map', async ({ pa
 
 test('settings opened and closed five times cost nothing, and the next drag still works', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 8);
+  await open(page, 9);
   for (let k = 0; k < 5; k++) {
     await page.click('#b-set');
     await expect(page.locator('#settings')).toBeVisible();
@@ -198,9 +198,43 @@ test('settings opened and closed five times cost nothing, and the next drag stil
   expect(errors).toEqual([]);
 });
 
+test('the hinted plate moved the other way says so and lights Undo; the hinted way says nothing', async ({ page }) => {
+  const errors = await start(page);
+  const hintTwice = async () => {
+    await page.keyboard.press('h'); await page.waitForTimeout(1300);
+    await page.keyboard.press('h'); await page.waitForTimeout(1300);
+  };
+  // the hint's own move, then its opposite: the first island whose hinted plate can also go back the other way
+  const act = (back: boolean) => page.evaluate(`(() => {
+    const a = ${SL}, m = a.controller.session.lv.sol[0], dir = 'NESW'.indexOf(m[2]);
+    a.controller.act({ kind: 'move', plate: Number(m[1]), dir: ${back} ? (dir + 2) % 4 : dir });
+    return a.controller.session.moves;
+  })()`) as Promise<number>;
+  let found = -1;
+  for (const i of [8, 9, 10, 11, 12, 13, 14, 15]) {
+    await open(page, i);
+    await hintTwice();
+    expect((await state(page)).hint).toMatch(/to go/);
+    if (await act(true) === 1) { found = i; break; }
+  }
+  expect(found).toBeGreaterThan(0);
+  await page.waitForTimeout(300);
+  let s = await state(page);
+  expect([s.hint, s.hintOff]).toEqual(['That went the other way from the hint. Undo takes it back', false]);
+  expect(await page.evaluate(`document.getElementById('b-undo').classList.contains('glow')`)).toBe(true);
+  // the hinted way: no such line
+  await page.keyboard.press('r'); await page.waitForTimeout(500);
+  await hintTwice();
+  expect(await act(false)).toBe(1);
+  await page.waitForTimeout(300);
+  s = await state(page);
+  expect(s.hint.includes('other way from the hint') && !s.hintOff).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('a nudge says drag further, a short confident drag moves, and a hint names its plate until Restart', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 8);
+  await open(page, 9);
   const drag = async (cells: number, back = false) => {
     const pts = await page.evaluate(`(() => {
       const a = ${SL}, m = a.controller.session.lv.sol[0], d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]], A = a.view.railAnchor(Number(m[1])), B = A.clone();
@@ -305,7 +339,7 @@ test('a newer message is not cut short by an older one, and the note comes back'
 test('a dead end warns after a quiet wait, and Undo clears it', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = await start(page);
-  await open(page, 17); // Anchor Rock: P0E is a proven dead end
+  await open(page, 18); // Anchor Rock: P0E is a proven dead end
   await page.evaluate(`${SL}.controller.move(0, 1)`);
   await page.waitForTimeout(2500);
   expect((await state(page)).stuck).toBe(false); // proved by now, and still quiet

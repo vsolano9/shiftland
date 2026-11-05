@@ -120,6 +120,8 @@ class App {
   private completeTimer = false;
   private handStart = 0;
   private handMove: { plate: number; dir: Dir } | null = null;
+  /** The move the second hint showed, and the board it was for. */
+  private hinted: { plate: number; dir: Dir; at: State } | null = null;
   private solvedStates = new Map<number, State>();
   private ready = false;
 
@@ -479,7 +481,7 @@ class App {
     s.hinted = true;
     this.controller.saveRun();
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
-    this.handMove = m; this.handStart = this.world.time.value;
+    this.handMove = m; this.handStart = this.world.time.value; this.hinted = { ...m, at: s.state };
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
     this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}, no star this time`}`.trim(), 6); // the first hint already said it costs the star; the long version took two lines over the board (playtest 10)
     this.hintOffPlate(m.plate, m.dir);
@@ -622,7 +624,13 @@ class App {
         if (e.plate !== null) this.audio.play('select', { plate: e.plate });
         break;
       }
-      case 'moved': this.afterMove(e.plate); break;
+      case 'moved': {
+        const h = this.hinted; this.hinted = null;
+        this.afterMove(e.plate);
+        // the hinted plate moved, but not the hinted way: say so while Undo still takes it back (playtest 10: six moves spent unexplained)
+        if (h && h.at === e.at && h.plate === e.plate && h.dir !== e.dir && !this.controller.session.solved) { this.flashHint('That went the other way from the hint. Undo takes it back', 4); $('b-undo').classList.add('glow'); }
+        break;
+      }
       case 'blocked': {
         this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
         if (this.drag) this.drag.refused = true;

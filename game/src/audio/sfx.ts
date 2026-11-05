@@ -271,8 +271,9 @@ export function playSfx(h: SfxHost, s: Sfx, o: SfxOpts, t: number): void {
       v.note('bell', scale[0] + 24, t + 0.12, 0.24, 1.8);
       break;
     }
-    case 'splash': // down-swept wash and two droplets
-      burst(v, 'white', 'lowpass', 2600, 0.6, t, 0.95, 0.012, 0.42).frequency.exponentialRampToValueAtTime(380, t + 0.42);
+    case 'splash': // down-swept wash and two droplets; a 12 ms white attack read as a snare (blind listen, Nov 5): softer onset, a brown body under it
+      burst(v, 'white', 'lowpass', 1900, 0.6, t, 0.8, 0.035, 0.42).frequency.exponentialRampToValueAtTime(320, t + 0.42);
+      burst(v, 'brown', 'lowpass', 700, 0.5, t, 0.5, 0.03, 0.3);
       blip(v, 'sine', 640, 1320, t + 0.13, 0.16, 0.002, 0.06); blip(v, 'sine', 800, 1700, t + 0.22, 0.11, 0.002, 0.05);
       break;
     case 'fish': // three bubbles and a note

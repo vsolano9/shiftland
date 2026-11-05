@@ -12,7 +12,7 @@ import { Session, type StuckPort } from './session.ts';
 export type GameEvent =
   | { kind: 'level'; index: number }                       // a level was opened (restart counts too)
   | { kind: 'selected'; plate: number | null }
-  | { kind: 'moved'; plate: number }
+  | { kind: 'moved'; plate: number; dir: Dir; at: State }
   | { kind: 'blocked'; plate: number; why: Refusal | null; dir: Dir; at: State } // rail end or a rule refused the move from `at` (shake the plate, say why)
   /** Drag preview of `steps` stops (diff from the current state); steps 0 / diff null clears it. */
   | { kind: 'preview'; plate: number; steps: number; diff: MoveDiff | null }
@@ -154,7 +154,7 @@ export class Controller {
     const r = this.session.move(p, d);
     if (!r.ok) { if (r.reason === 'blocked') this.emit({ kind: 'blocked', plate: p, why, dir: d, at }); return false; }
     this.saveRun();
-    this.emit({ kind: 'moved', plate: p });
+    this.emit({ kind: 'moved', plate: p, dir: d, at });
     this.unstuck(was);
     if (r.solved) {
       const s = this.session;

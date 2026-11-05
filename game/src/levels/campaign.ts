@@ -324,6 +324,8 @@ const FINALE: Spec[] = [
 
 // Cut after playtest 5: too many islands for the game's ideas, and each of these repeats a neighbour's thought.
 // Their maps stay here so one can come back, and `npm run levels:audit` no longer sees them.
-const SHELVED = new Set(["Shepherd's Hill", 'Harbour Row', 'Backwater', 'Thaw']);
+// Harbour Row came back on Nov 5 (playtest 10 P10-2): without it the coast went from effort 4 straight to 97, and a cold
+// player needed Hint on each of the next three islands.
+const SHELVED = new Set(["Shepherd's Hill", 'Backwater', 'Thaw']);
 
 export const CAMPAIGN: Spec[] = [...TUTORIAL, ...COAST, ...DESERT, ...TUNDRA, ...FINALE].filter(s => !SHELVED.has(s.name!));

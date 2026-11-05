@@ -10,7 +10,7 @@ const all = (levels as LevelJson[]).map(fromJson);
 const puzzles = all.filter(l => l.role === 'puzzle');
 
 describe('quality bar on the exported puzzles', () => {
-  it('has 15 puzzles', () => expect(puzzles.length).toBe(15));
+  it('has 16 puzzles', () => expect(puzzles.length).toBe(16));
   for (const lv of puzzles) {
     it(`${lv.name} passes (par ${lv.par})`, () => {
       const a = audit(lv, lv.par! + 2)!;
