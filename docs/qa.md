@@ -21,7 +21,7 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 | Build | Input | Shape | Result | Evidence |
 |---|---|---|---|---|
 | 25 islands (Nov 5) | Real mouse drags on the sliders | 1280x720 | All 25 solved at par from a clean save through each card's Next, 296 s, 0 errors (the first run stopped on Two Waters: P10-9, fixed); the last card's Finish shows the ending, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `full25b.log`, `end25-card.png`, `ending25.png` |
-| 25 islands (Nov 5) | Real touch swipes from each knob | 390x844 | All 25 solved at par from a clean save, each card's Next tapped, reached the ending, 245 s, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `touch25.log`, `touch25-end.png` |
+| 25 islands (Nov 5) | Real touch swipes from each knob | 390x844 | All 25 solved at par from a clean save, each card's Next tapped, reached the ending, 245 s, 0 errors; again on the final Nov 5 build (return hint, buoy chip): 25 of 25, 246 s, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `touch25.log`, `touch25-end.png`, `touchfinal.log` |
 | 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p12\a24.log` |
 | 24 islands | Real touch | 390x844 | Reached the ending | `p12\a24p.log` |
 | 24 islands | Real touch | 844x390 | Reached the ending, 3 runs at once; earlier runs stopped on Good Neighbours (below) | `p12\a24l.log`, `p8\a24l-r1.log` to `r3` |
