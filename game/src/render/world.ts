@@ -714,13 +714,22 @@ export class World {
     updateVisibleMatrices(this.scene);
     // a settled map's shadows don't change: drawing every island a second time each frame cost a slow laptop half its map (18 fps at 4x throttle)
     const still = this.map && !this.fly && !this.peekAt && !this.homes && !this.drive && !this.views.some(v => v.busy) && this.sunFrom.distanceToSquared(sunGoal.set(...this.dayTarget.from)) < .001;
-    if (still !== this.shadowsStill) { this.shadowsStill = still; this.renderer.shadowMap.autoUpdate = !still; if (still) this.renderer.shadowMap.needsUpdate = true; }
+    if (still !== this.shadowsStill) { this.shadowsStill = still; this.renderer.shadowMap.autoUpdate = !still && this.shadowEvery === 1; if (still) this.renderer.shadowMap.needsUpdate = true; }
+    if (!still && this.shadowEvery > 1 && this.frames % this.shadowEvery === 0) this.renderer.shadowMap.needsUpdate = true;
+    if (this.renderer.shadowMap.autoUpdate || this.renderer.shadowMap.needsUpdate) this.shadowPasses++;
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }
   private shadowsStill = false;
+  /** Shadows redraw every this many frames while anything moves (quality 3 and up). */
+  shadowEvery = 1;
+  /** Whether shadows are being redrawn at all (they rest on a settled map). */
+  get shadowsLive() { return !this.shadowsStill; }
+  /** Frames that drew the shadow map (the e2e test counts them). */
+  shadowPasses = 0;
   frames = 0;
-  /** 0 full, 1 pixel ratio capped at 1.5, 2 capped at 1, 3 no shadows, 4 below native resolution. Only ever steps down. */
+  /** 0 full, 1 pixel ratio capped at 1.5, 2 capped at 1, 3 smaller shadows redrawn every other frame, 4 below native resolution. Only ever steps down.
+   * Step 3 keeps shadows on: switching them off rebuilt every shader at once, a 1.6 s freeze on the slow machine the step is for (Nov 4 perf run). */
   quality = 0;
   private slow = { t: 0, n: 0, low: 0, boot: 5 };
   private adaptQuality(raw: number) {
@@ -734,13 +743,21 @@ export class World {
     // one busy moment on a good phone must not blur the board for the rest of the session: a merely slow window has to repeat, a crawl acts at once
     if (fps >= 18 && ++s.low < 2) return;
     s.low = 0;
+    this.stepDown();
+  }
+  /** One step down the quality ladder (public so a test can walk it). */
+  stepDown() {
+    if (this.quality >= 4) return;
     this.quality++;
     // a pixel ratio cap the screen already meets buys nothing: go straight to the step that does
     if (this.quality === 1 && devicePixelRatio <= 1.5) this.quality = 2;
     if (this.quality === 2 && devicePixelRatio <= 1) this.quality = 3;
     if (this.quality === 1) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     if (this.quality === 2) this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
-    if (this.quality === 3) { this.renderer.shadowMap.enabled = false; this.sun.castShadow = false; this.scene.traverse(o => { const m = (o as Mesh).material as MeshLambertMaterial | undefined; if (m) m.needsUpdate = true; }); }
+    if (this.quality === 3) {
+      this.shadowEvery = 2; this.renderer.shadowMap.autoUpdate = false; this.renderer.shadowMap.needsUpdate = true;
+      this.sun.shadow.mapSize.set(1024, 1024); this.sun.shadow.map?.dispose(); this.sun.shadow.map = null; // three makes a new, smaller map on the next shadow pass; no shader changes
+    }
     if (this.quality === 4) this.renderer.setPixelRatio(.7);
     this.resize();
   }

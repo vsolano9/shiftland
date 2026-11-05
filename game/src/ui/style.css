@@ -26,7 +26,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .round:active { transform: translateY(2px) scale(.96); box-shadow: 0 1px 0 rgba(120, 85, 40, .3); }
 .round svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
 .round:disabled { opacity: .45; cursor: default; transform: none; }
-.round.glow { animation: glow 1s ease-in-out infinite; background: #ffefbe; }
+.round.glow { animation: glow 1s ease-in-out infinite; background: #ffefbe; box-shadow: 0 0 0 4px rgba(255, 181, 46, .5), 0 0 18px 6px rgba(255, 190, 60, .55); } /* a halo at rest too: a still frame between pulses read as a plain button (critic T1, Nov 5) */
 @keyframes glow { 50% { box-shadow: 0 0 0 7px rgba(255, 181, 46, .55), 0 0 28px 10px rgba(255, 190, 60, .75); transform: scale(1.09); } }
 
 /* Level HUD */

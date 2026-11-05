@@ -48,6 +48,14 @@ Agents told to play as a new player, each on a newer build.
 | 4 | `playtest4\` | "A good puzzle game is hiding inside a pleasant one, but its middle sags." Findings below |
 | 5 | `playtest5\` | Saw-tooth curve and a quit point at the Tundra's start: campaign cut to 24, water dots added. Findings below |
 
+### Nov 5 pass (lead agent, real mouse, islands 1 to 7; evidence `D:\Work\_local\evidence\2026-11-05-shiftland\`)
+
+Title, then islands 1 to 6 played in order from a clean save, each trap tried first, then the solution; island 7 opened at 390x640 (the claude.ai phone viewer's height). Every trap answers in words ("the land rose too high", then "No way back from here. Undo?" about 3 s later on Village Green); every solve shows its panel; 0 console errors. Nothing new to fix in the first five minutes. Small things seen and kept: on Open Water the tutorial hand sits beside the buoy's bubble (it leaves on the first move); a rail drawn under a creature runs between its legs (accepted in P8 above). A harness note, not a game bug: Playwright's click waits for a still element, and a glowing Undo never is, so scripts press Z instead.
+
+Private playable link for Victor's G2 (Nov 5): https://claude.ai/artifact/QkJ37hAcgi58X55TDdQRnu, the production build with its CSS and font inlined (the artifact frame allows scripts and workers from its own files only). The same files, served under a strict CSP, solved island 1 by a real drag with the font loaded and 0 errors (`artifact-csp-solved.png`); opening the hosted link itself was not possible from this PC's browser, which is signed into another account.
+
+Stuck-player nudge (Nov 5): after max(14, 4×par) fruitless moves on a puzzle island, Hint glows and a line says Hint names a plate, or which other open island to play. Checked at 1280x720 (`nudge2.png`; the taste critic's weak-glow major T1 is fixed with a halo at rest, round 2 found 0 majors) and 390x844 (`phone-nudge.png`: two lines, nothing covered). A Codex review found that a Hint press during the nudge's 1.2 s delay was overwritten by it; a hint request now ends the nudge for the visit (e2e "a hint asked for before the nudge, or while it waits"). The shadow e2e now counts real shadow passes at quality 0 and 3.
+
 ### Playtest 6 findings (24 islands, ending, map, phone; finished, 22 of 24 stars, 51 minutes)
 
 Times from an agent reading a board dump: lower limits. Report: `playtest6\`. Verdict: would finish and recommend; the place it would quit was island 23.

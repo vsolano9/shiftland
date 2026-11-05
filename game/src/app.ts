@@ -374,6 +374,7 @@ class App {
     v.reconcile(s.state, true, { fromRestart: true });
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
     this.hintLevel = 0;
+    this.tries = 0; this.nudged = false; this.hintAsked = false; $('b-hint').classList.remove('glow');
     this.firstMoveMade = s.moves > 0;
     this.setFlying(true); // before the flight: with reduced motion it lands, and unlocks, inside this call
     this.buildChips(); this.refreshHud(); // before the flight: the framing leaves room for however many rows they take, reasons included
@@ -443,6 +444,9 @@ class App {
     // the first press warns that the second costs the star: a double tap must not spend it unread (phone playtest PH12)
     if (this.hintLevel === 1 && performance.now() - this.hintAt < 1000) return;
     this.hintAt = performance.now();
+    // any hint request ends the nudge for this visit, also one already waiting out its delay (Codex review, Nov 5)
+    this.nudged = true; this.hintAsked = true;
+    $('b-hint').classList.remove('glow');
     const s = this.controller.session, v = this.view, at = s.state;
     // a dead end can take seconds to prove, so the search runs in a worker; a slow answer says it is thinking
     const here = () => this.controller.session === s && s.state === at && this.view === v;
@@ -734,6 +738,7 @@ class App {
     }
     if (r.arrived.length) this.world.after(MOVE_TIME * .7, () => { for (const cell of r.arrived) { const p = v.worldPos(cell, 0); this.world.fx.splash(p.x, p.z, 4); } });
     this.refreshHud();
+    this.nudgeIfStuck();
     // No start board has a split plate: a player first meets one by making it, so that is when it gets said, once (second playtest P3).
     if (!s.solved && !this.settings.splitSeen && hasSplitPlate(lv, s.state)) {
       this.settings.splitSeen = true; this.saveSettings();
@@ -773,6 +778,25 @@ class App {
       });
     });
   }
+  /**
+   * A long fruitless try gets one quiet word: Hint glows, and when another island is open the player hears it is.
+   * Playtests 7 to 9 spent 7 to 13 minutes on one island without a hint, and nothing on screen said that the next island
+   * was open all along (two unsolved islands always are, design-plates.md "Unlocking"); a jam rater who quits there never
+   * sees the later biomes. Once per visit, only on puzzles, never once a hint was taken.
+   */
+  private nudgeIfStuck() {
+    const s = this.controller.session, i = this.controller.index;
+    this.tries++;
+    if (this.nudged || s.solved || s.hinted || this.levels[i].role !== 'puzzle' || this.tries < Math.max(14, (s.par ?? 3) * 4)) return;
+    this.nudged = true;
+    this.world.after(MOVE_TIME + 1.2, () => {
+      if (this.controller.session !== s || s.solved || s.hinted || this.hintAsked || this.screen !== 'level') return;
+      const other = this.levels.findIndex((_, k) => k !== i && this.progress.unlocked(k) && !this.progress.solved(k));
+      $('b-hint').classList.add('glow');
+      this.flashHint(`Stuck? Hint names a plate to try${other >= 0 ? `, or play island ${other + 1} from the map and come back` : ''}`, 7);
+    });
+  }
+  private tries = 0; private nudged = false; private hintAsked = false;
   private afterUndo() {
     const v = this.view, s = this.controller.session;
     v.clearPreview();
@@ -788,7 +812,7 @@ class App {
     const stale = () => gen !== this.solveGen || this.screen !== 'level' || this.controller.session !== s || !s.solved;
     this.completeTimer = true;
     v.railHint = 0; v.setHover(null); v.setSelected(null); v.showMarks = false;
-    $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
+    $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow'); $('b-hint').classList.remove('glow');
     this.world.after(MOVE_TIME + .45, () => {
       if (stale()) return;
       v.celebrate(true); v.setBloom(true);

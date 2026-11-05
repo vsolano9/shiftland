@@ -26,15 +26,65 @@ async function open(page: Page, i: number) {
   await page.waitForTimeout(2500);
 }
 
-test('shadows rest only on the settled map and come back on an island', async ({ page }) => {
+// shadow passes per frame over the next ~40 frames, counted where the renderer draws them
+const shadowRate = (page: Page) => page.evaluate(`new Promise(done => { const w = ${SL}.world, p = w.shadowPasses, f = w.frames;
+  const check = () => w.frames - f >= 40 ? done((w.shadowPasses - p) / (w.frames - f)) : requestAnimationFrame(check); check(); })`) as Promise<number>;
+
+for (const q of [0, 3]) test(`shadows rest only on the settled map and come back on an island (quality ${q})`, async ({ page }) => {
   const errors = await start(page);
-  const live = () => page.evaluate(`${SL}.world.renderer.shadowMap.autoUpdate`);
+  await page.evaluate(`(() => { const w = ${SL}.world; w.adaptQuality = () => {}; while (w.quality < ${q}) w.stepDown(); })()`); // hold the ladder still
+  expect(await page.evaluate(`${SL}.world.quality`)).toBe(q);
+  const live = () => page.evaluate(`${SL}.world.shadowsLive`);
+  const every = q >= 3 ? 2 : 1;
   await open(page, 1);
-  expect(await live()).toBe(true);
+  expect(await shadowRate(page)).toBeCloseTo(1 / every, 1);
   await page.click('#b-map');
   await expect.poll(live, { timeout: 20_000 }).toBe(false);
+  expect(await shadowRate(page)).toBe(0); // a settled map draws no shadows at all
   await open(page, 1);
   await expect.poll(live, { timeout: 5_000 }).toBe(true);
+  expect(await shadowRate(page)).toBeCloseTo(1 / every, 1);
+  expect(errors).toEqual([]);
+});
+
+test('a long fruitless try lights Hint once and says the next island is open', async ({ page }) => {
+  const errors = await start(page);
+  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 8; p.solved = i => i < 7; })()`); // seven solved: The Cut and the one after it are open
+  await open(page, 7); // The Cut, par 3: the nudge waits for 14 moves
+  const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
+  const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
+  for (let k = 0; k < 13; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(120); } // a back and forth on a, which never solves
+  await page.waitForTimeout(2500);
+  expect(await glow()).toBe(false);
+  await move(0, 3); // move 14
+  await expect.poll(glow, { timeout: 8_000 }).toBe(true);
+  expect((await state(page)).hint).toBe('Stuck? Hint names a plate to try, or play island 9 from the map and come back');
+  await page.keyboard.press('h');
+  expect(await glow()).toBe(false);
+  for (let k = 0; k < 16; k++) { await move(0, k % 2 ? 1 : 3); await page.waitForTimeout(100); }
+  await page.waitForTimeout(2500);
+  expect(await glow()).toBe(false); // once per visit
+  expect(errors).toEqual([]);
+});
+
+test('a hint asked for before the nudge, or while it waits, keeps the nudge away', async ({ page }) => {
+  const errors = await start(page);
+  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 8; p.solved = i => i < 7; })()`);
+  const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
+  const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
+  const back = async (n: number) => { for (let k = 0; k < n; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(110); } };
+  await open(page, 7);
+  await page.keyboard.press('h'); // before the threshold
+  await back(16);
+  await page.waitForTimeout(2500);
+  expect(await glow()).toBe(false);
+  expect((await state(page)).hint).not.toContain('Stuck?');
+  await open(page, 6); await open(page, 7); // a new visit
+  await back(14); // the nudge is now waiting out its delay
+  await page.keyboard.press('h'); // the search answers from a worker ("Thinking it over…" first), inside the nudge's delay
+  await page.waitForTimeout(2500); // past the delay
+  expect(await glow()).toBe(false);
+  expect((await state(page)).hint).toMatch(/^Try the .* plate/); // the hint the player asked for stays, not the nudge
   expect(errors).toEqual([]);
 });
 
