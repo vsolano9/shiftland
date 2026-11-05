@@ -1,6 +1,6 @@
 # Game Off 2026 (SHIFT): plan
 
-Status 2026-11-05: LICENSE is all rights reserved (Victor, Nov 4: no open source); a private play link for G2 is in `qa.md`; map perf, the quality-step freeze, a stuck-player Hint nudge, a cold playtest of islands 8-16 (Playtest 10: win silhouettes, a one-line second hint, hidden hint text dropped, a line when the hinted plate goes the other way, and Harbour Row back as island 8 against the Coast's difficulty cliff, 25 islands now) and an audio pass from a blind Gemini listen were done (`qa.md`, `release.md`). Still waiting on Victor: G0, G2, G3, G4.
+Status 2026-11-05: LICENSE is all rights reserved (Victor, Nov 4: no open source); a private play link for G2 is in `qa.md`; map perf, the quality-step freeze, a stuck-player Hint nudge, a cold playtest of islands 8-16 (Playtest 10: win silhouettes, a one-line second hint, hidden hint text dropped, a line when the hinted plate goes the other way, and Harbour Row back as island 8 against the Coast's difficulty cliff, 25 islands now; a full mouse play of all 25 found and fixed a knob that grabbed its neighbour's plate) and an audio pass from a blind Gemini listen were done (`qa.md`, `release.md`). Still waiting on Victor: G0, G2, G3, G4.
 
 Status 2026-11-04: the game ran far ahead of the schedule below in one long session: 24 islands, every biome, art, audio and ending are built and played end to end by real input; see `release.md` for what is checked and what still needs Victor (G0, G2, G3, G4, and his ears on the audio). The schedule stays as the record of the plan.
 
