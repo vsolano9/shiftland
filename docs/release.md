@@ -10,11 +10,11 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 |---|---|---|---|
 | R1 | Zip valid for itch HTML5 | see "Build" | `npm run pack:check` |
 | R2 | Relative paths | pass locally; the itch draft half waits on G0 | `npm run pack:check` |
-| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build | `p12\a24.log` |
+| R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build; redone on 25 islands Nov 5 | `full25b.log` (Nov 5), `p12\a24.log` |
 | R4 | Levels pass the bar | pass, 25 of 25 (Harbour Row back as island 8, Nov 5); count matches `itch-page.md` | `npm run levels:audit` |
 | R5 | Rules and tests | see "Build" | `npm test`, `npm run typecheck` |
 | R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real draft page **waits on G0** | `if\` |
-| R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `p12\a24p.log`, `p12\a24l.log` |
+| R7 | Touch | pass in emulation at 390x844 and 844x390 on 24 islands (the 25-island build has the phone e2e, not a full touch play); no real phone tried | `p12\a24p.log`, `p12\a24l.log` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
 | R9 | Performance | pass on the dev PC, map included (re-measured Nov 5), see below; no mid laptop tried | `p12\perf.log`, `2026-11-05-shiftland\perf.log` |
 | R10 | Audio | event log and metrics pass; a blind machine listen (Gemini, Nov 5) led to changes in `qa.md`; **no person has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |

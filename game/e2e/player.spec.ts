@@ -289,6 +289,20 @@ test('no two sliders sit side by side, and each knob grabs its own plate', async
       return v.marks.filter(k => k.grab).map(k => { const q = k.m.position.clone(); q.x += v.ox; q.z += v.oz; const [x, y] = w.project(q); return { plate: k.plate, picks: w.pick(x, y) }; }).filter(k => k.picks !== k.plate);
     })()`);
     expect(bad, `island ${i + 1}`).toEqual([]);
+    // and along the solution, with the moved plate's rail on show as a drag leaves it: its end dot once lay on a
+    // neighbour's knob and took the press (Two Waters, Nov 5 full play)
+    const sol = await page.evaluate(`${SL}.controller.session.lv.sol`) as string[];
+    const along: string[] = [];
+    for (const m of sol.slice(0, -1)) {
+      await page.evaluate(`(() => { const a = ${SL}, plate = ${Number(m[1])}; a.controller.act({ kind: 'move', plate, dir: ${'NESW'.indexOf(m[2])} }); a.view.showRail(plate); })()`);
+      await page.waitForTimeout(700); // the slide and its knobs settle
+      along.push(...await page.evaluate(`(() => {
+        const a = ${SL}, v = a.view, w = a.world;
+        return v.marks.filter(k => k.grab).map(k => { const q = k.m.position.clone(); q.x += v.ox; q.z += v.oz; const [x, y] = w.project(q); return { plate: k.plate, picks: w.pick(x, y) }; })
+          .filter(k => k.picks !== k.plate).map(k => '${m}: knob ' + k.plate + ' picks ' + k.picks);
+      })()`) as string[]);
+    }
+    expect(along, `island ${i + 1} along its solution`).toEqual([]);
   }
   expect(errors).toEqual([]);
 });

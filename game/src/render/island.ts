@@ -835,6 +835,8 @@ export class IslandView {
       // the plate whose rail is showing is the one the player is looking at: it wins a close call, and the dots
       // out at the rail's ends grab it too, a little more tightly so they don't steal the plate next door
       seg(-half, half, shown ? 26 : 16);
+      // a knob itself grabs its own plate: the shown rail's end dot lay on a neighbour's knob and stole it (Two Waters after its first move, Nov 5 full play)
+      seg(0, 0, 30);
       if (shown) { const y = this.railY(k.plate); seg(-1.15, 1.15, 12, y); seg(-1, -1, 26, y); seg(1, 1, 26, y); seg(0, 0, 26, y); } // the rail rides above the slider's cell
     }
     return out;
