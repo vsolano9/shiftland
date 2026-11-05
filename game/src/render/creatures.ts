@@ -11,7 +11,8 @@ export const MAT = new MeshLambertMaterial({ vertexColors: true, flatShading: tr
 // CustomBlending with transparent off keeps it in the opaque pass, before the creature's own colours; alpha still counts.
 // Over a faint fill goes a crisp outline: a tinted block read as a blue blob (second playtest P4). The fill marks the stencil;
 // the same shape pushed out along its normals draws only outside that mark, so only the rim shows.
-const XRAY = new MeshBasicMaterial({ color: '#163a63', opacity: .2, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor, stencilWrite: true, stencilRef: 1, stencilFunc: AlwaysStencilFunc, stencilZPass: ReplaceStencilOp });
+// a soft cream body under a cream rim, so the hidden part reads as one shape; a faint navy fill left only the rim, which read as scribbles (taste critic, Nov 5)
+const XRAY = new MeshBasicMaterial({ color: '#fff7e6', opacity: .34, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor, stencilWrite: true, stencilRef: 1, stencilFunc: AlwaysStencilFunc, stencilZPass: ReplaceStencilOp });
 const XRAY_RIM = new MeshBasicMaterial({ color: '#fff7e6', depthFunc: GreaterDepth, depthWrite: false, stencilWrite: true, stencilRef: 1, stencilFunc: NotEqualStencilFunc, stencilZPass: KeepStencilOp });
 XRAY_RIM.onBeforeCompile = s => { s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normalize(normal) * .022;'); };
 const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = new Mesh(g, MAT); m.castShadow = shadow; m.receiveShadow = false; return m; };
@@ -69,7 +70,7 @@ export class Creature {
     // a creature behind a tall stack still shows, as a flat silhouette: you can't solve for what you can't see.
     // Drawn after the land (renderOrder) and before the creature's own colours, so it never tints the creature itself.
     const parts: Mesh[] = [];
-    this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT) parts.push(m); });
+    this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT && !m.userData.noXray) parts.push(m); });
     for (const m of parts) {
       const s = new Mesh(m.geometry, XRAY), r = new Mesh(m.geometry, XRAY_RIM);
       s.renderOrder = -2.5; r.renderOrder = -2; m.add(s, r); this.xray.push(s, r);
@@ -115,7 +116,7 @@ export class Creature {
       this.beam.position.y = .645; this.beam.renderOrder = 6; b.add(this.beam);
     } else if (this.kind === 'buoy') {
       b.add(mesh(M.buoy));
-      this.root.add(mesh(M.buoyChain)); // on the root: the chain stays down when the buoy bobs or leans
+      const chain = mesh(M.buoyChain); chain.userData.noXray = true; this.root.add(chain); // on the root: the chain stays down when the buoy bobs or leans. No silhouette: through land its links drew as tangled loops (taste critic, Nov 5)
       for (let i = 0; i < 2; i++) { const f = mesh(M.fish, false); f.visible = false; this.root.add(f); this.fish.push({ m: f, t: 9, a: Math.random() * 6 }); }
     } else if (this.kind === 'oasis') {
       for (const [dx, dz, s, r] of [[-.2, -.12, 1.05, .4], [.18, .08, .92, 2.8]] as const) {

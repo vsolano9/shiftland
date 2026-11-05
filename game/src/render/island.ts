@@ -29,6 +29,9 @@ interface Column {
 }
 
 const mat4 = new Matrix4();
+// share of a creature the land hides before its silhouette shows: half hidden was already hard to read in play (playtest 5 P5-5);
+// on the win any real cut shows it, since that is the moment the player looks for it (playtest 10)
+const XRAY_PLAY = .3, XRAY_WIN = .1;
 const MARK_STEP = .19; // cells between two stops on a plate's inlaid slider
 const PINNED_BAND = new Color('#59606b');
 const hashN = (a: number, b: number, c: number) => { const v = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return v - Math.floor(v); };
@@ -387,7 +390,9 @@ export class IslandView {
         const { dir, run } = beamRun(this.lv, next, cell);
         if (dir) c.aimBeam(dir[0], dir[1], run);
       }
-      c.setXray(this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]) >= .3); // half hidden was already hard to read (playtest 5 P5-5)
+      const share = this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]);
+      this.hidden.set(c, share);
+      c.setXray(share >= (this.celebrating ? XRAY_WIN : XRAY_PLAY));
     }
   }
   /** How much of a creature standing here the land hides from the fixed camera: sample points walked along the view ray over the columns. */
@@ -768,7 +773,13 @@ export class IslandView {
     }
     return out;
   }
-  celebrate(on: boolean) { for (const c of this.creatures) c.celebrate(on); }
+  /** On the win the silhouette shows for a creature only partly behind land too: a rater saw the buoy cut off at the moment it was solved (playtest 10). */
+  celebrate(on: boolean) {
+    this.celebrating = on;
+    for (const c of this.creatures) { c.celebrate(on); c.setXray((this.hidden.get(c) ?? 0) >= (on ? XRAY_WIN : XRAY_PLAY)); }
+  }
+  private celebrating = false;
+  private hidden = new Map<Creature, number>();
   /** Worst-case size of the board in world units, with its centre at (ox, oz). */
   get span() { return Math.max(this.lv.w, this.lv.h); }
   /** The box the camera must keep in view: start land plus how far each plate can slide, clipped to the grid. */

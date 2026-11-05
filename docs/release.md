@@ -17,7 +17,7 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 | R7 | Touch | pass in emulation at 390x844 and 844x390; no real phone tried | `p12\a24p.log`, `p12\a24l.log` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
 | R9 | Performance | pass on the dev PC, map included (re-measured Nov 5), see below; no mid laptop tried | `p12\perf.log`, `2026-11-05-shiftland\perf.log` |
-| R10 | Audio | event log and metrics pass; **nobody has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
+| R10 | Audio | event log and metrics pass; a blind machine listen (Gemini, Nov 5) led to changes in `qa.md`; **no person has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
 | R11 | Look | critic rounds run; the open majors are answered in the session's `Taste:` line | `D:\Work\_local\taste-critic\` |
 | R12 | No shipped AI media | pass: no image or audio file in `dist/` | `npm run pack:check` |
 | R13 | Repo ready | README and LICENSE (all rights reserved) are in. Secret scan Nov 5: gitleaks over all 139 commits, 1 hit, a false positive (the `ENDING_KEY` localStorage name in `app.ts`). Going public also shows: the commit author email, the AI concept images in `concepts/` (never shipped), and internal `D:\Work\_local` evidence paths in `docs/`; Victor decides at G4 whether `docs/` and `concepts/` stay. Rerun the scan on the final commit | `gitleaks git .` |

@@ -56,7 +56,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 .count { position: absolute; left: 3px; top: -7px; background: var(--ink); color: #fff; border-radius: 11px; font-size: 13px; font-weight: 600; padding: 1px 7px; }
 @keyframes pop { from { transform: scale(0); } }
 #hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; text-wrap: balance; width: max-content; max-width: min(740px, 94vw); transition: opacity .3s; pointer-events: none; }
-#hint.off { opacity: 0; }
+#hint.off { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; } /* gone from screen readers too: a faded line kept its stale text (playtest 10) */
 #hint.up { bottom: auto; } /* out from over the plate it is talking about (playtest 5 P5-7); app.ts sets its top under the note */
 #blurb { position: absolute; left: 50%; top: calc(16px + var(--safe-t)); transform: translateX(-50%); padding: 8px 20px; font-size: 18px; font-weight: 500; text-align: center; width: max-content; max-width: min(560px, 62vw); transition: opacity .35s; pointer-events: none; }
 #blurb.off { opacity: 0; }
@@ -79,6 +79,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 /* Level complete: the chips have said their piece, the panel takes over */
 #goals { transition: opacity .2s; }
 #s-level:has(~ #done:not(.hidden)) #goals, #s-level:has(~ #done:not(.hidden)) #hint { opacity: 0; }
+#s-level:has(~ #done:not(.hidden)) #hint { visibility: hidden; }
 #done { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(14px + var(--safe-b)); }
 @media (min-aspect-ratio: 13/10) { #done { align-items: center; justify-content: flex-end; padding: 0 5vw 0 0; } }
 #done .panel { width: min(360px, 92vw); padding: 14px 24px 18px; border-radius: 26px; text-align: center; background: var(--cream); box-shadow: 0 6px 0 rgba(120, 85, 40, .3), 0 24px 50px rgba(4, 40, 70, .4); animation: panel .42s cubic-bezier(.25, 1.6, .5, 1); pointer-events: auto; }

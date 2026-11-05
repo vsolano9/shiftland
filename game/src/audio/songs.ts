@@ -58,7 +58,7 @@ export const SONGS: Record<Biome, Song> = {
     layers: [L(1, 0.9, 1, 0), L(0.85, 1, 1, 0, 0.25), L(0.45, 1, 0.9, 0, 0.1), L(1, 0.7, 1, 0, 0.3, 0.3)], loopFrom: 0,
   },
 
-  // Bright: C major pentatonic melody on marimba over open add9 chords, offbeat shaker, a wood knock on three.
+  // Bright: C major pentatonic melody on marimba over open add9 chords, a soft offbeat shaker.
   meadow: {
     id: 'meadow', bpm: 84, beats: 4, steps: 8, swing: 0.08, scale: 'C D E F G A B', plates: 'C4 D4 E4 G4 A4',
     chords: ['C2 | E3 G3 D4 G4', 'A1 | E3 G3 C4 G4', 'F2 | E3 A3 C4 G4', 'G2 | D3 G3 B3 G4',
@@ -78,7 +78,7 @@ export const SONGS: Record<Biome, Song> = {
     double: 'kalimba',
     arp: { inst: 'marimba', oct: 0, gain: 0.36, pats: ['0 . 2 1 . 2 3 .', '1 . 3 . 2 . 3 1', '0 2 . 3 . 2 1 .', '0 . . 2 . 3 . 2'] },
     bassPats: ['R . . . 5 . . .', 'R . . . . . 5 .', 'R . . R . . 5 .'],
-    perc: { shaker: '. x . x . x . x', wood: '. . . . x . . .', gain: 0.3 }, bell: 0,
+    perc: { shaker: '. x . . x x . x', gain: 0.17 }, bell: 0, // a wood knock on three, then a shaker on every offbeat, read as a metronome left on (blind listens, Nov 5)
     pad: { gain: 0.36, cutoff: [750, 1300] }, send: { reverb: 0.22, delay: 0.14, delayBeats: 0.75 },
     layers: [L(1, 0.9, 1, 0.4), L(1, 0.8, 1, 0.85, 0.2), L(0.4, 1, 0.9, 0.5, 0.3), L(1, 0.65, 1, 1, 0.25, 0.3), L(0.15, 1, 0.8, 0.2, 0.1)],
     loopFrom: 0,
@@ -117,7 +117,7 @@ export const SONGS: Record<Biome, Song> = {
       'G2 | Bb3 D4 G4 Bb4', 'F2 | A3 C4 F4 A4', 'Eb2 | Bb3 Eb4 G4 Bb4', 'D2 | A3 D4 F#4 A4',
       'G2 | Bb3 D4 F4 Bb4', 'C2 | Bb3 Eb4 G4 Bb4', 'F2 | A3 C4 Eb4 A4', 'Bb1 | Bb3 D4 F4 Bb4',
       'Eb2 | Bb3 Eb4 G4 Bb4', 'C2 | Bb3 Eb4 G4 C5', 'Eb2 | Bb3 Eb4 G4 Bb4', 'D2 | A3 D4 F#4 A4'],
-    lead: { inst: 'pluck', gain: 0.88, phrases: [
+    lead: { inst: 'pluck', gain: 0.44, phrases: [ // was 0.88, the loudest lead by far; two blind listens called it stabbing, then still forward at 0.56 (Nov 5)
       ['A4 . . Bb4 A4 . F#4 . | G4 . . Bb4 . G4 Eb4 . | D4 . F#4 . A4 . D5 . | C5 . Bb4 A4 . . . .',
         'D5 . C5 . Bb4 A4 . . | Bb4 . G4 . Eb5 . D5 . | A4 . F#4 A4 . D5 . . | F#4 . A4 . C5 . . .'],
       ['Bb4 . A4 G4 . . D5 . | C5 . A4 . F4 . A4 . | Bb4 . G4 . Eb4 . G4 . | F#4 . . . A4 . . .',

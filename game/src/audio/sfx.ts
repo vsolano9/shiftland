@@ -132,12 +132,16 @@ function burst(v: Voice, kind: 'white' | 'brown', type: BiquadFilterType, f: num
   return flt;
 }
 
-/** A sawtooth through vocal formant band-passes, with fast vibrato and flutter: the goat and the penguin. */
+/**
+ * A sawtooth through vocal formant band-passes, with fast vibrato and flutter: the goat and the penguin.
+ * Breath noise runs through the same formants and the top is darker: a bare saw read as a kazoo in a blind listen (Nov 5).
+ */
 function formant(v: Voice, f0: number, f1: number, t: number, dur: number, peak: number, forms: [number, number, number][], vibRate: number, vibCents: number): void {
-  const end = t + dur + 0.03, env = v.gain(v.out, 0), flutter = v.gain(env, 0.72), lp = v.filter('lowpass', 3200, 0.5, flutter);
+  const end = t + dur + 0.03, env = v.gain(v.out, 0), flutter = v.gain(env, 0.72), lp = v.filter('lowpass', 2300, 0.5, flutter);
   const bus = v.gain(null);
   for (const [fc, q, amp] of forms) bus.connect(v.filter('bandpass', fc, q, v.gain(lp, amp)));
-  const saw = v.osc('sawtooth', f0, t, end, bus);
+  v.noise('white', t, end, v.gain(bus, 0.22));
+  const saw = v.osc('sawtooth', f0, t, end, v.gain(bus, 0.8));
   saw.frequency.setValueAtTime(f0, t);
   saw.frequency.exponentialRampToValueAtTime(f1, t + dur);
   v.osc('sine', vibRate, t, end, v.gain(saw.detune, vibCents));
@@ -180,15 +184,17 @@ export function playSfx(h: SfxHost, s: Sfx, o: SfxOpts, t: number): void {
 
   switch (s) {
     case 'hover': blip(v, 'sine', freq(plate + 24), freq(plate + 24), t, 0.045, 0.002, 0.03); break;
-    case 'select': v.note('marimba', plate + 12, t, 0.6, 0.24); blip(v, 'sine', freq(plate + 24), freq(plate + 24), t, 0.05, 0.002, 0.05); break;
+    case 'select': v.note('marimba', plate + 12, t, 0.6, 0.24); break; // a pure sine two octaves up rang on in the reverb as a sonar ping (blind listen, Nov 5)
     case 'ui': v.note('wood', 60, t, 0.55); blip(v, 'sine', 620, 520, t, 0.08, 0.002, 0.03); break;
     case 'slide': { // stone scrape; a bigger plate (intensity) is lower and longer
       const dur = o.duration ?? 0.18 + 0.14 * i, low = 200 - 70 * i;
-      burst(v, 'white', 'bandpass', low, 0.9, t, 2 + 2 * i, 0.03, dur).frequency.exponentialRampToValueAtTime(low * 3, t + dur);
-      burst(v, 'white', 'bandpass', 1500, 1.2, t, 0.1, 0.02, dur * 0.7); // grit, for speakers with no low end
+      // a 70 ms swell, not a hard onset: with a 30 ms attack a blind listen heard an impact, not a scrape (Nov 5)
+      burst(v, 'white', 'bandpass', low, 0.9, t, 2 + 2 * i, 0.07, dur).frequency.exponentialRampToValueAtTime(low * 3, t + dur);
+      burst(v, 'white', 'bandpass', 1500, 1.2, t, 0.1, 0.05, dur * 0.7); // grit, for speakers with no low end
       break;
     }
-    case 'stop': blip(v, 'sine', 150, 84, t, 0.42, 0.002, 0.09); burst(v, 'brown', 'lowpass', 900, 0.6, t, 0.5, 0.002, 0.05); v.note('wood', 60, t, 0.14); break;
+    // a stone clunk: the thump sits higher and the knock louder than before, which a blind listen heard as a distant depth charge (Nov 5)
+    case 'stop': blip(v, 'sine', 190, 110, t, 0.34, 0.002, 0.06); burst(v, 'brown', 'lowpass', 1400, 0.6, t, 0.42, 0.002, 0.04); v.note('wood', 57, t, 0.3); break;
     case 'uplift': { // rumble swell plus a rising note per height step
       const dur = o.duration ?? 0.35 + 0.3 * i, steps = 1 + Math.round(i * 2);
       const rumble = v.gain(v.out, 0), lp = v.filter('lowpass', 80 + 60 * i, 0.9, rumble);
@@ -208,9 +214,10 @@ export function playSfx(h: SfxHost, s: Sfx, o: SfxOpts, t: number): void {
       blip(v, 'sine', 170, 70, t, 0.32, 0.002, 0.1);
       break;
     }
-    case 'blocked': // a dull strain against the stop, soft enough to repeat
-      blip(v, 'sine', 118, 72, t, 0.34, 0.003, 0.09); burst(v, 'brown', 'lowpass', 420, 0.6, t, 0.5, 0.003, 0.06);
-      blip(v, 'sine', 100, 66, t + 0.09, 0.2, 0.003, 0.08);
+    case 'blocked': // a soft falling "uh-uh" on two muted tones over a small low bump. A low thud (and then a wood double knock) read too close to 'stop' in blind listens (Nov 5)
+      blip(v, 'triangle', 349, 330, t, 0.2, 0.004, 0.09);
+      blip(v, 'triangle', 294, 262, t + 0.13, 0.18, 0.004, 0.13);
+      blip(v, 'sine', 120, 90, t, 0.14, 0.002, 0.05);
       break;
     case 'undo':
       v.run('kalimba', [scaleStep(scale, 3) + 12, scaleStep(scale, 1) + 12], t, 0.075, 0.18, 0, 0.5);
@@ -254,8 +261,8 @@ export function playSfx(h: SfxHost, s: Sfx, o: SfxOpts, t: number): void {
       v.osc('sine', 13, at, at + 0.47, v.gain(boing.detune, 120));
       break;
     }
-    case 'lighthouse': { // a friendly low horn on the root, a bell far above it
-      const root = freq(scale[0] - 12), g = v.gain(v.out, 0), lp = v.filter('lowpass', 620, 0.8, g);
+    case 'lighthouse': { // a friendly horn on the root, a bell far above it. An octave lower it read as an ominous foghorn (blind listen, Nov 5)
+      const root = freq(scale[0]), g = v.gain(v.out, 0), lp = v.filter('lowpass', 900, 0.8, g);
       v.osc('sawtooth', root, t, t + 0.82, lp); v.osc('sine', root, t, t + 0.82, v.gain(g, 0.5));
       g.gain.setValueAtTime(0.0001, t);
       g.gain.linearRampToValueAtTime(0.15, t + 0.09);
@@ -318,9 +325,10 @@ export function playSfx(h: SfxHost, s: Sfx, o: SfxOpts, t: number): void {
 /** Rift water: filtered noise with a slow and a fast LFO for the gurgle, length = flood-fill time. */
 export function pourSound(h: SfxHost, dur: number, pan: number, t: number): void {
   const v = new Voice(h, pan), d = Math.max(0.1, dur), end = t + d;
-  const env = v.gain(v.out, 0), lp = v.filter('lowpass', 780, 2.4, env);
+  // more splash band and a higher lowpass: darker, it read as a rumbling thruster in a blind listen (Nov 5)
+  const env = v.gain(v.out, 0), lp = v.filter('lowpass', 1050, 2.4, env);
   v.noise('brown', t, end + 0.38, lp);
-  v.noise('white', t, end + 0.38, v.filter('bandpass', 2000, 0.8, v.gain(env, 0.07)));
+  v.noise('white', t, end + 0.38, v.filter('bandpass', 1700, 0.8, v.gain(env, 0.16)));
   for (const [rate, depth] of [[5.3, 300], [2.1, 180], [11, 90]] as const) v.osc('sine', rate, t, end + 0.38, v.gain(lp.frequency, depth));
   env.gain.setValueAtTime(0.0001, t);
   env.gain.linearRampToValueAtTime(0.62, t + Math.min(0.1, d * 0.3));

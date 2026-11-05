@@ -481,7 +481,7 @@ class App {
     v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
     this.handMove = m; this.handStart = this.world.time.value;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
-    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}. The star is spent: Restart with no hint to win it back`}`.trim(), 6);
+    this.flashHint(`${moveWhy(v.lv, s.state, m.plate, m.dir)} ${shorter ? `${togo}. Restart is shorter` : gone ? togo : `${togo}, no star this time`}`.trim(), 6); // the first hint already said it costs the star; the long version took two lines over the board (playtest 10)
     this.hintOffPlate(m.plate, m.dir);
   }
   /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */

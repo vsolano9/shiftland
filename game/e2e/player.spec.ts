@@ -31,8 +31,13 @@ const shadowRate = (page: Page) => page.evaluate(`new Promise(done => { const w 
   const check = () => w.frames - f >= 40 ? done((w.shadowPasses - p) / (w.frames - f)) : requestAnimationFrame(check); check(); })`) as Promise<number>;
 
 for (const q of [0, 3]) test(`shadows rest only on the settled map and come back on an island (quality ${q})`, async ({ page }) => {
+  // hold the ladder still from the first frame: on a busy machine (parallel workers) it had stepped to 3 before the test could stop it
+  await page.addInitScript(() => {
+    let app: unknown;
+    Object.defineProperty(window, '__shiftland', { configurable: true, get: () => app, set: v => { (v as { world: { adaptQuality: () => void } }).world.adaptQuality = () => {}; app = v; } });
+  });
   const errors = await start(page);
-  await page.evaluate(`(() => { const w = ${SL}.world; w.adaptQuality = () => {}; while (w.quality < ${q}) w.stepDown(); })()`); // hold the ladder still
+  await page.evaluate(`(() => { const w = ${SL}.world; while (w.quality < ${q}) w.stepDown(); })()`);
   expect(await page.evaluate(`${SL}.world.quality`)).toBe(q);
   const live = () => page.evaluate(`${SL}.world.shadowsLive`);
   const every = q >= 3 ? 2 : 1;
