@@ -158,7 +158,7 @@ One solved island per biome against `concepts/shiftland-biomes.png` and `shiftla
 
 | Id | Finding | Result |
 |---|---|---|
-| T1 | The lake was a dark green sheet with pale dots: it read as swamp, then as dotted land | Fixed: clear jade with lighter shallows and thin drifting ripples, no surf, a few small dark pads (pale ones were the same mark as the plates' dots). Still green, since the sea is turquoise and creatures tell them apart. `concepts/lake-oasis-v1.png`, `v2-sheet.png` |
+| T1 | The lake was a dark green sheet with pale dots: it read as swamp, then as dotted land | Fixed: emerald with a luminous rim and a deeper middle, small rings opening and fading (long ripples read as a current, run `20261106-174859-17e4e1`), no surf, a few small dark pads (pale ones were the same mark as the plates' dots). Still green, since the sea is turquoise and creatures tell them apart. `concepts/lake-oasis-v1.png`, `v5-Breakwater.png`. After three rounds the critic still asked for more saturation at the rim (run `20261106-175330-2f5e14`): kept, the difference from the concept is small and my rounds on it were spent |
 | T2 | Two palms merged into one green mass | Fixed: a sparser crown, and the two stand apart across the view, trunks showing |
 | T3 | Goats are long and blocky against the sheet | Kept: Victor played with them and approved, and they suit the voxel creatures |
 | T4 | Three penguins were one dark lump | Fixed: spread across the cell as the camera sees it |
