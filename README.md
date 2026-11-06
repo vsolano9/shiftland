@@ -29,6 +29,7 @@ In `game/` (Node 22.18+ or 24):
 | `npm test`, `npm run typecheck` | Unit tests and types |
 | `npm run e2e` | Build, then Playwright against the served build |
 | `node scripts/fullplay.mjs [mouse\|touch\|keys] [WxH]` | After a build: play every island at par by real input, from a clean save to the ending |
+| `node scripts/monkey.mjs [steps] [seed] [WxH]` | After a build: random real input with state checks |
 | `npm run press` | Build, then render the itch screenshots, banner and splash |
 | `npm run pack:check` | Build the itch zip and check it |
 | `npm run levels:audit` | Check every island against the quality bar with the solver |

@@ -22,6 +22,8 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 |---|---|---|---|---|
 | 26 islands (Nov 6) | Real input, `scripts/fullplay.mjs` | Mouse 1280x720, touch 390x844 and 844x390 | All three: 26 of 26 at par, 26 stars, each card's button pressed, the ending reached, 0 errors (168, 196, 195 s). The first mouse run stopped on Two Waters because the script pressed the rail's raised anchor with another plate's rail on show; a player presses the knob. Not a game fault, and e2e now also checks that where the hint's hand starts grabs the hinted plate on every board of every solution | `2026-11-06-shiftland-polish\full26\` |
 | 26 islands (Nov 6) | Same script, other ways in | Firefox mouse 1280x720 (159 s), Chromium mouse 960x540, the itch frame's size (167 s), keyboard 1280x720 by digit and the second-nearest arrow, Enter on each card (143 s) | Each: 26 of 26 at par, 26 stars, the ending, 0 errors | `full26\firefox.log`, `mouse540.log`, `keys.log` |
+| Random input (Nov 6, `scripts/monkey.mjs`) | Real mouse and keys, including held drags, Esc, hints, Undo, Restart, map, blur, Reduced motion | 1280x720 (300 steps), 960x540 and 390x844 (700 each) | 0 errors; every 8 steps the board matches the session, no drag held, nothing of a hint left over | `full26\monkey2.log`, `monkey3.log` |
+| Memory (Nov 6) | Controller and real mouse: every island once, then 72 cycles of hint, hint, drag, Undo, Restart | 1280x720 | Geometries steady at 363, textures 14; heap 68 to 76 MB, about 1 MB per 12 cycles | session scratch `mem26.mjs` |
 | 25 islands (Nov 5) | Real mouse drags on the sliders | 1280x720 | All 25 solved at par from a clean save through each card's Next, 296 s, 0 errors (the first run stopped on Two Waters: P10-9, fixed); the last card's Finish shows the ending, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `full25b.log`, `end25-card.png`, `ending25.png` |
 | 25 islands (Nov 5) | Real touch swipes from each knob | 390x844 | All 25 solved at par from a clean save, each card's Next tapped, reached the ending, 245 s, 0 errors; again on the final Nov 5 build (return hint, buoy chip): 25 of 25, 246 s, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `touch25.log`, `touch25-end.png`, `touchfinal.log` |
 | 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p12\a24.log` |
@@ -134,6 +136,34 @@ This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as pol
 - **Ferry Lane**, island 8 between The Long Pier and Harbour Row (par 2, effort 10): one plate bites straight in and goes home, which is the move The Cut asks for. The Coast now reads effort 4, 10, 32, 97, 116, 137 and the game has 26 islands. Saves are keyed by name, so a solved island that now sits after an unsolved Ferry Lane stays open (`progress.ts`, unit test).
 - **The second hint shows the whole move**: a big arrow along the rail, the hand sliding it, the plate leaning that way, and a preview of what changes on the whole plate. Undo, Restart or the move itself take the show away (e2e `the second hint shows the move…`). Concept: `concepts/hint-move-v1.png`.
 
+### Playtest 17 (islands 1 to 7 from a clean save, as an impatient jam rater; a Sonnet verifier)
+
+All seven solved; stars on 1 and 2, hints on the rest, as told to be impatient. Verdict PASS: "a rater would keep playing." Title and the first two islands praised; the wants read clearly at first sight. Scored fun 3 of 5, "a hint-follower puzzle after island 3", and would have rated at island 5. One impatient agent's view, not a measure. Shots: `2026-11-06-shiftland-polish\pt17\shots\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P17-1 | "Nothing shows yet: this slide sets up the next move" reads like a bug | Now "No one is happier yet: this slide sets up the next move." |
+| P17-2 | "Settings can bring the + and − back": it had never noticed one | Now "Settings can show a + or − on each creature" |
+| P17-3 | Plate colour names were easy to confuse on island 6 | Kept: the line also names the pattern, and the plate breathes |
+| P17-4 | The empty star's line is small on the card | Kept: read at 1280x720 it is legible, and a stronger line would nag |
+| P17-5 | Buoy behind the goat and a tall block (`i5h3.png`) | Kept: as P14-6 |
+
+### Code review of the day's diff (fresh-eyes reviewer, Nov 6)
+
+Nine defects, none blocking, all fixed; e2e `after a hint the arrows…`, `the first island keeps its lesson…`, unit `opens nothing extra…`.
+
+| Id | Finding | Result |
+|---|---|---|
+| R1 | After a hint, arrows moved an old, unmarked selection or plate 1 | The plate on show is now the selected one |
+| R2 | M during a held drag committed the move on the map, even solving unseen; older than today | The drag ends on leaving, and a running hint search drops |
+| R3 | The arrow could appear on the map: island 1's wrong-move return, a slow search | Both now check the screen, closing what A2 missed |
+| R4 | Melt marks floated over the cell during the hint's show, where the plate only leans | Raised only for a real drag |
+| R5 | Still Water's note: "slanted" and "upright" were barely true at this camera | Says blue and green |
+| R6 | `leftOff` survived Reset progress, and a run that no longer plays | Both clear it |
+| R7 | The lean's end twitched the last dragged plate | The leaning plate eases home itself |
+| R8 | Z, R, H or an arrow during a drag left the plate following the hand | They end the drag first, as Esc does |
+| R9 | On island 1 a hint could leave the lesson line raised; a first hint hid wishes until the next move; Restart lost the first islands' hand or arrow | Line returns to its place; wishes come back after 7 s; the lesson stands until the first move |
+
 ### Design audit (fresh-eyes reviewer, Nov 6, live in Chromium)
 
 | Id | Finding | Result |
@@ -159,7 +189,7 @@ All nine solved, but both hints on 6 of them, and the stars on 19 and 20 came fr
 | P14-1 | "corners don't count" at the start of 12, 17, 18, before the player has seen a corner | Fixed: "sea only at a corner", "lake only at a corner" say what is there. Unit tests |
 | P14-2 | Twin Palms' note, "Sometimes one tick has to go before two can come", means nothing | Fixed: "Sometimes you must upset one on the way to pleasing two." (The first rewrite, "…upset one to make two happy", misled playtest 16: everyone ends happy) |
 | P14-3 | The preview's lake and sea stripes are never explained | Fixed: a line at Still Water's door says slanted is sea, upright is a lake |
-| P14-4 | "that water reaches the sea" doesn't say which water; two palms share one card | Hovering or tapping a card already marks the water (P5-2), but nothing said so. Now a line at Breakwater's door does |
+| P14-4 | "that water reaches the sea" doesn't say which water; two palms share one card | Hovering or tapping a card already marks the water (P5-2), but nothing said so. Now a line at Breakwater's door does ("Hover over a card below…", "Tap a card below…" on touch) |
 | P14-5 | On Thin Ice the preview never shows the ice melting | Fixed, a real bug: its marks lay under the dragged plate. They now lie on top of the carried land (`thin-hold.png`, unit test on `meltTop`) |
 | P14-6 | Tall plates hide creatures and buoys (`i16_h3.png`, `i18_done.png`) | Kept: the fixed camera; x-ray silhouettes and cards cover it (P5-5) |
 | P14-7 | After R on Wishing Well, the first H gave nothing visible, once | Not reproduced: at +100 ms after H the line is up (session scratch `thin.mjs`). Its driver waits and reads may have missed it |
@@ -201,7 +231,7 @@ All five solved, no errors, verdict PASS: "mostly fair". 7, 8 and 9 earned stars
 | P13-1 | The chapter card and the island's note overlapped for half a second (`i7_a.png`) | Fixed: the note comes 2.2 s after landing, once the card has faded |
 | P13-2 | The rail shows arrows both ways while a plate is selected | Kept: both ways are legal, and a drag shows the way it goes (`i11_p1.png`) |
 | P13-3 | The goat looks off its tower in the win shot (`i11_done.png`) | Measured, not a fault: root at the cell's centre, legs centred on it; marked on screen in `goatmark-10-3.png`. The offset is the win's hop (`creatures.ts`) |
-| P13-4 | The second hint's text gone by a later shot (`i11_h3b.png`) | Kept: it stays at least 6 s. The hand and arrow stay until the move |
+| P13-4 | The second hint's text gone by a later shot (`i11_h3b.png`) | Kept: it stays at least 6 s. The hand stays until the player drags or moves, the arrow until the move |
 | P13-5 | Orange chevrons lie on the plate that doesn't move, with the moving plate elsewhere (`i11_h2a.png`) | Kept: chevrons mark where land will rise, as in every drag preview; the tester could still tell plate and way from the shots alone |
 | P13-6 | Tall strata on Ferry Lane and Harbour Row look confusing | Kept: that is how a raised stack reads throughout; nothing else reported it |
 

@@ -63,7 +63,9 @@ export class Progress {
     this.save();
   }
 
-  reset() { this.data = { v: 1, levels: {} }; this.save(); this.saveRun(null); }
+  reset() { this.data = { v: 1, levels: {} }; this.save(); this.saveRun(null); this.leftOff = null; }
+  /** The saved run didn't resume, so there is nothing there to protect. */
+  forgetLeftOff() { this.leftOff = null; }
 
   /** The unfinished island's moves, so a phone that drops the page in the background brings the player back to the same board. */
   saveRun(run: SavedRun | null) {

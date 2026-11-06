@@ -270,6 +270,43 @@ test('Esc during a drag sends the plate home at once, and the next drag works (p
   expect(errors).toEqual([]);
 });
 
+test('after a hint the arrows move the plate on show; M during a held drag spends nothing (review, Nov 6)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9);
+  const m = await page.evaluate(`${SL}.controller.session.lv.sol[0]`) as string;
+  // select another plate first: an old selection used to take the arrow
+  const other = await page.evaluate(`(() => { const a = ${SL}, p = ${Number(m[1])}; for (let i = 0; i < a.controller.session.lv.plates; i++) if (i !== p && !a.controller.session.lv.pinned?.includes(i)) return i; })()`) as number;
+  await page.keyboard.press(String(other + 1));
+  await page.keyboard.press('h');
+  await expect.poll(async () => (await state(page)).hint, { timeout: 4000 }).toMatch(/^Try the/);
+  await page.keyboard.press({ N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' }[m[2]]!);
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(`(() => { const l = ${SL}.controller.session.log; return l.length ? 'P' + (l[0] >> 2) + 'NESW'[l[0] & 3] : ''; })()`)).toBe(m);
+  await page.keyboard.press('z'); await page.waitForTimeout(500);
+  // M with a plate held past its stop
+  const k = await page.evaluate(`(() => { const a = ${SL}, p = ${Number(m[1])}, d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }['${m[2]}'], A = a.view.railAnchor(p), B = A.clone(); B.x += d[0]; B.z += d[1]; a.view.showRail(p); return { a: a.world.project(A), b: a.world.project(B) }; })()`) as Record<'a' | 'b', [number, number]>;
+  await page.mouse.move(k.a[0], k.a[1]); await page.mouse.down();
+  await page.mouse.move(k.b[0], k.b[1], { steps: 6 }); await page.waitForTimeout(150);
+  await page.keyboard.press('m'); await page.waitForTimeout(300);
+  await page.mouse.up(); await page.waitForTimeout(900);
+  expect(await page.evaluate(`({ screen: ${SL}.screen, moves: ${SL}.controller.session.moves, rail: ${SL}.view.rail.visible })`)).toEqual({ screen: 'map', moves: 0, rail: false });
+  expect(errors).toEqual([]);
+});
+
+test('the first island keeps its lesson through a hint and Restart (review, Nov 6)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 0);
+  await page.waitForTimeout(1500);
+  const look = () => page.evaluate(`(() => { const h = document.getElementById('hint'), v = ${SL}.view; return { hand: !document.getElementById('hand').classList.contains('hidden-el'), big: v.railParts.big.visible && v.rail.visible, line: h.classList.contains('off') ? '' : h.textContent, up: h.classList.contains('up') }; })()`) as Promise<{ hand: boolean; big: boolean; line: string; up: boolean }>;
+  expect(await look()).toMatchObject({ hand: true, big: true, line: 'Drag a plate along its rail' });
+  await page.keyboard.press('r'); await page.waitForTimeout(400);
+  expect(await look()).toMatchObject({ hand: true, big: true, line: 'Drag a plate along its rail', up: false });
+  await page.keyboard.press('h'); await page.waitForTimeout(600);
+  await page.keyboard.press('r'); await page.waitForTimeout(400);
+  expect(await look()).toMatchObject({ hand: true, big: true, line: 'Drag a plate along its rail', up: false });
+  expect(errors).toEqual([]);
+});
+
 test('a refusal about the last drag goes when the next one starts (playtest 15)', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);

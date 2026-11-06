@@ -30,7 +30,11 @@ export class Controller {
               private emit: (e: GameEvent) => void = () => {}) {
     // back where the player left off, if that island still plays the same way; otherwise the first unsolved one
     const run = progress.savedRun(), at = run ? levels.findIndex(l => l.name === run.name) : -1;
-    if (run && at >= 0 && !progress.solved(at) && this.open(at, run)) return;
+    if (run && at >= 0 && !progress.solved(at) && this.open(at, run)) {
+      if (this.resumed) return;
+      progress.forgetLeftOff(); // a run that no longer plays keeps nothing open: stay only if the island is open anyway
+      if (progress.unlocked(at)) return;
+    }
     this.open(progress.next());
   }
   /** Set when the session came back from a saved run, until the screen has said so. */

@@ -607,7 +607,7 @@ export class IslandView {
       const [x, z] = this.xz(cell);
       const hatch = sea?.[cell] ? (wholePlate ? this.ghostFloodSoft : this.ghostFlood) : (wholePlate ? this.ghostLakeSoft : this.ghostLake);
       // ice about to melt lies on top of the plate carrying it: on the cell's own height the dragged plate covered it, and Thin Ice's whole point never showed (playtest 14)
-      const top = diff.meltTop.find(([c]) => c === cell);
+      const top = wholePlate ? undefined : diff.meltTop.find(([c]) => c === cell); // a hint only leans the plate, so the cell itself is still in view
       const m = new Mesh(this.planeG, hatch); m.rotation.x = -Math.PI / 2; m.position.set(x, topY(top ? Math.max(top[1], s.elev[cell]) : s.elev[cell]) + (top ? .08 : .025), z); m.renderOrder = 7; this.ghostGroup.add(m);
     }
     for (const cell of diff.arrive) {

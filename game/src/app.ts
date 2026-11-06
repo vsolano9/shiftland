@@ -292,6 +292,8 @@ class App {
     this.world.focusTitle(1);
   }
   private toMap(fromTitle = false) {
+    if (this.drag) this.pointerCancel(); // a plate held through M committed its move on the map when it was let go (review, Nov 6)
+    this.dropHint(); // and a slow hint search answered onto the map
     if (fromTitle && !this.progress.solved(0)) { this.pickLevel(0); return; } // first play: straight into the first island
     // a run left unfinished: Play goes back to it, which is what the game says it does (playtest 5 P5-12)
     if (fromTitle && this.controller.session.moves > 0 && !this.controller.session.solved) { this.controller.resumed = true; this.pickLevel(this.controller.index); return; }
@@ -400,10 +402,10 @@ class App {
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
-    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back'
+    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can show a + or − on each creature'
       // two kinds of water start here, and neither the stripes nor "that water" explained themselves (playtest 14)
-      : lv.name === 'Still Water' ? 'In a preview, slanted stripes are sea and upright stripes a lake'
-      : lv.name === 'Breakwater' ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover over'} a creature's card to see which water it means` : '';
+      : lv.name === 'Still Water' ? 'In a preview, blue stripes are sea and green stripes a lake'
+      : lv.name === 'Breakwater' ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover over'} a card below to see which water it means` : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
@@ -472,6 +474,7 @@ class App {
     if (!sol) { /* "see": a few boards are solvable past the search's depth */ this.flashHint('I can see no way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.first);
     v.pointRail(m.plate, 0); v.setSelected(null); // the first press names the plate, not the way
+    this.controller.selected = m.plate; // the plate on show is the one the arrows move: they used to move an old selection, unmarked (review, Nov 6)
     v.setQuiet(true); this.hintView = v; // wish bubbles sat on the hand and the knob, and the chips say the same (playtest 11 P11-2b, T3)
     // once the star is out of reach this run, the hints stop warning about it (second playtest P10)
     const gone = s.hinted || (s.par !== undefined && s.moves + sol.min > s.par);
@@ -483,6 +486,8 @@ class App {
       const look = PLATES[m.plate % PLATES.length], which = `Try the ${look.name} plate with the ${PATTERN_WORD[look.pattern]}.`;
       this.flashHint(`${which} Hint again shows the move${gone ? '' : ', but costs the star'}${shorter ? `.${shorter}` : ''}`, 6);
       this.hintOffPlate(m.plate, m.dir);
+      // the wishes come back once its line has gone: a first hint hid them until the next move (review, Nov 6)
+      this.world.after(7, () => { if (this.hintView === v && !this.handLean && this.hintLevel === 1) this.endHintShow(); });
       return;
     }
     s.hinted = true;
@@ -518,9 +523,12 @@ class App {
   private endHintShow() {
     const v = this.hintView; this.hintView = null;
     this.handLean = false;
-    if (v) { v.setQuiet(false); if (this.leaning) v.setDrag(null); if (this.hintPreview) v.clearPreview(); }
+    if (v) { v.setQuiet(false); if (this.leaning) this.stopLean(v); if (this.hintPreview) v.clearPreview(); }
     this.leaning = false; this.hintPreview = false;
   }
+  private leanPlate = 0;
+  /** The leaning plate eases home itself: the view would otherwise ease the last dragged plate, which twitched (review, Nov 6). */
+  private stopLean(v: IslandView) { v.noteDragEnd(this.leanPlate); v.setDrag(null); this.leaning = false; }
   /** A hint is about the board it was asked on: after Undo or Restart its hand and arrow pointed at a move that no longer existed. */
   private forgetHint(v: IslandView) {
     this.endHintShow();
@@ -710,10 +718,7 @@ class App {
     const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up'); h.style.top = ''; h.style.left = ''; h.style.maxWidth = '';
     clearTimeout(this.flashT); this.refusalUp = false;
     sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
-    this.flashT = window.setTimeout(() => {
-      if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off');
-      else h.textContent = 'Drag a plate along its rail';
-    }, sec * 1000);
+    this.flashT = window.setTimeout(() => this.settleHintLine(), sec * 1000);
   }
   private flashT = 0;
   /** A line about the attempt just made: the next press drops it, or it stood over a new drag that was doing nothing wrong (playtest 15). */
@@ -722,8 +727,13 @@ class App {
   private dropRefusal() {
     if (!this.refusalUp) return;
     this.refusalUp = false; clearTimeout(this.flashT);
+    this.settleHintLine();
+  }
+  /** When a line has had its time: gone, or on the first island before its first move, back to the lesson, in the lesson's place. */
+  private settleHintLine() {
     const h = $('hint');
-    if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off'); else h.textContent = 'Drag a plate along its rail';
+    if (this.firstMoveMade || this.controller.index !== 0) { h.classList.add('off'); return; }
+    h.textContent = 'Drag a plate along its rail'; h.classList.remove('off', 'up'); h.style.top = ''; h.style.left = ''; h.style.maxWidth = '';
   }
   private panOf(cell: number) { const v = this.view, [x] = v.xz(cell); return Math.max(-1, Math.min(1, x / v.lv.w * 1.4)); }
 
@@ -742,6 +752,13 @@ class App {
     if (s.canUndo) this.flashHint('Back to the start. Undo brings your moves back');
     if (prev !== s.lv.start) { v.reconcile(s.lv.start, true, { fromRestart: true }); this.audio.play('restart'); this.world.after(.42, () => { v.applyGoals(this.controller.session.goals, true, false); this.refreshHud(); }); } // no red crosses for a restart the player asked for
     this.refreshHud();
+    // the first islands' lesson stands until the first move: Restart or a hint used to take it away for good (review, Nov 6)
+    if (this.controller.index < 2 && !this.firstMoveMade && s.lv.sol?.[0]) {
+      const m = parseMove(s.lv.sol[0]);
+      this.handMove = m; this.handStart = this.world.time.value;
+      v.pointRail(m.plate, m.dir === 1 || m.dir === 2 ? 1 : -1);
+      if (this.controller.index === 0) this.settleHintLine();
+    }
   }
 
   private afterMove(plate: number) {
@@ -794,7 +811,7 @@ class App {
       const at = s.state;
       this.flashHint('Not yet. Try the other way', 2.4);
       this.world.after(1.2, () => {
-        const next = this.controller.session === s && s.state === at && !this.drag ? solve(lv, 6, at)?.firstSolution[0] : undefined;
+        const next = this.controller.session === s && s.state === at && !this.drag && this.screen === 'level' ? solve(lv, 6, at)?.firstSolution[0] : undefined;
         if (next) { const m = parseMove(next); this.handMove = m; this.handStart = this.world.time.value; v.pointRail(m.plate, m.dir === 1 || m.dir === 2 ? 1 : -1); }
       });
     }
@@ -997,10 +1014,10 @@ class App {
       if (this.handLean && this.hintView === this.view) {
         const s = this.controller.session;
         if (!this.hintPreview) { const next = shift(s.lv, s.state, m.plate, d); if (next) this.view.showPreview(previewDiff(s.lv, s.state, next), false, true); this.hintPreview = true; }
-        if (!this.settings.reduced) { const l = k * (u > .9 ? (1 - u) / .1 : 1) * .22; this.view.setDrag(m.plate, DX[d] * l, DY[d] * l); this.leaning = true; }
-        else if (this.leaning) { this.view.setDrag(null); this.leaning = false; } // switched on mid-show: the plate froze a tenth of a cell out (audit Nov 6)
+        if (!this.settings.reduced) { const l = k * (u > .9 ? (1 - u) / .1 : 1) * .22; this.view.setDrag(m.plate, DX[d] * l, DY[d] * l); this.leaning = true; this.leanPlate = m.plate; }
+        else if (this.leaning) this.stopLean(this.view); // switched on mid-show: the plate froze a tenth of a cell out (audit Nov 6)
       }
-    } else if (this.leaning) { this.view.setDrag(null); this.leaning = false; }
+    } else if (this.leaning) this.stopLean(this.view);
   }
 
   // ---- input
@@ -1132,13 +1149,14 @@ class App {
     if (this.screen !== 'level' || this.busyUntil !== 0) return;
     if (e.key === 'Escape' && this.drag) { this.pointerCancel(); return; } // the plate goes home at once: it kept following the hand, promising a move Esc had already dropped (playtest 16)
     if (e.key === 'm' || e.key === 'M') { this.toMap(); return; }
-    if (e.key === 'h' || e.key === 'H') { this.showHint(); return; }
+    if (e.key === 'h' || e.key === 'H') { if (this.drag) this.pointerCancel(); this.showHint(); return; }
     const ctl = this.controller, s = ctl.session;
     if (s.solved && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (!$('done').classList.contains('hidden')) this.next(); return; }
     const a = keyAction({ key: e.key, shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }, { plates: s.lv.plates, axis: s.lv.axis, selected: ctl.selected, solved: s.solved });
     if (!a) return;
     e.preventDefault();
     if (a.kind === 'next') return;
+    if (this.drag && (a.kind === 'undo' || a.kind === 'restart' || a.kind === 'move')) this.pointerCancel(); // as Esc: the plate stops following a hand whose drag is over
     ctl.act(a);
   }
 }

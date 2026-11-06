@@ -26,6 +26,19 @@ describe('an update that adds an island', () => {
     expect(c.session.moves).toBe(1);
     expect(JSON.parse(storage.getItem('shiftland.run.v1')!).name).toBe('Harbour Row');
   });
+  it('opens nothing extra for a run that no longer plays, or after Reset progress', () => {
+    const names = all.map(l => l.name!), at = names.indexOf('Harbour Row');
+    const saved = (log: number[]) => { const s = mem(), levels: Record<string, unknown> = {}; for (let k = 0; k < at - 1; k++) levels[names[k]] = { solved: true, best: 1, stars: 1 }; s.setItem('shiftland.progress.v1', JSON.stringify({ v: 1, levels })); s.setItem('shiftland.run.v1', JSON.stringify({ name: 'Harbour Row', log, hinted: false })); return s; };
+    const asTheGame = (s: StorageLike) => new Controller(all, new Progress(names, s, tutorialCount(all), all.flatMap((l, i) => (l.role === 'tutorial' ? [i] : []))));
+    const dead = asTheGame(saved([999])); // not a move on this island
+    expect(dead.index).toBe(at - 1);
+    expect(dead.progress.unlocked(at)).toBe(false);
+    const m = all[at].sol![0], live = asTheGame(saved([Number(m[1]) << 2 | DIRS[m[2]]]));
+    expect(live.index).toBe(at);
+    expect(live.progress.unlocked(at)).toBe(true);
+    live.progress.reset();
+    expect(live.progress.unlocked(at)).toBe(false);
+  });
 });
 describe('a run survives a reload', () => {
   const unlockedTo = (storage: StorageLike, i: number) => { const a = make(storage).c; for (let k = 0; k < i; k++) { a.open(k); playSolution(a); } };
