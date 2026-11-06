@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, firefox } from '@playwright/test';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const steps = Number(process.argv[2] ?? 400), seed = Number(process.argv[3] ?? 1), [W, H] = (process.argv[4] ?? '1280x720').split('x').map(Number);
@@ -16,7 +16,7 @@ const pick = a => a[Math.floor(rnd() * a.length)];
 const server = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(PORT), '--strictPort'], { cwd: root, stdio: 'ignore' });
 let serverGone = false, failed = '';
 server.on('exit', () => { serverGone = true; });
-const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] }).catch(err => { server.kill(); throw err; });
+const browser = await (process.env.FULLPLAY_BROWSER === 'firefox' ? firefox.launch() : chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] })).catch(err => { server.kill(); throw err; });
 try {
   for (let tries = 0; ; tries++) {
     if (serverGone) throw new Error(`port ${PORT} is taken`);
