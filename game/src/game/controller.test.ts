@@ -127,12 +127,11 @@ describe('Controller', () => {
     const b = make(a.storage);
     expect(b.c.index).toBe(2);
   });
-  it('Enter before solving does nothing; blocked and wrong-axis moves emit feedback, not moves', () => {
+  it('Enter before solving does nothing; blocked moves emit feedback, not moves', () => {
     const { c, events } = make(); events.length = 0;
     c.act({ kind: 'next' });
-    c.act({ kind: 'wrong-axis', plate: 0 });
     c.act({ kind: 'move', plate: 0, dir: 3 }); c.act({ kind: 'move', plate: 0, dir: 3 }); c.act({ kind: 'move', plate: 0, dir: 3 });
-    expect(events.map(e => e.kind)).toEqual(['selected', 'wrong-axis', 'moved', 'blocked', 'blocked']); // one stop W, then refused
+    expect(events.map(e => e.kind)).toEqual(['selected', 'moved', 'blocked', 'blocked']); // one stop W, then refused
     expect([c.index, c.session.moves]).toEqual([0, 1]);
   });
   it('drag previews without committing; release commits; Esc cancels (Codex chain 6 Major 2)', () => {

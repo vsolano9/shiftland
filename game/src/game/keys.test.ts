@@ -17,11 +17,19 @@ describe('keyAction', () => {
     expect(keyAction({ key: '2' }, ctx())).toEqual({ kind: 'select', plate: 1 });
     expect(keyAction({ key: '4' }, ctx())).toBeNull();
   });
-  it('arrows move along the rail; across it they nudge', () => {
-    expect(keyAction({ key: 'ArrowRight' }, ctx({ selected: 0 }))).toEqual({ kind: 'move', plate: 0, dir: 1 });
-    expect(keyAction({ key: 'ArrowUp' }, ctx({ selected: 1 }))).toEqual({ kind: 'move', plate: 1, dir: 0 });
-    expect(keyAction({ key: 'ArrowUp' }, ctx({ selected: 0 }))).toEqual({ kind: 'wrong-axis', plate: 0 });
-    expect(keyAction({ key: 'ArrowLeft' }, ctx())).toEqual({ kind: 'move', plate: 0, dir: 3 });
+  it('on the diagonal board, the two arrows nearest each way along a rail both go that way', () => {
+    const go = (key: string, selected: number) => keyAction({ key }, ctx({ selected }));
+    // plate 0 runs east (down-right) and west (up-left)
+    expect(go('ArrowRight', 0)).toEqual({ kind: 'move', plate: 0, dir: 1 });
+    expect(go('ArrowDown', 0)).toEqual({ kind: 'move', plate: 0, dir: 1 });
+    expect(go('ArrowLeft', 0)).toEqual({ kind: 'move', plate: 0, dir: 3 });
+    expect(go('ArrowUp', 0)).toEqual({ kind: 'move', plate: 0, dir: 3 });
+    // plate 1 runs north (up-right) and south (down-left)
+    expect(go('ArrowUp', 1)).toEqual({ kind: 'move', plate: 1, dir: 0 });
+    expect(go('ArrowRight', 1)).toEqual({ kind: 'move', plate: 1, dir: 0 });
+    expect(go('ArrowDown', 1)).toEqual({ kind: 'move', plate: 1, dir: 2 });
+    expect(go('ArrowLeft', 1)).toEqual({ kind: 'move', plate: 1, dir: 2 });
+    expect(keyAction({ key: 'ArrowLeft' }, ctx())).toEqual({ kind: 'move', plate: 0, dir: 3 }); // nothing selected: plate 1 of the player's count
   });
   it('undo, restart, cancel, next; caps lock and Ctrl+Z; other Ctrl shortcuts pass through', () => {
     expect(keyAction({ key: 'Z' }, ctx())).toEqual({ kind: 'undo' });

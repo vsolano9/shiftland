@@ -16,7 +16,6 @@ export type GameEvent =
   | { kind: 'blocked'; plate: number; why: Refusal | null; dir: Dir; at: State } // rail end or a rule refused the move from `at` (shake the plate, say why)
   /** Drag preview of `steps` stops (diff from the current state); steps 0 / diff null clears it. */
   | { kind: 'preview'; plate: number; steps: number; diff: MoveDiff | null }
-  | { kind: 'wrong-axis'; plate: number }
   | { kind: 'undone' }
   | { kind: 'solved'; moves: number; par?: number; stars: number }
   | { kind: 'stuck'; stuck: boolean }                      // "no way back from here" on/off (undo glows)
@@ -73,7 +72,6 @@ export class Controller {
       case 'cancel': // Esc: first drops a drag in progress, then the selection
         if (!this.cancelDrag()) { this.selected = null; this.emit({ kind: 'selected', plate: null }); }
         break;
-      case 'wrong-axis': this.select(a.plate); this.emit({ kind: 'wrong-axis', plate: a.plate }); break;
       // a key move during a drag drops the drag's preview: it was computed for the old board (Codex chain 6 round 2)
       case 'move': this.cancelDrag(); this.select(a.plate); this.move(a.plate, a.dir); break;
       case 'undo': this.cancelDrag(); if (this.session.undo()) { this.saveRun(); this.emit({ kind: 'undone' }); this.unstuck(was); } break;

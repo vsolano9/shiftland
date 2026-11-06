@@ -55,7 +55,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: none !important; } /* the Reduced motion setting, which starts from the system's */
 .count { position: absolute; left: 3px; top: -7px; background: var(--ink); color: #fff; border-radius: 11px; font-size: 13px; font-weight: 600; padding: 1px 7px; }
 @keyframes pop { from { transform: scale(0); } }
-#hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; text-wrap: balance; width: max-content; max-width: min(740px, 94vw); transition: opacity .3s; pointer-events: none; }
+#hint { position: absolute; left: 50%; bottom: calc(var(--goals-h, 64px) + 26px + var(--safe-b)); transform: translateX(-50%); padding: 9px 22px; font-size: 19px; font-weight: 500; text-align: center; text-wrap: balance; width: max-content; max-width: min(880px, 94vw); transition: opacity .3s; pointer-events: none; } /* one line where it fits: two lay over the board's front edge (critic T5, Nov 6) */
 #hint.off { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; } /* gone from screen readers too: a faded line kept its stale text (playtest 10) */
 #hint.up { bottom: auto; } /* out from over the plate it is talking about (playtest 5 P5-7); app.ts sets its top under the note */
 #blurb { position: absolute; left: 50%; top: calc(16px + var(--safe-t)); transform: translateX(-50%); padding: 8px 20px; font-size: 18px; font-weight: 500; text-align: center; width: max-content; max-width: min(560px, 62vw); transition: opacity .35s; pointer-events: none; }

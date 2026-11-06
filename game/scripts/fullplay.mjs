@@ -1,12 +1,12 @@
 // Plays the production build from a clean save to the ending through real input: every island at par by
 // dragging its knob, every card's button pressed. The check behind R3 and R7 in docs/release.md.
-// Usage: npm run build, then node scripts/fullplay.mjs [mouse|touch] [WxH] [screenshot dir]
+// Usage: npm run build, then node scripts/fullplay.mjs [mouse|touch|keys] [WxH] [screenshot dir]; FULLPLAY_BROWSER=firefox for Firefox
 // Reading the game's state is allowed (where a knob is, the solver's line); changing it isn't.
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, firefox } from '@playwright/test';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2] ?? 'mouse', [W, H] = (process.argv[3] ?? (mode === 'touch' ? '390x844' : '1280x720')).split('x').map(Number), shots = process.argv[4];
@@ -17,7 +17,7 @@ const server = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vit
 let failed = '', serverGone = false;
 server.on('exit', () => { serverGone = true; }); // --strictPort: an older server on this port would otherwise answer, and the play would be of its build
 const started = Date.now();
-const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] }).catch(err => { server.kill(); throw err; });
+const browser = await (process.env.FULLPLAY_BROWSER === 'firefox' ? firefox.launch() : chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] })).catch(err => { server.kill(); throw err; });
 try {
   for (let tries = 0; ; tries++) {
     if (serverGone) throw new Error(`port ${PORT} is taken: stop what is on it`);
@@ -72,6 +72,13 @@ try {
     await page.waitForTimeout(400);
     const lv = await page.evaluate(() => { const l = window.__shiftland.controller.session.lv; return { name: l.name, sol: l.sol, par: l.sol.length }; });
     for (let n = 0; n < lv.sol.length; n++) {
+      if (mode === 'keys') { // a digit picks the plate; each move takes the second arrow nearest its way, so both are proven across a play with the e2e's first
+        await page.keyboard.press(String(Number(lv.sol[n][1]) + 1));
+        await page.keyboard.press({ N: 'ArrowRight', E: 'ArrowDown', S: 'ArrowLeft', W: 'ArrowUp' }[lv.sol[n][2]]);
+        await page.waitForFunction(n => window.__shiftland.controller.session.moves === n + 1, n, { timeout: 4000 }).catch(() => { throw new Error(`${lv.name}: key move ${n + 1} (${lv.sol[n]}) did not register`); });
+        await page.waitForTimeout(650);
+        continue;
+      }
       const pts = await page.evaluate(m => {
         // the knob a player sees: the rail's own anchor rides higher, and only means this plate while its rail is on show
         const a = window.__shiftland, p = Number(m[1]), s = a.view.markSegments().find(k => k.plate === p), A = s.a.clone().lerp(s.b, .5), B = A.clone(), d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]];
@@ -88,7 +95,7 @@ try {
     const s = await page.evaluate(() => { const c = window.__shiftland.controller.session; return { moves: c.moves, solved: c.solved }; });
     if (shots) await page.screenshot({ path: `${shots}/${String(i + 1).padStart(2, '0')}.png` });
     console.log(`${String(i + 1).padStart(2)} ${lv.name.padEnd(16)} par ${lv.par} moves ${s.moves} solved`);
-    await press('#d-next');
+    if (mode === 'keys') await page.keyboard.press('Enter'); else await press('#d-next');
   }
   await page.waitForFunction(() => window.__shiftland.screen === 'ending', undefined, { timeout: 15000 }).catch(() => { throw new Error('the last card did not lead to the ending'); });
   await page.waitForTimeout(1500);

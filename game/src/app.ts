@@ -664,7 +664,6 @@ class App {
         else if (e.why) this.flashHint(say[e.why]);
         break;
       }
-      case 'wrong-axis': this.audio.play('blocked'); this.flashHint('This plate slides the other way'); break;
       case 'preview': {
         // the ghost shows what a move does to the land; which creature that pleases is for the player to work out.
         // Only the first islands say it outright, while the rules are new (first-player playtest P1: free +/- solved 9 islands by scanning)

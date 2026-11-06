@@ -6,8 +6,6 @@ import type { Dir } from '../rules/rules.ts';
 export type KeyAction =
   | { kind: 'select'; plate: number }
   | { kind: 'move'; plate: number; dir: Dir }
-  /** Arrow across the selected plate's rail: the UI nudges the rail so the player sees which way it slides. */
-  | { kind: 'wrong-axis'; plate: number }
   | { kind: 'undo' } | { kind: 'restart' } | { kind: 'next' } | { kind: 'cancel' };
 
 export interface KeyContext { plates: number; axis: number[]; selected: number | null; solved: boolean }
@@ -31,5 +29,6 @@ export function keyAction(e: KeyInput, c: KeyContext): KeyAction | null {
   const dir = ARROWS[k];
   if (dir === undefined) return null;
   const p = c.selected ?? 0; // an arrow with nothing selected acts on plate 1 and selects it
-  return (dir === 1 || dir === 3) === (c.axis[p] === 1) ? { kind: 'move', plate: p, dir } : { kind: 'wrong-axis', plate: p };
+  // The board lies on the diagonal, so every rail runs between two arrows: east is down-right, north is up-right. Either arrow nearest the way goes that way, and no arrow is ever refused for being "the other way" (Nov 6).
+  return { kind: 'move', plate: p, dir: c.axis[p] === 1 ? (k === 'ArrowRight' || k === 'ArrowDown' ? 1 : 3) : (k === 'ArrowUp' || k === 'ArrowRight' ? 0 : 2) };
 }

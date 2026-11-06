@@ -191,7 +191,7 @@ All three twists make puzzles; none is dead weight. The oasis pushes levels deep
 ## Controls
 
 - Mouse: hover a plate to highlight it and show its rail; drag along the rail; while dragging, a **preview** shows the exact result (ghost columns rising, blue water fill including far-off flooding) before release. Release commits, Esc cancels.
-- Keyboard: Tab / 1-9 cycles plates, arrow keys move along the rail, Z undo, R restart, Enter next level.
+- Keyboard: Tab / 1-9 cycles plates, arrow keys move along the rail (the board lies on the diagonal, so the two arrows nearest each way both go that way, and none is refused), Z undo, R restart, Enter next level.
 - Touch: tap a plate, then swipe along the rail; same preview while the finger is down. A thumb landing up to 14 px off a plate's edge still grabs it (a tap there still asks a buoy on the water what it wants, on release); a swipe on open water is not a move.
 - The rail is a row of move steps, not a slider (S1): it looks reversible but is not, because moving back takes cells again and raises them. Each step shows the ghost of the land it will take, and level 6 teaches "land remembers" before any level relies on it.
 - Stuck states are never silent (S3): after every move `canFinish` searches every reachable state (no depth limit, capped at 300k states) for a solved one; only a proven dead end shows "no way back from here" and makes undo glow, and hitting the cap shows nothing. A village on a peak counts as proven at once, because a cell's height only ever rises. (A depth-limited search called far-but-solvable states dead ends: Codex chain 3, regression test in `game/src/rules/rules.test.ts`.) The check runs in a worker so input never waits. Prototyped in the grey-box.
