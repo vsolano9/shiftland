@@ -23,7 +23,20 @@ Victor approved the repo going public, the itch page and the submission on Nov 6
 | R13 | Repo ready | README and LICENSE (all rights reserved) are in. README rewritten Nov 6. Secret scan Nov 6: gitleaks over all 152 commits, 1 hit, the same false positive as Nov 5 (the `ENDING_KEY` localStorage name in `app.ts`). Going public shows the commit author email, the AI concept images in `concepts/` (never shipped, disclosed in the README) and internal `D:\Work\_local` evidence paths in `docs/`; R13 listed these for G4 and Victor approved everything, so they stay | `gitleaks git .` |
 | R14 | itch page | live page and `itch-page.md` agree; itch's AI form answers recorded there; shots 2-4 re-rendered Nov 6 with `npm run press` (the old ones said 24 islands) | `press/` |
 | R15 | Victor's approvals | pass: approved Nov 6 ("i approve everything"), see below | |
-| R16 | Submitted and verified | not yet | |
+| R16 | Submitted and verified | submitted Nov 6, 10:46 CET; entry `https://itch.io/jam/game-off-2026/rate/5309017` shows every answer as drafted (`itch-page.md`); see "Jam entry" below | `D:\Work\_local\evidence\2026-11-06-shiftland-itch\jam-entry-after.png` |
+
+## itch iframe test (real page, logged out, Nov 6)
+
+Playwright, no account, on `https://thechosenvictor.itch.io/shiftland`: Chromium with hardware GPU at 1718x1214 and 1024x640, Firefox at 1440x900. Each run clicked Run game, then Play, and solved First Peak with a real drag at par. All three: WebGL2 on, star saved, save survives a reload, audio context running, fullscreen works. Evidence: `D:\Work\_local\evidence\2026-11-06-shiftland-itch\` (`chromium-*`, `chromium-small-*`, `firefox-*`).
+
+- The first run at a 1280x720 frame found itch's Follow, Add To Collection and Related games buttons over the game's top-right buttons, and the frame overflowing a 1024-wide window. Fixed on the page, not in the game: frame 960x540 and a 100 px banner above it (`itch-page.md`). Rerun: `box.y` 120, below the buttons, at all three sizes; the frame fits the 1024 window.
+- All 25 islands at 960x540 on the production build: no HUD or goal list over the board, 0 errors (`sweep540\sheet1.png`, `sheet2.png`).
+- Firefox logs `NotSupportedError: Operation is not supported` when itch's fullscreen button is clicked (3 of 3 runs with the click, 0 of 4 without). It is an unhandled rejection on itch's top page, not in the game's frame, and fullscreen still works. Not ours to fix.
+- Served files: 12 of the zip's 13 files are byte-identical on itch's server; `index.html` differs only by the one `htmlgame.js` tag itch appends.
+
+## Jam entry
+
+Answers as submitted are in `itch-page.md`. All commits are from Nov 3 on, inside the jam (opened Nov 1, closes Dec 1 at 22:37 CET). The entry stays open to edits until then; a code change only needs a new zip on the itch page.
 
 ## Performance (production build, dev PC)
 

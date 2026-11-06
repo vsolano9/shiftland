@@ -1,5 +1,6 @@
 // Renders the itch screenshots from the production build with real mouse input, so the numbers and
 // island count on them match the game. Run `npm run press` (it builds first); writes to ../press.
+// Also renders the page theme's banner.png and embed-splash.png.
 // Not rendered here: cover.png and push.gif carry no island number or count.
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -88,7 +89,38 @@ async function map(file) {
   await ctx.close();
 }
 
+/** The itch page's banner: the real logo on the real sea, top strip of the title scene. */
+async function banner(file) {
+  const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/`);
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(2500);
+  await page.addStyleTag({ content: `#s-title > *:not(#logo) { display: none !important; }
+    #logo { position: fixed !important; left: 170px !important; top: 14px !important; margin: 0 !important; transform: none !important; width: 576px !important; height: 192px !important; }` });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: resolve(out, file), clip: { x: 0, y: 0, width: 1920, height: 200 } });
+  console.log(file);
+  await ctx.close();
+}
+
+/** What sits behind itch's Run game button: the title scene with no interface. */
+async function splash(file) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/`);
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(2500);
+  await page.addStyleTag({ content: '#ui { visibility: hidden !important; }' });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: resolve(out, file) });
+  console.log(file);
+  await ctx.close();
+}
+
 try {
+  await banner('banner.png');
+  await splash('embed-splash.png');
   await settled('Wishing Well', 'shot2-desert.png');
   await settled('Frost Line', 'shot3-tundra.png');
   await map('shot4-map.png');
