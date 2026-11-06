@@ -24,7 +24,7 @@ Ship **Shiftland**, a browser tectonic-shift puzzle (`design-plates.md`), for Gi
 |---|---|---|
 | G1 pick | ~~Nov 4~~ done Nov 3 | Picked Plates; left the name and every other choice to the agent (name: Shiftland) |
 | G0 approvals | Nov 4-5 | Approves the public GitHub repo (`vsolano9/shiftland`, created private on Nov 3, made public at or before submission) and an itch.io draft page for iframe testing (draft pages are not public) |
-| G2 kill gate | Nov 7 | Plays 6 grey-box levels (10 min); "aha" yes/no. No → switch to fallback |
+| G2 kill gate | ~~Nov 7~~ passed Nov 6 | Played all 25 islands of the finished game, 25 / 25 stars: "good game, i completed all levels". He did not say "aha" in those words; the agent reads this as a yes, so the Changeover fallback is dropped (`qa.md`, Victor's first play) |
 | G3 playtests | Nov 14, Nov 21, Nov 26 | 15-min play of the current build, notes in his words |
 | G4 release | Nov 28 | Approves the itch page text, AI disclosure, repo going public, and submitting |
 

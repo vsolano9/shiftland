@@ -121,6 +121,12 @@ All nine solved, 0 page errors. Unaided: 11, 12, 13 (stars). With Hint: 8, 9, 10
 | P10-8 | The hint hand passes over a creature's wish bubble (the lighthouse's on The Cut, `i8_hint4.png`) | Kept: the hand moves along the rail and leaves the bubble a moment later, and the same wish is in its chip at the bottom the whole time |
 | P10-6 | Win card over the island's right side; island near the left edge on 13 and 16; a cactus on a lake edge on 15 | Kept: the card sits beside the island at 1280x720 on the shots, and the framing is the shared one tuned in P6-8 |
 
+### Victor's first play (2026-11-06, build `17da6d9`, the first person to play)
+
+"good game, i completed all levels". The map showed 25 / 25 stars (`D:\Work\_local\evidence\2026-11-06-shiftland-victor-play\map-25-of-25.jpg`), and a star means solved within par without showing the move, so every island including the Coast was solved at par at most, with no second hint on the solving run. At most about 36 minutes passed between the shot of his first move and that map, by the two screenshots' timestamps. Replays are not recorded, so first-try results and first-hint use are unknown.
+
+This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as polish (solver effort still jumps 4, 32, 97; agent testers still struggled), to recheck with someone other than Victor, who is one strong player and knows the project.
+
 ### Playtest 11 findings (islands 7 to 10 cold, 25-island build with Harbour Row, before the knob fix; a Sonnet verifier through the pilot, 36 minutes)
 
 Solved: 7 The Long Pier (4 minutes, no hint) and 8 Harbour Row (12 minutes, about 50 moves, 3 hints). Unsolved: 9 The Cut (15 minutes, 3 hints, then a move sweep) and 10 Salt Point (6 minutes, no hint). Would have quit on 8 after about 8 minutes. Verdict FAIL: the Coast's start is still a cliff, one island later. Shots: `pt11\` in the evidence folder (`i8c.png` dead end, `i9hint3.png`, `i9c.png`, `i10a.png`).

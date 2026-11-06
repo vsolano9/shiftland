@@ -41,8 +41,8 @@ Nov 4 numbers were measured with a playtest running on the same PC (`p12\perf.lo
 ## What only Victor can do
 
 - G0: approve the itch draft page and the public repo. Until then R6 can't be run, and the itch iframe (WebGL2, audio unlock, sizing) is untested.
-- G2 and G3: play it. No person has played this game yet: every play so far is an agent driving real input and reading screenshots.
-- Listen to the audio.
+- G2: passed 2026-11-06. Victor played the whole game, 25 / 25 stars, "good game" (`qa.md`, Victor's first play). G3: later plays of the current build.
+- Say how the audio sounds: he played with it available on 2026-11-06 but has given no notes on it yet.
 - G4: approve the page text, disclosure, repo going public and the submission.
 
 ## Known limits
