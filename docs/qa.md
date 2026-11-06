@@ -148,6 +148,21 @@ All seven solved; stars on 1 and 2, hints on the rest, as told to be impatient. 
 | P17-4 | The empty star's line is small on the card | Kept: read at 1280x720 it is legible, and a stronger line would nag |
 | P17-5 | Buoy behind the goat and a tall block (`i5h3.png`) | Kept: as P14-6 |
 
+### The game against its concepts (taste critic, Nov 6, runs `20261106-135042-3f26ce`, `20261106-135340-4af8c4`)
+
+One solved island per biome against `concepts/shiftland-biomes.png` and `shiftland-creatures.png`, after playtest 15 called the lake murky. Verdict after the fixes: ship.
+
+| Id | Finding | Result |
+|---|---|---|
+| T1 | The lake was a dark green sheet with pale dots: it read as swamp, then as dotted land | Fixed: clear jade with lighter shallows and thin drifting ripples, no surf, a few small dark pads (pale ones were the same mark as the plates' dots). Still green, since the sea is turquoise and creatures tell them apart. `concepts/lake-oasis-v1.png`, `v2-sheet.png` |
+| T2 | Two palms merged into one green mass | Fixed: a sparser crown, and the two stand apart across the view, trunks showing |
+| T3 | Goats are long and blocky against the sheet | Kept: Victor played with them and approved, and they suit the voxel creatures |
+| T4 | Three penguins were one dark lump | Fixed: spread across the cell as the camera sees it |
+| T5 | The zigzag plate's green is louder than its neighbours in the meadow; a later pass against the HUD concept said the opposite, that all plates are "variations of green" | Fixed both: meadow and finale plates take more of their own hue (`mix` .1 to .24, .14 to .26), so yellow-green, olive and sea-green read apart by surface as well as border (`mix-sheet.png`) |
+| T6 | Stripes "zigzag across tile joins" | Not a fault: parallel in the shot it names (`final\mouse\09.png`) |
+
+Title, map, level and win card against the title and HUD concepts (run `20261106-135514-ac4fe5`): locked map pins lost their numbers, fixed with number and a small lock (`map-1280.png`). Kept: map thumbnails stay real miniature boards, with locked ones faded; cell seams stay because players count cells; the win card hides the goal cards to leave the finished board clear; confetti does run on a win, the shot was taken after it; the goat as T3. The sea's thin dashes, called scratchy (minor), stay as the sea's texture.
+
 ### Code review of the day's diff (fresh-eyes reviewer, Nov 6)
 
 Nine defects, none blocking, all fixed; e2e `after a hint the arrows…`, `the first island keeps its lesson…`, unit `opens nothing extra…`.

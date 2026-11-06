@@ -325,7 +325,7 @@ class App {
       const el = this.pinEls[i];
       if (el) {
         el.className = `pin${unlocked ? '' : ' locked'}${unlocked && !solved && i === next ? ' next' : ''}`;
-        el.innerHTML = unlocked ? `${i + 1}${solved ? icon.flag : ''}${rec?.stars ? icon.star.replace('<svg', '<svg class="st"') : ''}` : icon.lock;
+        el.innerHTML = unlocked ? `${i + 1}${solved ? icon.flag : ''}${rec?.stars ? icon.star.replace('<svg', '<svg class="st"') : ''}` : `${i + 1}${icon.lock}`; // a number as well: a whole row of bare locks hid how far the journey goes
         el.setAttribute('aria-label', `Island ${i + 1}, ${this.levels[i].name}${unlocked ? '' : ', locked'}`);
         // on hover (style.css): names are half the charm, and the numbers say which stars are still out there
         el.dataset.name = !unlocked ? 'Locked' : rec?.solved ? `${this.levels[i].name} · best ${rec.best} / par ${this.levels[i].par}` : this.levels[i].name!;

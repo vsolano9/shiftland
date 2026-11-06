@@ -31,7 +31,7 @@ Playwright, no account, on `https://thechosenvictor.itch.io/shiftland`: Chromium
 
 - The first run at a 1280x720 frame found itch's Follow, Add To Collection and Related games buttons over the game's top-right buttons, and the frame overflowing a 1024-wide window. Fixed on the page, not in the game: frame 960x540 and a 100 px banner above it (`itch-page.md`). Rerun: `box.y` 120, below the buttons, at all three sizes; the frame fits the 1024 window.
 - All 26 islands at 960x540 on the production build: 0 errors, HUD boxes logged (rerun Nov 6, session scratch `sweep540.mjs`; the 25-island contact sheets are `sweep540\sheet1.png`, `sheet2.png`).
-- Redeployed Nov 6 at 12:00 with the 26-island build (upload 20320461, zip sha256 `8e9672c1...e9bd9`): the same three logged-out plays pass, 12 of 13 files byte-identical, `index.html` differs only by itch's `htmlgame.js` tag.
+- Live build, Nov 6 at 13:41: upload 20321826, zip sha256 `f2feebaf...26987`, commit `f55392a`. The same three logged-out plays pass, 12 of 13 files are byte-identical, and `index.html` differs only by itch's `htmlgame.js` tag.
 - Firefox logs `NotSupportedError: Operation is not supported` when itch's fullscreen button is clicked (3 of 3 runs with the click, 0 of 4 without). It is an unhandled rejection on itch's top page, not in the game's frame, and fullscreen still works. Not ours to fix.
 - Served files: 12 of the zip's 13 files are byte-identical on itch's server; `index.html` differs only by the one `htmlgame.js` tag itch appends.
 

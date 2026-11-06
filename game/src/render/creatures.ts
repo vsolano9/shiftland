@@ -119,12 +119,12 @@ export class Creature {
       const chain = mesh(M.buoyChain); chain.userData.noXray = true; this.root.add(chain); // on the root: the chain stays down when the buoy bobs or leans. No silhouette: through land its links drew as tangled loops (taste critic, Nov 5)
       for (let i = 0; i < 2; i++) { const f = mesh(M.fish, false); f.visible = false; this.root.add(f); this.fish.push({ m: f, t: 9, a: Math.random() * 6 }); }
     } else if (this.kind === 'oasis') {
-      for (const [dx, dz, s, r] of [[-.2, -.12, 1.05, .4], [.18, .08, .92, 2.8]] as const) {
+      for (const [dx, dz, s, r] of [[-.2, .11, 1.05, 2.6], [.2, -.11, .92, -.5]] as const) { // apart across the view, so two crowns read as two trees
         const g = new Group(); g.position.set(dx, 0, dz); g.scale.setScalar(s); g.rotation.y = r;
         const ok = mesh(M.palm), wilt = mesh(M.palmWilt); g.add(ok, wilt); b.add(g); this.palms.push({ ok, wilt, g });
       }
     } else {
-      for (const [x, z, a] of [[-.17, -.1, .4], [.17, -.06, -.3], [0, .17, .1]] as const) {
+      for (const [x, z, a] of [[-.21, .02, .4], [.2, -.14, -.3], [.06, .2, .1]] as const) { // spread across the cell as the camera sees it: at normal size the old huddle was one dark lump (concept critic T4, Nov 6)
         const g = new Group(); g.add(mesh(M.penguin)); g.position.set(x, 0, z); g.rotation.order = 'YXZ'; g.rotation.y = a; b.add(g);
         this.pens.push({ g, x, z, a });
       }
