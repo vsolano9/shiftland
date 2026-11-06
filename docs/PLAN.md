@@ -1,6 +1,6 @@
 # Game Off 2026 (SHIFT): plan
 
-Status 2026-11-06, later: submitted to the jam at 10:46 CET. The same day's polish adds Ferry Lane as island 8 (26 islands now, a bridge before The Cut), a second hint that shows the move with a big arrow and the plate leaning, and a solved island or a run in progress staying open when an update adds an unsolved teacher before it. All of it is live on itch and the jam entry since 12:00 (`qa.md`, `release.md`).
+Status 2026-11-06, later: submitted to the jam at 10:46 CET. The same day's polish adds Ferry Lane as island 8 (26 islands now, a bridge before The Cut), a second hint that shows the move with a big arrow and the plate leaning, and a solved island or a run in progress staying open when an update adds an unsolved teacher before it. Three more cold plays, a code review and a pass against the concepts then fixed the water wording, the melt preview, held drags, the lake, palms, penguins, plate colours and the cover. All of it is live on itch and the jam entry (`qa.md`, `release.md`). Left for December: the rating period, which is Victor's.
 
 Status 2026-11-06: Victor played all 25 islands and approved everything: "it was fun, so aha it is ... And yeah i approve everything and the sound is good as well." G0, G2 and G4 are done; G3's scheduled plays are replaced by this play and any later notes. Release state: `release.md`.
 

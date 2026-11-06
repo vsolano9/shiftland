@@ -402,7 +402,7 @@ class App {
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
-    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can show a + or − on each creature'
+    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can show who a drag pleases'
       // two kinds of water start here, and neither the stripes nor "that water" explained themselves (playtest 14)
       : lv.name === 'Still Water' ? 'In a preview, blue stripes are sea and green stripes a lake'
       : lv.name === 'Breakwater' ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover over'} a card below to see which water it means` : '';

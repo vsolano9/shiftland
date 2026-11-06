@@ -143,7 +143,7 @@ All seven solved; stars on 1 and 2, hints on the rest, as told to be impatient. 
 | Id | Finding | Result |
 |---|---|---|
 | P17-1 | "Nothing shows yet: this slide sets up the next move" reads like a bug | Now "No one is happier yet: this slide sets up the next move." |
-| P17-2 | "Settings can bring the + and − back": it had never noticed one | Now "Settings can show a + or − on each creature" |
+| P17-2 | "Settings can bring the + and − back": it had never noticed one | Now "Settings can show who a drag pleases", the setting's own label |
 | P17-3 | Plate colour names were easy to confuse on island 6 | Kept: the line also names the pattern, and the plate breathes |
 | P17-4 | The empty star's line is small on the card | Kept: read at 1280x720 it is legible, and a stronger line would nag |
 | P17-5 | Buoy behind the goat and a tall block (`i5h3.png`) | Kept: as P14-6 |
@@ -229,7 +229,7 @@ All six solved, but only with the second hint each time, 0 stars, about 8 to 12 
 | Id | Finding | Result |
 |---|---|---|
 | P15-1 | "This plate slides the other way" stayed over a new, valid drag (`x1E.png`) | Fixed: refusal lines go at the next press. e2e `a refusal about the last drag…` |
-| P15-2 | White spray on the palm on Mirage (`m5.png`) | Kept: the x-ray silhouette of a palm behind a tall ridge (`creatures.ts`), which keeps it findable |
+| P15-2 | White spray on the palm on Mirage (`m5.png`) | It was the x-ray silhouette of a palm behind a tall ridge. Fixed: a palm's silhouette is now leaf green (`xr-Mirage.png`) |
 | P15-3 | Lone tile off the pinned plate on Frost Line (`w5.png`) | Not a fault: a piece of the plate, and "A plate can be in two pieces" is said after the first move |
 | P15-4 | Pinned plates and bite-and-carry "explained late" | Not a fault: Anchor Rock and Two Waters say them; this tester started after both |
 | P15-5 | Moved the wrong way twice after the second hint | Partly the tester's tool: its driver's plate list failed while a hint hid other knobs. The game answered "That went the other way from the hint. Undo takes it back" |

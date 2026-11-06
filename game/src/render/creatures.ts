@@ -15,6 +15,9 @@ export const MAT = new MeshLambertMaterial({ vertexColors: true, flatShading: tr
 const XRAY = new MeshBasicMaterial({ color: '#fff7e6', opacity: .34, depthFunc: GreaterDepth, depthWrite: false, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneMinusSrcAlphaFactor, stencilWrite: true, stencilRef: 1, stencilFunc: AlwaysStencilFunc, stencilZPass: ReplaceStencilOp });
 const XRAY_RIM = new MeshBasicMaterial({ color: '#fff7e6', depthFunc: GreaterDepth, depthWrite: false, stencilWrite: true, stencilRef: 1, stencilFunc: NotEqualStencilFunc, stencilZPass: KeepStencilOp });
 XRAY_RIM.onBeforeCompile = s => { s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normalize(normal) * .022;'); };
+// a palm's silhouette in leaf green: its fronds in cream read as a burst of white spray (playtests 15 and 16)
+const XRAY_PALM = XRAY.clone(); XRAY_PALM.color.set('#5fc26a'); XRAY_PALM.opacity = .6;
+const XRAY_PALM_RIM = XRAY_RIM.clone(); XRAY_PALM_RIM.color.set('#c9f0b8'); XRAY_PALM_RIM.onBeforeCompile = XRAY_RIM.onBeforeCompile;
 const mesh = (g: import('three').BufferGeometry, shadow = true) => { const m = new Mesh(g, MAT); m.castShadow = shadow; m.receiveShadow = false; return m; };
 
 export type CreatureKind = 'goat' | 'village' | 'light' | 'oasis' | 'penguin' | 'buoy';
@@ -72,7 +75,7 @@ export class Creature {
     const parts: Mesh[] = [];
     this.root.traverse(o => { const m = o as Mesh; if (m.isMesh && m.material === MAT && !m.userData.noXray) parts.push(m); });
     for (const m of parts) {
-      const s = new Mesh(m.geometry, XRAY), r = new Mesh(m.geometry, XRAY_RIM);
+      const palm = this.kind === 'oasis', s = new Mesh(m.geometry, palm ? XRAY_PALM : XRAY), r = new Mesh(m.geometry, palm ? XRAY_PALM_RIM : XRAY_RIM);
       s.renderOrder = -2.5; r.renderOrder = -2; m.add(s, r); this.xray.push(s, r);
     }
   }
