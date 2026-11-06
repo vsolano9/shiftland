@@ -400,7 +400,10 @@ class App {
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
-    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back' : '';
+    const note = this.progress.solved(i) || s.moves ? '' : i === 2 ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} a creature to ask what it wants` : i === 3 && !this.settings.assist ? 'From here you judge a move yourself. Settings can bring the + and − back'
+      // two kinds of water start here, and neither the stripes nor "that water" explained themselves (playtest 14)
+      : lv.name === 'Still Water' ? 'In a preview, slanted stripes are sea and upright stripes a lake'
+      : lv.name === 'Breakwater' ? `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover over'} a creature's card to see which water it means` : '';
     if (note) this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level' && !this.controller.session.moves) this.flashHint(note, 5); });
   }
   private setActiveLevel(v: IslandView, fly: boolean) {
@@ -659,9 +662,9 @@ class App {
         this.view.setDrag(this.drag?.plate ?? null, 0, 0); this.audio.play('blocked'); this.world.shakeCam(.18);
         if (this.drag) this.drag.refused = true;
         const say = { rail: 'End of the rail', stack: '', melt: '', pinned: 'Anchored by the rock. This plate stays put', other: 'No room that way' } as const;
-        if (e.why === 'stack') this.flashHint(stackReason(this.view.lv, e.at, e.plate, e.dir));
-        else if (e.why === 'melt') this.flashHint(meltReason(this.view.lv, e.at, e.plate, e.dir));
-        else if (e.why) this.flashHint(say[e.why]);
+        if (e.why === 'stack') this.refuse(stackReason(this.view.lv, e.at, e.plate, e.dir));
+        else if (e.why === 'melt') this.refuse(meltReason(this.view.lv, e.at, e.plate, e.dir));
+        else if (e.why) this.refuse(say[e.why]);
         break;
       }
       case 'preview': {
@@ -705,7 +708,7 @@ class App {
   private noteT = 0;
   private flashHint(t: string, sec = 3) { // 1.5 s was gone before anyone had read it (playtest 4 P3)
     const h = $('hint'); h.textContent = t; h.classList.remove('off', 'up'); h.style.top = ''; h.style.left = ''; h.style.maxWidth = '';
-    clearTimeout(this.flashT);
+    clearTimeout(this.flashT); this.refusalUp = false;
     sec = Math.max(sec, t.split(' ').length * .3); // long enough to read: a creature's rule plus its reason runs to thirty words
     this.flashT = window.setTimeout(() => {
       if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off');
@@ -713,6 +716,15 @@ class App {
     }, sec * 1000);
   }
   private flashT = 0;
+  /** A line about the attempt just made: the next press drops it, or it stood over a new drag that was doing nothing wrong (playtest 15). */
+  private refuse(t: string) { this.flashHint(t); this.refusalUp = true; }
+  private refusalUp = false;
+  private dropRefusal() {
+    if (!this.refusalUp) return;
+    this.refusalUp = false; clearTimeout(this.flashT);
+    const h = $('hint');
+    if (this.firstMoveMade || this.controller.index !== 0) h.classList.add('off'); else h.textContent = 'Drag a plate along its rail';
+  }
   private panOf(cell: number) { const v = this.view, [x] = v.xz(cell); return Math.max(-1, Math.min(1, x / v.lv.w * 1.4)); }
 
   private restartView() {
@@ -1040,6 +1052,7 @@ class App {
     const start = this.world.groundPoint(e.clientX, e.clientY, y);
     if (!start) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    this.dropRefusal();
     this.drag = { plate, start, y, pointer: e.pointerId, across: 0, refused: false, far: 0 };
     this.dragging = true;
     v.setQuiet(true);
@@ -1090,9 +1103,9 @@ class App {
     this.tapPlate = tapped ? p : null;
     if (tapped && this.controller.session.moves === before) this.askCreature(e.clientX, e.clientY);
     // dragged clean across the rail: say so, or the plate just looks broken
-    if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.flashHint('This plate slides the other way'); }
+    if (across > .5 && this.controller.session.moves === before) { this.audio.play('blocked'); this.refuse('This plate slides the other way'); }
     // a nudge that sprang back looks like a game that ignored you (playtest 4 P3); a drag that reached a stop and came back was a choice, and a shaky tap is a tap
-    else if (!refused && far >= .12 && far <= SNAP && this.controller.session.moves === before) this.flashHint('Drag further: a plate moves a whole cell at a time');
+    else if (!refused && far >= .12 && far <= SNAP && this.controller.session.moves === before) this.refuse('Drag further: a plate moves a whole cell at a time');
     (e.target as HTMLElement).style.cursor = 'default';
   }
   private pointerCancel() {

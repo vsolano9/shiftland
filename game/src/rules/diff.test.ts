@@ -52,6 +52,7 @@ describe('previewDiff (Codex chain 4: every visible change is in the preview)', 
     const d = previewDiff(ice, first, shift(ice, first, 0, 1)!);
     expect(d.melt).toEqual([14, 23, 32]);
     for (const c of d.melt) expect(d.flood).toContain(c);
+    expect(d.meltTop).toEqual([[14, 1], [23, 1], [32, 1]]); // its preview lies at the carried land's height: the dragged plate covers the cell's own (playtest 14)
     expect(d.rise).toEqual([]); // nothing visibly rises: the cells that would have are gone
     expect(d.flips).toEqual([[0, true]]); // the penguin sees the sea
   });

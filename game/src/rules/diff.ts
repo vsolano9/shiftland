@@ -20,10 +20,12 @@ export interface MoveDiff {
   flips: [number, boolean][];
   /** cells where ice melts: lifted to height 2+, so the cell turns to water (these are in `flood` too) */
   melt: number[];
+  /** the same cells with the height of the land that was on its way there: its preview lies on top of that land as it is dragged, or the plate hides it */
+  meltTop: [number, number][];
 }
 
 export function previewDiff(lv: Level, a: State, b: State): MoveDiff {
-  const d: MoveDiff = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [], melt: [] };
+  const d: MoveDiff = { rise: [], carry: [], flood: [], arrive: [], moved: [], flips: [], melt: [], meltTop: [] };
   for (let i = 0; i < lv.w * lv.h; i++) {
     const wasLand = a.plate[i] >= 0, isLand = b.plate[i] >= 0;
     if (wasLand && !isLand) d.flood.push(i);
@@ -37,7 +39,7 @@ export function previewDiff(lv: Level, a: State, b: State): MoveDiff {
     const moved = b.off[p] - (a.off ? a.off[p] : 0);
     if (moved === 0) continue;
     const step = lv.axis[p] === 1 ? moved : moved * lv.w;
-    for (let i = 0; i < lv.w * lv.h; i++) if (a.plate[i] === p && b.plate[i + step] < 0) d.melt.push(i + step);
+    for (let i = 0; i < lv.w * lv.h; i++) if (a.plate[i] === p && b.plate[i + step] < 0) { d.melt.push(i + step); d.meltTop.push([i + step, a.elev[i]]); }
     d.melt.sort((x, y) => x - y);
   }
   b.objs.forEach((o, k) => { if (o.cell !== a.objs[k].cell) d.moved.push([k, a.objs[k].cell, o.cell]); });

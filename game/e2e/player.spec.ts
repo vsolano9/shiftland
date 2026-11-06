@@ -249,6 +249,21 @@ test('the second hint shows the move, and Undo, Restart or the move itself take 
   expect(errors).toEqual([]);
 });
 
+test('a refusal about the last drag goes when the next one starts (playtest 15)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9);
+  const k = await page.evaluate(`(() => { const a = ${SL}, p = Number(a.controller.session.lv.sol[0][1]), s = a.view.markSegments().find(m => m.plate === p), A = s.a.clone().lerp(s.b, .5), B = A.clone(), C = A.clone(), ew = a.controller.session.lv.axis[p] === 1; if (ew) { B.z += 1; C.x += 1; } else { B.x += 1; C.z -= 1; } return { a: a.world.project(A), across: a.world.project(B), along: a.world.project(C) }; })()`) as Record<'a' | 'across' | 'along', [number, number]>;
+  await page.mouse.move(k.a[0], k.a[1]); await page.mouse.down();
+  await page.mouse.move(k.across[0], k.across[1], { steps: 6 }); await page.mouse.up();
+  await page.waitForTimeout(150);
+  expect(await state(page)).toMatchObject({ hint: 'This plate slides the other way', hintOff: false, moves: 0 });
+  await page.mouse.move(k.a[0], k.a[1]); await page.mouse.down();
+  await page.waitForTimeout(100);
+  expect((await state(page)).hintOff).toBe(true);
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});
+
 test('a hint keeps its rail through hover and selection, and leaves nothing behind on Undo or the map (audit Nov 6)', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9); // The Cut, three plates

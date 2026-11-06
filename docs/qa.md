@@ -150,6 +150,36 @@ This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as pol
 | A12 | On a phone the hand covered the arrow | Fixed: the hand scales with the cell, down to .65, around its fingertip (`thecut-h2-phone.png`) |
 | A13 | `design-plates.md` still said 25 islands | Fixed |
 
+### Playtest 14 (islands 12 to 20 cold, release build; a Sonnet verifier)
+
+All nine solved, but both hints on 6 of them, and the stars on 19 and 20 came from trying every move. Verdict FAIL for fairness: "I could not tell why a move was good until a hint spelled it out." Best: Anchor Rock. Worst: Wishing Well. It found 14 to 18 repetitive, the same bite-and-return with two plates. That repeats P5-3; Victor found the game fun, so the levels stay. Its complaint about vague water messages is fair, and was fixed below. This is the strongest evidence left against the middle. Shots: `2026-11-06-shiftland-polish\pt14\shots\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P14-1 | "corners don't count" at the start of 12, 17, 18, before the player has seen a corner | Fixed: "sea only at a corner", "lake only at a corner" say what is there. Unit tests |
+| P14-2 | Twin Palms' note, "Sometimes one tick has to go before two can come", means nothing | Fixed: "Sometimes you must upset one to make two happy." |
+| P14-3 | The preview's lake and sea stripes are never explained | Fixed: a line at Still Water's door says slanted is sea, upright is a lake |
+| P14-4 | "that water reaches the sea" doesn't say which water; two palms share one card | Hovering or tapping a card already marks the water (P5-2), but nothing said so. Now a line at Breakwater's door does |
+| P14-5 | On Thin Ice the preview never shows the ice melting | Fixed, a real bug: its marks lay under the dragged plate. They now lie on top of the carried land (`thin-hold.png`, unit test on `meltTop`) |
+| P14-6 | Tall plates hide creatures and buoys (`i16_h3.png`, `i18_done.png`) | Kept: the fixed camera; x-ray silhouettes and cards cover it (P5-5) |
+| P14-7 | After R on Wishing Well, the first H gave nothing visible, once | Not reproduced: at +100 ms after H the line is up (session scratch `thin.mjs`). Its driver waits and reads may have missed it |
+| P14-8 | Old note half-faded after Next | Not a fault: the 0.3 s fade |
+
+### Playtest 15 (islands 21 to 26 cold, release build; a Sonnet verifier started at 21 and so never met Anchor Rock's or Two Waters' notes)
+
+All six solved, but only with the second hint each time, 0 stars, about 8 to 12 minutes each; it would have quit on each after 5 to 9 minutes. Verdict PASS with that caveat: "a new player would likely finish the tundra with no stars." I read this as the hard end staying hard, as the audit's effort numbers say, and stars are optional there; Victor earned them all on his own play. A person other than Victor is still the real test. Best: Mirage. Worst: Give and Take (six creatures on a small, tall island). Finale called a worthy end. Shots: `2026-11-06-shiftland-polish\pt15\shots\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P15-1 | "This plate slides the other way" stayed over a new, valid drag (`x1E.png`) | Fixed: refusal lines go at the next press. e2e `a refusal about the last drag…` |
+| P15-2 | White spray on the palm on Mirage (`m5.png`) | Kept: the x-ray silhouette of a palm behind a tall ridge (`creatures.ts`), which keeps it findable |
+| P15-3 | Lone tile off the pinned plate on Frost Line (`w5.png`) | Not a fault: a piece of the plate, and "A plate can be in two pieces" is said after the first move |
+| P15-4 | Pinned plates and bite-and-carry "explained late" | Not a fault: Anchor Rock and Two Waters say them; this tester started after both |
+| P15-5 | Moved the wrong way twice after the second hint | Partly the tester's tool: its driver's plate list failed while a hint hid other knobs. The game answered "That went the other way from the hint. Undo takes it back" |
+| P15-6 | Dead-end banner missing at 2.5 s, up after a hint on the same board | Kept: the check runs in a worker and a deep board takes longer. It does appear |
+| P15-7 | Old note in the driver's first read after Next | Not a fault: the fade-out's last 0.3 s |
+| P15-8 | Small boards on 25 and 26 | Kept: framing keeps what plates can reach on screen (PH3) |
+
 ### Playtest 13 (islands 7 to 11 cold, 26-island build; a Sonnet verifier, real mouse and keys, no solutions)
 
 All five solved, no errors, verdict PASS: "mostly fair". 7, 8 and 9 earned stars; 9 took hint 1; 10 and 11 took both hints. Compare playtest 11, where 9 and 10 (now 10 and 11) went unsolved. It came closest to quitting on Salt Point, at 3 of 3 moves with 2 of 3 wants, when the first hint said "From here it takes 6: Restart is shorter", which it called honest and useful. It solved these far faster than playtest 11, about 2 minutes each, so it is one fast reader of screenshots: The Coast's ramp is better but still not proven for a person. Victor's own play, before Ferry Lane existed, solved everything ("some were hard but it can all be solved"). Shots: `2026-11-06-shiftland-polish\pt13\shots\`.

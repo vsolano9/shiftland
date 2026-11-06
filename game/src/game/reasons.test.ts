@@ -133,7 +133,7 @@ describe('goalReason', () => {
   });
   it('corners do not count', () => {
     const rows = ['#####', '#####', '##.##', '#####', '#####'], o = board(rows, 'oasis', 1, 1), far = board(['#####', '#####', '#####', '#####', '####.'], 'light', 1, 1);
-    expect(goalReason(o.lv, o.s, 0)).toBe("corners don't count");
+    expect(goalReason(o.lv, o.s, 0)).toBe('lake only at a corner');
     expect(goalReason(far.lv, far.s, 0)).toBe('no sea beside it');
   });
   it('penguins: melted ice first', () => {

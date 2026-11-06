@@ -116,7 +116,7 @@ describe('bite and retreat (playtest 3 P1: the technique nothing taught)', () =>
     expect(canFinish(cut, early)).toBe(false);
   });
   it('The Cut: after the door opens the lamp says the corner does not count', () => {
-    expect(goalReason(cut, applyAll(cut, cut.start, ['P0E'])!, 0)).toBe("corners don't count");
+    expect(goalReason(cut, applyAll(cut, cut.start, ['P0E'])!, 0)).toBe('sea only at a corner');
   });
   it('Twin Palms: the second move gives back a tick and the third takes three', () => {
     const lv = byName('Twin Palms');

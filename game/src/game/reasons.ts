@@ -136,15 +136,15 @@ export function goalReason(lv: Level, s: State, goal: number): string | null {
     case 'light':
       if (beside(cell, isSea)) return null;
       if (beside(cell, isLake)) return 'that water is a lake';
-      return corner(cell, isSea) ? "corners don't count" : 'no sea beside it';
+      return corner(cell, isSea) ? 'sea only at a corner' : 'no sea beside it'; // "corners don't count" said nothing to a player who hadn't noticed the corner (playtest 14)
     case 'oasis':
       if (beside(cell, isLake)) return null;
       if (beside(cell, isSea)) return 'that water reaches the sea';
-      return corner(cell, isLake) ? "corners don't count" : 'no water beside it';
+      return corner(cell, isLake) ? 'lake only at a corner' : 'no water beside it';
     case 'penguin':
       if (!s.ice?.[cell]) return 'its ice melted';
       if (beside(cell, isSea)) return null;
       if (beside(cell, isLake)) return 'that water is a lake';
-      return corner(cell, isSea) ? "corners don't count" : 'no sea beside the ice';
+      return corner(cell, isSea) ? 'sea only at a corner' : 'no sea beside the ice';
   }
 }

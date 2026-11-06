@@ -168,7 +168,7 @@ const DESERT: Spec[] = [
   // after Two Waters, not before: playtest 5 hit a wall at this island when it came straight after Oxbow (P5-4)
   {
     name: 'Twin Palms', biome: 'desert', role: 'puzzle', teaches: 'give up a tick to get two: the plate that spoils the first pond also carries both oases off, and each leaves a pond of its own in the wake', axis: '|-|', expectPar: 3,
-    blurb: 'Sometimes one tick has to go before two can come.',
+    blurb: 'Sometimes you must upset one to make two happy.',
     map: `
       ~  ~  ~  ~  ~  ~  ~  ~
       ~  a0 a0 a0 a0 a0 a0 ~
