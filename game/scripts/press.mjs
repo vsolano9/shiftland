@@ -1,7 +1,7 @@
 // Renders the itch screenshots from the production build with real mouse input, so the numbers and
 // island count on them match the game. Run `npm run press` (it builds first); writes to ../press.
 // Also renders the page theme's banner.png and embed-splash.png.
-// Not rendered here: push.gif carries no island number or count.
+// Not rendered here: push.gif, by scripts/gif.mjs and gif.py.
 // Upload order on the page: shot1, shot2, shot3, shot4, push.gif (the first shows the game's idea, the preview).
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
