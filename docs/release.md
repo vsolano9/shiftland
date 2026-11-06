@@ -1,6 +1,6 @@
 # Shiftland: release state
 
-Results against the release checklist in `PLAN.md`. Evidence paths are under `D:\Work\_local\evidence\2026-11-04-shiftland\` unless a full path is given. Updated 2026-11-04.
+Results against the release checklist in `PLAN.md`. Evidence paths are under `D:\Work\_local\evidence\2026-11-04-shiftland\` unless a full path is given. Updated 2026-11-06.
 
 Victor approved the repo going public, the itch page and the submission on Nov 6 (G0, G4).
 
@@ -9,19 +9,19 @@ Victor approved the repo going public, the itch page and the submission on Nov 6
 | # | Item | State | Evidence |
 |---|---|---|---|
 | R1 | Zip valid for itch HTML5 | see "Build" | `npm run pack:check` |
-| R2 | Relative paths | pass locally; the itch draft half waits on G0 | `npm run pack:check` |
+| R2 | Relative paths | pass locally and on itch's server: the game loads on the real page, no console errors (Nov 6) | `npm run pack:check`, `D:\Work\_local\evidence\2026-11-06-shiftland-victor-play\itch-iframe-title.png` |
 | R3 | Plays end to end | pass, real mouse input from a clean save to the ending, on a production build; redone on 25 islands Nov 5 | `full25b.log` (Nov 5), `p12\a24.log` |
 | R4 | Levels pass the bar | pass, 25 of 25 (Harbour Row back as island 8, Nov 5); count matches `itch-page.md` | `npm run levels:audit` |
 | R5 | Rules and tests | see "Build" | `npm test`, `npm run typecheck` |
-| R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real draft page **waits on G0** | `if\` |
+| R6 | itch iframe | stand-in pass: Chromium, cross-origin iframe with itch's `allow` list at 1024x640 and 640x480: real drag solves island 1, audio context runs, progress saved, fullscreen works, no console errors. The real page: see "itch iframe test" below | `if\` |
 | R7 | Touch | pass in emulation: the 25-island build played through by one-finger swipes at 390x844 on Nov 5 (25 of 25 at par, ending reached, 245 s, 0 errors); 844x390 last played on 24 islands; no real phone tried | `_local\evidence\2026-11-05-shiftland\touch25.log`, `p12\a24p.log`, `p12\a24l.log` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
 | R9 | Performance | pass on the dev PC, map included (re-measured Nov 5), see below; no mid laptop tried | `p12\perf.log`, `2026-11-05-shiftland\perf.log` |
 | R10 | Audio | event log and metrics pass; a blind machine listen (Gemini, Nov 5) led to changes in `qa.md`; Victor on Nov 6: "the sound is good" | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
 | R11 | Look | critic rounds run; the open majors are answered in the session's `Taste:` line | `D:\Work\_local\taste-critic\` |
 | R12 | No shipped AI media | pass: no image or audio file in `dist/` | `npm run pack:check` |
-| R13 | Repo ready | README and LICENSE (all rights reserved) are in. Secret scan Nov 5: gitleaks over all 139 commits, 1 hit, a false positive (the `ENDING_KEY` localStorage name in `app.ts`). Going public also shows: the commit author email, the AI concept images in `concepts/` (never shipped), and internal `D:\Work\_local` evidence paths in `docs/`; Victor decides at G4 whether `docs/` and `concepts/` stay. Rerun the scan on the final commit | `gitleaks git .` |
-| R14 | itch page | text in `itch-page.md`; press images in `press/`; the disclosure must be matched to the real form at G4 | `press/` |
+| R13 | Repo ready | README and LICENSE (all rights reserved) are in. README rewritten Nov 6. Secret scan Nov 6: gitleaks over all 152 commits, 1 hit, the same false positive as Nov 5 (the `ENDING_KEY` localStorage name in `app.ts`). Going public shows the commit author email, the AI concept images in `concepts/` (never shipped, disclosed in the README) and internal `D:\Work\_local` evidence paths in `docs/`; R13 listed these for G4 and Victor approved everything, so they stay | `gitleaks git .` |
+| R14 | itch page | live page and `itch-page.md` agree; itch's AI form answers recorded there; shots 2-4 re-rendered Nov 6 with `npm run press` (the old ones said 24 islands) | `press/` |
 | R15 | Victor's approvals | pass: approved Nov 6 ("i approve everything"), see below | |
 | R16 | Submitted and verified | not yet | |
 
@@ -49,7 +49,7 @@ All answered by Victor on 2026-11-06: "it was fun, so aha it is. i solved some i
 
 ## Known limits
 
-- Repo and license, Victor on Nov 4: "no open source then if not needed ... you can make it public if needed next run." The jam needs a public repo but no open-source license, so going public is approved for the next run when it is needed. `LICENSE` is now all rights reserved (Nov 5), with the Fredoka OFL and three.js MIT notes kept. The itch page and submission are not covered by this approval.
+- Repo and license, Victor on Nov 4: "no open source then if not needed ... you can make it public if needed next run." The jam needs a public repo but no open-source license, so going public is approved for the next run when it is needed. `LICENSE` is now all rights reserved (Nov 5), with the Fredoka OFL and three.js MIT notes kept. Victor approved the itch page, the public repo and the submission on Nov 6 ("i approve everything"). Posting about it on X or elsewhere isn't included.
 
 - Testing is browser-only on this PC, by Victor's decision on Nov 4 ("focus on just testing here on the browser"): real phones, iOS and laptops are not a to-do for agents.
 

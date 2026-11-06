@@ -12,6 +12,7 @@
     "test": "vitest run",
     "e2e": "npm run build && playwright test",
     "pack:check": "npm run build && node scripts/pack-check.mjs",
+    "press": "npm run build && node scripts/press.mjs",
     "levels": "node src/solver/cli.ts gen",
     "levels:audit": "node src/solver/cli.ts audit",
     "levels:export": "node src/solver/cli.ts export"
