@@ -392,6 +392,7 @@ test('a nudge says drag further, a short confident drag moves, and a hint names 
 });
 
 test('no two sliders sit side by side, and each knob grabs its own plate', async ({ page }) => {
+  test.setTimeout(300_000); // every board of every island's solution
   const errors = await start(page);
   const levels = await page.evaluate(`${SL}.levels.length`) as number;
   for (let i = 0; i < levels; i++) {
@@ -417,6 +418,22 @@ test('no two sliders sit side by side, and each knob grabs its own plate', async
       })()`) as string[]);
     }
     expect(along, `island ${i + 1} along its solution`).toEqual([]);
+    // where the hint's hand starts grabs the hinted plate, on every board of the solution: a player presses right there
+    await page.evaluate(`${SL}.controller.open(${i})`);
+    await page.waitForTimeout(350);
+    const hands: string[] = [];
+    for (const m of sol) {
+      hands.push(...await page.evaluate(`(() => {
+        const a = ${SL}, v = a.view, plate = ${Number(m[1])};
+        v.pointRail(plate, ${'ES'.includes(m[2]) ? 1 : -1});
+        const [x, y] = a.world.project(v.railAnchor(plate)), picks = a.world.pick(x, y);
+        v.railHint = 0; v.railDir = 0; v.showRail(null);
+        return picks === plate ? [] : ['${m}: the hand on plate ' + plate + ' picks ' + picks];
+      })()`) as string[]);
+      await page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${Number(m[1])}, dir: ${'NESW'.indexOf(m[2])} })`);
+      await page.waitForTimeout(700);
+    }
+    expect(hands, `island ${i + 1}, the hint's hand`).toEqual([]);
   }
   expect(errors).toEqual([]);
 });

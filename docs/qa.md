@@ -20,6 +20,7 @@ Controller-driven captures (`few.mjs`, `gallery.mjs`) are for looking at boards 
 
 | Build | Input | Shape | Result | Evidence |
 |---|---|---|---|---|
+| 26 islands (Nov 6) | Real input, `scripts/fullplay.mjs` | Mouse 1280x720, touch 390x844 and 844x390 | All three: 26 of 26 at par, 26 stars, each card's button pressed, the ending reached, 0 errors (168, 196, 195 s). The first mouse run stopped on Two Waters because the script pressed the rail's raised anchor with another plate's rail on show; a player presses the knob. Not a game fault, and e2e now also checks that where the hint's hand starts grabs the hinted plate on every board of every solution | `2026-11-06-shiftland-polish\full26\` |
 | 25 islands (Nov 5) | Real mouse drags on the sliders | 1280x720 | All 25 solved at par from a clean save through each card's Next, 296 s, 0 errors (the first run stopped on Two Waters: P10-9, fixed); the last card's Finish shows the ending, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `full25b.log`, `end25-card.png`, `ending25.png` |
 | 25 islands (Nov 5) | Real touch swipes from each knob | 390x844 | All 25 solved at par from a clean save, each card's Next tapped, reached the ending, 245 s, 0 errors; again on the final Nov 5 build (return hint, buoy chip): 25 of 25, 246 s, 0 errors | `_local\evidence\2026-11-05-shiftland\`: `touch25.log`, `touch25-end.png`, `touchfinal.log` |
 | 24 islands | Real mouse | 1280x720 | All solved at par from a clean save, reached the ending | `p12\a24.log` |

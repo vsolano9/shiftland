@@ -139,7 +139,7 @@ async function banner(file) {
 
 /** What sits behind itch's Run game button: the title scene with no interface. */
 async function splash(file) {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } }); // the embed's own size: itch shows it unscaled, and a larger one lost the island's east side
   const page = await ctx.newPage();
   await page.goto(`http://localhost:${PORT}/`);
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 60_000 });
@@ -152,12 +152,14 @@ async function splash(file) {
 }
 
 try {
-  await banner('banner.png');
-  await splash('embed-splash.png');
-  await held('The Long Pier', 'shot1-preview.png');
-  await settled('Wishing Well', 'shot2-desert.png');
-  await settled('Frost Line', 'shot3-tundra.png');
-  await map('shot4-map.png');
+  const only = process.argv[2]; // node scripts/press.mjs splash: that one image, from the build already made
+  const job = (name, make) => (!only || only === name ? make() : undefined);
+  await job('banner', () => banner('banner.png'));
+  await job('splash', () => splash('embed-splash.png'));
+  await job('shot1', () => held('The Long Pier', 'shot1-preview.png'));
+  await job('shot2', () => settled('Wishing Well', 'shot2-desert.png'));
+  await job('shot3', () => settled('Frost Line', 'shot3-tundra.png'));
+  await job('shot4', () => map('shot4-map.png'));
 } finally {
   await browser.close();
   server.kill();

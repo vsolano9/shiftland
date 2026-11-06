@@ -64,10 +64,7 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 90000 });
   await page.waitForTimeout(800);
-  await press('#btn-play');
-  await page.waitForFunction(() => window.__shiftland.screen === 'map' && !window.__shiftland.world.flying, undefined, { timeout: 15000 });
-  await page.waitForTimeout(500);
-  await press('.pin[data-level="0"]');
+  await press('#btn-play'); // a first play goes straight into the first island
 
   const count = await page.evaluate(() => window.__shiftland.world.views.length);
   for (let i = 0; i < count; i++) {
@@ -76,7 +73,8 @@ try {
     const lv = await page.evaluate(() => { const l = window.__shiftland.controller.session.lv; return { name: l.name, sol: l.sol, par: l.sol.length }; });
     for (let n = 0; n < lv.sol.length; n++) {
       const pts = await page.evaluate(m => {
-        const a = window.__shiftland, A = a.view.railAnchor(Number(m[1])), B = A.clone(), d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]];
+        // the knob a player sees: the rail's own anchor rides higher, and only means this plate while its rail is on show
+        const a = window.__shiftland, p = Number(m[1]), s = a.view.markSegments().find(k => k.plate === p), A = s.a.clone().lerp(s.b, .5), B = A.clone(), d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]];
         B.x += d[0]; B.z += d[1];
         return [a.world.project(A), a.world.project(B)];
       }, lv.sol[n]);
