@@ -1,6 +1,6 @@
 // Random real input on the production build, with checks after each step: no script error, the board matches the
 // session once settled, nothing of a hint outlives it, no drag left held. Usage: npm run build, then
-// node scripts/monkey.mjs [steps] [seed] [WxH]. Exits 1 on the first broken check, naming the step and the last inputs.
+// node scripts/monkey.mjs [steps] [seed] [WxH] (MONKEY_TOUCH=1 for real touches, FULLPLAY_BROWSER=firefox). Exits 1 on the first broken check, naming the step and the last inputs.
 import { spawn } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +22,11 @@ try {
     if (serverGone) throw new Error(`port ${PORT} is taken`);
     try { await fetch(`http://localhost:${PORT}/`); break; } catch (err) { if (tries > 60) throw err; await new Promise(done => setTimeout(done, 500)); }
   }
-  const page = await browser.newPage({ viewport: { width: W, height: H } });
+  const TOUCH = !!process.env.MONKEY_TOUCH; // real touches, with pinches and taps, for the paths a mouse never takes
+  const context = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: TOUCH, isMobile: TOUCH });
+  const page = await context.newPage();
+  const cdp = TOUCH ? await context.newCDPSession(page) : null;
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -35,6 +39,16 @@ try {
   const knob = () => page.evaluate(([u, w]) => { const a = window.__shiftland, v = a.view, m = v.markSegments(); if (!m.length) return null; const s = m[Math.floor(u * m.length)], A = s.a.clone().lerp(s.b, .5), d = [[0, -1], [1, 0], [0, 1], [-1, 0]][Math.floor(w * 4)], B = A.clone(); B.x += d[0]; B.z += d[1]; return [a.world.project(A), a.world.project(B)]; }, [rnd(), rnd()]); // from the seed, so a failure replays
   const drag = async (hold, thenEsc) => {
     const k = await knob(); const a = k ? k[0] : [rnd() * W, rnd() * H], b = k ? k[1] : [rnd() * W, rnd() * H];
+    if (TOUCH) {
+      const pinch = rnd() < .12;
+      await touch('touchStart', [a]);
+      for (let i = 1; i <= 4; i++) { await touch('touchMove', [[a[0] + (b[0] - a[0]) * i / 4, a[1] + (b[1] - a[1]) * i / 4]]); await page.waitForTimeout(16); }
+      if (pinch) { await touch('touchStart', [b, [b[0] + 60, b[1] + 40]]); await touch('touchMove', [[b[0] - 10, b[1]], [b[0] + 90, b[1] + 50]]); }
+      if (hold) await page.waitForTimeout(hold);
+      if (thenEsc) await page.keyboard.press('Escape');
+      await touch('touchEnd', []);
+      return;
+    }
     await page.mouse.move(a[0], a[1]); await page.mouse.down(); await page.mouse.move(b[0], b[1], { steps: 4 });
     if (hold) await page.waitForTimeout(hold);
     if (thenEsc) await page.keyboard.press('Escape');
@@ -45,7 +59,7 @@ try {
     hint: () => page.keyboard.press('h'), hint2: async () => { await page.keyboard.press('h'); await page.waitForTimeout(1100); await page.keyboard.press('h'); },
     undo: () => page.keyboard.press('z'), restart: () => page.keyboard.press('r'), map: () => page.keyboard.press('m'), esc: () => page.keyboard.press('Escape'),
     tab: () => page.keyboard.press('Tab'), arrow: () => page.keyboard.press(pick(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])),
-    click: () => page.mouse.click(rnd() * W, rnd() * H), wait: () => page.waitForTimeout(600),
+    click: () => (TOUCH ? page.touchscreen.tap(rnd() * W, rnd() * H) : page.mouse.click(rnd() * W, rnd() * H)), wait: () => page.waitForTimeout(600),
     open: () => page.evaluate(i => window.__shiftland.controller.open(i), Math.floor(rnd() * count)),
     enter: () => page.keyboard.press('Enter'), blur: () => page.evaluate(() => window.dispatchEvent(new Event('blur'))),
     settings: async () => { await page.evaluate(() => document.getElementById('s-reduced')?.click()); },
@@ -82,6 +96,7 @@ try {
       const bad = await page.evaluate(() => {
         const a = window.__shiftland, v = a.view, s = a.controller.session, out = [];
         if (a.drag) out.push('a drag is still held');
+        if (a.fingers?.size) out.push(`${a.fingers.size} finger(s) still counted down`);
         if (a.screen !== 'level') return out;
         if (a.world.flying) return out;
         if (v.state.plate.join() !== s.state.plate.join() || v.state.elev.join() !== s.state.elev.join()) out.push('the board differs from the session');
