@@ -1130,6 +1130,7 @@ class App {
     if (this.touring() && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { this.endTour(); return; }
     if (this.screen === 'ending' && e.key === 'Enter') { if (this.world.merged) this.leaveEnding(); else this.lastShift(); return; }
     if (this.screen !== 'level' || this.busyUntil !== 0) return;
+    if (e.key === 'Escape' && this.drag) { this.pointerCancel(); return; } // the plate goes home at once: it kept following the hand, promising a move Esc had already dropped (playtest 16)
     if (e.key === 'm' || e.key === 'M') { this.toMap(); return; }
     if (e.key === 'h' || e.key === 'H') { this.showHint(); return; }
     const ctl = this.controller, s = ctl.session;

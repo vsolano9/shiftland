@@ -249,6 +249,27 @@ test('the second hint shows the move, and Undo, Restart or the move itself take 
   expect(errors).toEqual([]);
 });
 
+test('Esc during a drag sends the plate home at once, and the next drag works (playtest 16)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 14);
+  const k = await page.evaluate(`(() => { const a = ${SL}, m = a.controller.session.lv.sol[0], p = Number(m[1]), d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]], s = a.view.markSegments().find(k => k.plate === p), A = s.a.clone().lerp(s.b, .5), B = A.clone(); B.x += d[0]; B.z += d[1]; return { a: a.world.project(A), b: a.world.project(B) }; })()`) as Record<'a' | 'b', [number, number]>;
+  const offset = () => page.evaluate(`(() => { const v = ${SL}.view; return { plate: v.dragPlate, ghosts: v.ghostGroup.children.length, moves: ${SL}.controller.session.moves }; })()`) as Promise<{ plate: number | null; ghosts: number; moves: number }>;
+  await page.mouse.move(k.a[0], k.a[1]); await page.mouse.down();
+  await page.mouse.move(k.b[0], k.b[1], { steps: 6 }); await page.waitForTimeout(200);
+  expect((await offset()).ghosts).toBeGreaterThan(0);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  expect(await offset()).toEqual({ plate: null, ghosts: 0, moves: 0 });
+  await page.mouse.move(k.a[0], k.a[1], { steps: 3 }); await page.waitForTimeout(100); // the hand still down moves nothing
+  expect((await offset()).plate).toBe(null);
+  await page.mouse.up(); await page.waitForTimeout(400);
+  expect((await offset()).moves).toBe(0);
+  await page.mouse.move(k.a[0], k.a[1]); await page.mouse.down();
+  await page.mouse.move(k.b[0], k.b[1], { steps: 6 }); await page.waitForTimeout(150); await page.mouse.up();
+  await page.waitForTimeout(800);
+  expect((await offset()).moves).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test('a refusal about the last drag goes when the next one starts (playtest 15)', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);

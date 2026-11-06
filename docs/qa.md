@@ -157,13 +157,25 @@ All nine solved, but both hints on 6 of them, and the stars on 19 and 20 came fr
 | Id | Finding | Result |
 |---|---|---|
 | P14-1 | "corners don't count" at the start of 12, 17, 18, before the player has seen a corner | Fixed: "sea only at a corner", "lake only at a corner" say what is there. Unit tests |
-| P14-2 | Twin Palms' note, "Sometimes one tick has to go before two can come", means nothing | Fixed: "Sometimes you must upset one to make two happy." |
+| P14-2 | Twin Palms' note, "Sometimes one tick has to go before two can come", means nothing | Fixed: "Sometimes you must upset one on the way to pleasing two." (The first rewrite, "…upset one to make two happy", misled playtest 16: everyone ends happy) |
 | P14-3 | The preview's lake and sea stripes are never explained | Fixed: a line at Still Water's door says slanted is sea, upright is a lake |
 | P14-4 | "that water reaches the sea" doesn't say which water; two palms share one card | Hovering or tapping a card already marks the water (P5-2), but nothing said so. Now a line at Breakwater's door does |
 | P14-5 | On Thin Ice the preview never shows the ice melting | Fixed, a real bug: its marks lay under the dragged plate. They now lie on top of the carried land (`thin-hold.png`, unit test on `meltTop`) |
 | P14-6 | Tall plates hide creatures and buoys (`i16_h3.png`, `i18_done.png`) | Kept: the fixed camera; x-ray silhouettes and cards cover it (P5-5) |
 | P14-7 | After R on Wishing Well, the first H gave nothing visible, once | Not reproduced: at +100 ms after H the line is up (session scratch `thin.mjs`). Its driver waits and reads may have missed it |
 | P14-8 | Old note half-faded after Next | Not a fault: the 0.3 s fade |
+
+### Playtest 16 (islands 14 to 18 cold again, with playtest 14's wording fixes; a Sonnet verifier)
+
+All five solved in about 11 minutes in total: Breakwater with no hint and a star, the other four with both hints, one over par. Verdict FAIL: "bite-and-return isn't visible in a preview", so the oasis lake needs hints. That is the puzzle's two-step depth rather than a wording fault. The wording helped: it quoted the card text "A lake is water the sea cannot reach". Three agent players now say the middle is hard; Victor, the only person so far, called it hard and solvable and earned every star. So the levels stay, and the honest position is in `release.md`: a human stranger's play is the missing evidence. Shots: `2026-11-06-shiftland-polish\pt16\shots\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P16-1 | After Esc on a held drag, the next drag "silently does nothing" with a ghost arrow (`o6.png`) | The dead drag was its driver, which never let the mouse up: real press and release works (session scratch `esc.mjs`). It did show a true flaw: the plate kept following the hand after Esc. Fixed, it goes home at once. e2e `Esc during a drag…` |
+| P16-2 | Cards don't change during a preview, so Village ✓ then ✗ (`b9.png`, `b10.png`) | Kept: past island 4 the player judges a move; the rising chevrons on the village show it, and Settings brings + and − back |
+| P16-3 | Twin Palms' new note misled | Reworded, see P14-2 |
+| P16-4 | Raised blocks hide the lake or a buoy (`o17.png`, `t9.png`) | Kept: as P14-6 |
+| P16-5 | "3 moves to go" after an off-par first move | Kept: the count is true from this board, and the line says Restart is shorter when it is |
 
 ### Playtest 15 (islands 21 to 26 cold, release build; a Sonnet verifier started at 21 and so never met Anchor Rock's or Two Waters' notes)
 
