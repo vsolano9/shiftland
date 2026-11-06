@@ -38,7 +38,8 @@ try {
   const trail = [];
   const knob = () => page.evaluate(([u, w]) => { const a = window.__shiftland, v = a.view, m = v.markSegments(); if (!m.length) return null; const s = m[Math.floor(u * m.length)], A = s.a.clone().lerp(s.b, .5), d = [[0, -1], [1, 0], [0, 1], [-1, 0]][Math.floor(w * 4)], B = A.clone(); B.x += d[0]; B.z += d[1]; return [a.world.project(A), a.world.project(B)]; }, [rnd(), rnd()]); // from the seed, so a failure replays
   const drag = async (hold, thenEsc) => {
-    const k = await knob(); const a = k ? k[0] : [rnd() * W, rnd() * H], b = k ? k[1] : [rnd() * W, rnd() * H];
+    const inside = ([x, y]) => [Math.max(2, Math.min(W - 2, x)), Math.max(2, Math.min(H - 2, y))]; // a release past the window's edge never reaches the page in this tool, though a real browser's pointer capture delivers it
+    const k = await knob(); const a = inside(k ? k[0] : [rnd() * W, rnd() * H]), b = inside(k ? k[1] : [rnd() * W, rnd() * H]);
     if (TOUCH) {
       const pinch = rnd() < .12;
       await touch('touchStart', [a]);

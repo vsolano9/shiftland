@@ -307,6 +307,19 @@ test('the first island keeps its lesson through a hint and Restart (review, Nov 
   expect(errors).toEqual([]);
 });
 
+test('a drag whose release went missing ends at the next mouse move', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9);
+  const k = await page.evaluate(`(() => { const a = ${SL}, p = Number(a.controller.session.lv.sol[0][1]), s = a.view.markSegments().find(m => m.plate === p), A = s.a.clone().lerp(s.b, .5); return a.world.project(A); })()`) as [number, number];
+  await page.mouse.move(k[0], k[1]); await page.mouse.down(); await page.mouse.move(k[0] + 2, k[1] + 1);
+  expect(await page.evaluate(`!!${SL}.drag`)).toBe(true);
+  await page.evaluate(`(() => { const c = document.getElementById('c'), id = ${SL}.drag.pointer; c.dispatchEvent(new PointerEvent('pointermove', { pointerId: id, pointerType: 'mouse', buttons: 0, bubbles: true, clientX: ${k[0]}, clientY: ${k[1]} })); })()`);
+  expect(await page.evaluate(`!!${SL}.drag`)).toBe(false);
+  expect(await page.evaluate(`${SL}.fingers.size`)).toBe(0);
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});
+
 test('a held arrow still moves a focused Settings slider', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);

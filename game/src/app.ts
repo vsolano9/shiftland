@@ -1090,6 +1090,7 @@ class App {
     }
     if (this.screen === 'map' && e.pointerType === 'mouse') { const i = this.world.pickIsland(e.clientX, e.clientY); (e.target as HTMLElement).style.cursor = i !== null && this.progress.unlocked(i) ? 'pointer' : 'default'; return; }
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
+    if (e.pointerType === 'mouse' && e.buttons === 0) { this.fingers.delete(e.pointerId); this.pointerUp(e); return; } // the release went missing (let go outside the window, a browser quirk): a plate must not follow a hand with no button down
     const { plate, start, y } = this.drag, v = this.view;
     if (this.hintView === v) { this.endHintShow(); v.setQuiet(true); } // the player's hand takes over, before this drag makes its own offset and preview (Codex review, Nov 6: afterwards it wiped them)
     const pt = this.world.groundPoint(e.clientX, e.clientY, y); if (!pt) return;
