@@ -127,7 +127,7 @@ export class Creature {
         const ok = mesh(M.palm), wilt = mesh(M.palmWilt); g.add(ok, wilt); b.add(g); this.palms.push({ ok, wilt, g });
       }
     } else {
-      for (const [x, z, a] of [[-.21, .02, .4], [.2, -.14, -.3], [.06, .2, .1]] as const) { // spread across the cell as the camera sees it: at normal size the old huddle was one dark lump (concept critic T4, Nov 6)
+      for (const [x, z, a] of [[-.21, .02, .4], [.2, -.14, -.3], [.06, .17, .1]] as const) { // spread across the cell as the camera sees it: at normal size the old huddle was one dark lump (concept critic T4, Nov 6)
         const g = new Group(); g.add(mesh(M.penguin)); g.position.set(x, 0, z); g.rotation.order = 'YXZ'; g.rotation.y = a; b.add(g);
         this.pens.push({ g, x, z, a });
       }

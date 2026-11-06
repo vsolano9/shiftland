@@ -307,6 +307,19 @@ test('the first island keeps its lesson through a hint and Restart (review, Nov 
   expect(errors).toEqual([]);
 });
 
+test('a held arrow still moves a focused Settings slider', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9);
+  await page.click('#b-set'); await page.waitForTimeout(300);
+  await page.evaluate(`document.getElementById('s-music').focus()`);
+  const before = await page.evaluate(`Number(document.getElementById('s-music').value)`) as number;
+  for (let i = 0; i < 6; i++) { await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(20); }
+  await page.keyboard.up('ArrowLeft');
+  expect(before - (await page.evaluate(`Number(document.getElementById('s-music').value)`) as number)).toBeGreaterThan(.04);
+  expect(await page.evaluate(`${SL}.controller.session.moves`)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
 test('a held arrow key is one move', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);

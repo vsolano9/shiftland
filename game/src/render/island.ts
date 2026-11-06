@@ -393,17 +393,17 @@ export class IslandView {
         const { dir, run } = beamRun(this.lv, next, cell);
         if (dir) c.aimBeam(dir[0], dir[1], run);
       }
-      const share = this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind]);
+      const share = this.hiddenShare(next, tx, ty, tz, HEAD_Y[c.kind] * KIND_SCALE[c.kind], c.kind === 'oasis' ? .32 : .2); // two palms stand wide apart
       this.hidden.set(c, share);
       c.setXray(share >= (this.celebrating ? XRAY_WIN : XRAY_PLAY));
     }
   }
   /** How much of a creature standing here the land hides from the fixed camera: sample points walked along the view ray over the columns. */
-  private hiddenShare(s: State, x: number, y: number, z: number, h: number) {
+  private hiddenShare(s: State, x: number, y: number, z: number, h: number, wide = .2) {
     const [ax, az] = this.xz(0);
     const dx = Math.sin(CAM_AZ) * Math.cos(CAM_EL), dy = Math.sin(CAM_EL), dz = Math.cos(CAM_AZ) * Math.cos(CAM_EL);
     let hidden = 0, all = 0;
-    for (const f of [.15, .5, .9]) for (const side of [-.2, 0, .2]) {
+    for (const f of [.15, .5, .9]) for (const side of [-wide, 0, wide]) {
       all++;
       const sx = x + side * dz, sz = z - side * dx, sy = y + f * h;
       for (let t = .3; t < 9; t += .12) {
