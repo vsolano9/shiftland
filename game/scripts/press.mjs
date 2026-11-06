@@ -1,7 +1,7 @@
 // Renders the itch screenshots from the production build with real mouse input, so the numbers and
 // island count on them match the game. Run `npm run press` (it builds first); writes to ../press.
 // Also renders the page theme's banner.png and embed-splash.png.
-// Not rendered here: cover.png and push.gif carry no island number or count.
+// Not rendered here: push.gif carries no island number or count.
 // Upload order on the page: shot1, shot2, shot3, shot4, push.gif (the first shows the game's idea, the preview).
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -137,6 +137,22 @@ async function banner(file) {
   await ctx.close();
 }
 
+/** The cover raters see at thumbnail size: the real title island as large as it goes, with the logo over it (concepts/shiftland-cover.png). */
+async function cover(file) {
+  const ctx = await browser.newContext({ viewport: { width: 630, height: 500 }, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/`);
+  await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(800);
+  await page.addStyleTag({ content: `#s-title > *:not(#logo) { display: none !important; }
+    #logo { position: fixed !important; left: 50% !important; top: 14px !important; margin: 0 !important; transform: translateX(-50%) !important; width: 540px !important; height: 180px !important; }` });
+  await page.evaluate(() => { const w = window.__shiftland.world; w.hudPad = { top: .3, bottom: .02, left: .02, right: .02 }; const v = w.hero; w.focus.copy(w.focusOf(v)); w.dist = w.fitDistance(v); });
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: resolve(out, file) });
+  console.log(file);
+  await ctx.close();
+}
+
 /** What sits behind itch's Run game button: the title scene with no interface. */
 async function splash(file) {
   const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } }); // the embed's own size: itch shows it unscaled, and a larger one lost the island's east side
@@ -154,6 +170,7 @@ async function splash(file) {
 try {
   const only = process.argv[2]; // node scripts/press.mjs splash: that one image, from the build already made
   const job = (name, make) => (!only || only === name ? make() : undefined);
+  await job('cover', () => cover('cover.png'));
   await job('banner', () => banner('banner.png'));
   await job('splash', () => splash('embed-splash.png'));
   await job('shot1', () => held('The Long Pier', 'shot1-preview.png'));

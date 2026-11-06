@@ -170,15 +170,17 @@ const FRAG = /* glsl */`
     // lake: still, green-teal water, its own colour
     // a sandy rim and a green unlike any sea, so a lake can't be taken for the shallows
     // clear jade, luminous in the shallows: what an oasis longs for, where a dark green read as a swamp (playtest 15; concepts/lake-oasis-v1.png)
-    vec3 lake = mix(uLake + vec3(.05,.17,.09), uLake, smoothstep(.14,.3,d))*(.97+.06*n2);
-    // water, not a green floor: thin ripples drifting across it and a soft sheen (concept critic T1, Nov 6)
-    float rip = smoothstep(.93,.99,sin((p.x*.75-p.y*.66)*17.+fbm(p*2.3+vec2(t*.05,0.))*7.-t*.5));
-    lake += vec3(.26,.34,.3)*rip*smoothstep(.15,.3,d) + vec3(.05,.1,.08)*smoothstep(.5,.72,fbm(p*vec2(1.6,4.2)+vec2(t*.03,-t*.02)));
-    // a few small dark pads: pale round ones were the same mark as the plates' dots and the peaks' corner dots
-    vec2 lp = p*2.2; vec2 li = floor(lp); float lr = h21(li+5.);
-    lake = mix(lake, vec3(.1,.46,.25), step(.84,lr)*(1.-smoothstep(.12,.145,length(fract(lp)-.5-(vec2(h21(li+9.),h21(li+2.))-.5)*.4))));
-    lake = mix(lake, vec3(.8,.66,.4), smoothstep(.2,.13,d));
-    col = mix(col, lake, m.g);
+    if (m.g>.001) { // only where there is a lake: this noise ran for every pixel of sea
+      vec3 lake = mix(uLake + vec3(.05,.17,.09), uLake, smoothstep(.14,.3,d))*(.97+.06*n2);
+      // water, not a green floor: thin ripples drifting across it and a soft sheen (concept critic T1, Nov 6)
+      float rip = smoothstep(.93,.99,sin((p.x*.75-p.y*.66)*17.+fbm(p*2.3+vec2(t*.05,0.))*7.-t*.5));
+      lake += vec3(.26,.34,.3)*rip*smoothstep(.15,.3,d) + vec3(.05,.1,.08)*smoothstep(.45,.7,n2);
+      // a few small dark pads: pale round ones were the same mark as the plates' dots and the peaks' corner dots
+      vec2 lp = p*2.2; vec2 li = floor(lp); float lr = h21(li+5.);
+      lake = mix(lake, vec3(.1,.46,.25), step(.84,lr)*(1.-smoothstep(.12,.145,length(fract(lp)-.5-(vec2(h21(li+9.),h21(li+2.))-.5)*.4))));
+      lake = mix(lake, vec3(.8,.66,.4), smoothstep(.2,.13,d));
+      col = mix(col, lake, m.g);
+    }
     // rift floor before the sea reaches it
     // wet and dark, half sea already: bright sand laid on the water looks like a sheet of cardboard
     // the sea doesn't fade in over it, it runs in: the edge wanders, and a line of foam rides it
