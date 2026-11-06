@@ -12,6 +12,21 @@ const make = (storage = mem()) => {
   return { c, events, storage };
 };
 const DIRS: Record<string, Dir> = { N: 0, E: 1, S: 2, W: 3 };
+describe('an update that adds an island', () => {
+  it('keeps an unfinished run on the island after it (Ferry Lane, Codex review Nov 6)', () => {
+    const storage = mem(), names = all.map(l => l.name!), at = names.indexOf('Harbour Row');
+    const levels: Record<string, unknown> = {};
+    for (let k = 0; k < at - 1; k++) levels[names[k]] = { solved: true, best: 1, stars: 1 }; // everything before Ferry Lane, as the 25-island build left it
+    storage.setItem('shiftland.progress.v1', JSON.stringify({ v: 1, levels }));
+    const m = all[at].sol![0], log = [Number(m[1]) << 2 | DIRS[m[2]]];
+    storage.setItem('shiftland.run.v1', JSON.stringify({ name: 'Harbour Row', log, hinted: false }));
+    const { c } = make(storage);
+    expect(c.index).toBe(at);
+    expect(c.resumed).toBe(true);
+    expect(c.session.moves).toBe(1);
+    expect(JSON.parse(storage.getItem('shiftland.run.v1')!).name).toBe('Harbour Row');
+  });
+});
 describe('a run survives a reload', () => {
   const unlockedTo = (storage: StorageLike, i: number) => { const a = make(storage).c; for (let k = 0; k < i; k++) { a.open(k); playSolution(a); } };
   const at = 'Good Neighbours', index = all.findIndex(l => l.name === at);

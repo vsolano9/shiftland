@@ -2,6 +2,7 @@
 // island count on them match the game. Run `npm run press` (it builds first); writes to ../press.
 // Also renders the page theme's banner.png and embed-splash.png.
 // Not rendered here: cover.png and push.gif carry no island number or count.
+// Upload order on the page: shot1, shot2, shot3, shot4, push.gif (the first shows the game's idea, the preview).
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -20,13 +21,18 @@ const indexOf = name => {
 
 const server = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(PORT), '--strictPort'],
   { cwd: root, stdio: 'ignore' });
+let serverGone = false;
+server.on('exit', () => { serverGone = true; }); // --strictPort: an older server on this port would otherwise answer, and the shots would show its build
 for (let tries = 0; ; tries++) {
+  if (serverGone) throw new Error(`port ${PORT} is taken: stop what is on it`);
   try { await fetch(`http://localhost:${PORT}/`); break; } catch (err) {
     if (tries > 60) { server.kill(); throw err; }
     await new Promise(done => setTimeout(done, 500));
   }
 }
-const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] });
+await new Promise(done => setTimeout(done, 300));
+if (serverGone) throw new Error(`port ${PORT} is taken: stop what is on it`);
+const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] }).catch(err => { server.kill(); throw err; });
 
 async function drag(page, m) {
   const pts = await page.evaluate(m => {
@@ -77,6 +83,33 @@ async function settled(name, file) {
   await ctx.close();
 }
 
+/** A shift held before letting go: its live preview on the board. */
+async function held(name, file) {
+  const { ctx, page, errors } = await fresh();
+  await page.evaluate(i => {
+    const a = window.__shiftland;
+    a.progress.unlocked = () => true;
+    a.controller.open(i);
+  }, indexOf(name));
+  await page.waitForTimeout(4500); // the note is up, and any chapter card has gone
+  const m = await page.evaluate(() => window.__shiftland.controller.session.lv.sol[0]);
+  const pts = await page.evaluate(m => {
+    const a = window.__shiftland, p = Number(m[1]), d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]];
+    const s = a.view.markSegments().find(k => k.plate === p), A = s.a.clone().lerp(s.b, .5), B = A.clone();
+    B.x += d[0]; B.z += d[1];
+    return [a.world.project(A), a.world.project(B)];
+  }, m);
+  await page.mouse.move(pts[0][0], pts[0][1]);
+  await page.mouse.down();
+  await page.mouse.move(pts[1][0], pts[1][1], { steps: 8 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: resolve(out, file) });
+  await page.mouse.up();
+  console.log(file, name, 'errors', errors.length);
+  if (errors.length) throw new Error(errors.join('\n'));
+  await ctx.close();
+}
+
 /** The map part way through a real run: the first twelve islands done. */
 async function map(file) {
   const save = { v: 1, levels: {} };
@@ -121,6 +154,7 @@ async function splash(file) {
 try {
   await banner('banner.png');
   await splash('embed-splash.png');
+  await held('The Long Pier', 'shot1-preview.png');
   await settled('Wishing Well', 'shot2-desert.png');
   await settled('Frost Line', 'shot3-tundra.png');
   await map('shot4-map.png');

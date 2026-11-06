@@ -1,7 +1,7 @@
 // One level's island: columns, creatures, decor, rails and move preview. The view holds no rules: it is told the State
 // to show and reconciles its columns by identity (plate + plate-anchored cell), so a move, an undo and a restart all
 // animate the same way.
-import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite, type SpriteMaterial } from 'three';
+import { Shape, ShapeGeometry, BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3, CylinderGeometry, TorusGeometry, ConeGeometry, Color, DoubleSide, GreaterDepth, type BufferGeometry, type Object3D, type MeshLambertMaterial, type Sprite, type SpriteMaterial } from 'three';
 import type { MoveDiff } from '../rules/diff.ts';
 import { DX, DY, railMoves, seaMask, shift, stateKey, type Dir, type Level, type State } from '../rules/rules.ts';
 import { beamRun } from '../game/reasons.ts';
@@ -74,7 +74,7 @@ export class IslandView {
   busy = false;
   dim = 0;
   private rail = new Group();
-  private railParts: { tube: Mesh; caps: Mesh[]; stops: Mesh[]; knob: Mesh; arrows: Mesh[] };
+  private railParts: { tube: Mesh; caps: Mesh[]; stops: Mesh[]; knob: Mesh; arrows: Mesh[]; big: Group };
   private ghostGroup = new Group();
   private dragPlate: number | null = null;
   private dragVec = new Vector3(); private dragNow = new Vector3();
@@ -87,6 +87,9 @@ export class IslandView {
   railHint = 0;
   /** With railHint: which way along the rail the hint points (+1 east/south, -1 west/north). */
   railDir = 0;
+  private railHintPlate: number | null = null;
+  /** Reduced motion: a hint's arrow and plate hold still. */
+  calm = false;
   private anchors: Mesh[] = [];
   private marks: { m: Group; knob: Mesh; plate: number; patX: number; patZ: number; grab: boolean; at?: Column }[] = [];
   /**
@@ -448,10 +451,13 @@ export class IslandView {
   private occupied(c: Column) { return this.creatures.some(k => this.creatureCell(k, this.state) === c.cell); }
 
   setHover(p: number | null) { this.hover = p; this.refreshHi(); }
-  setSelected(p: number | null) { this.selected = p; this.refreshHi(); this.showRail(p); }
+  setSelected(p: number | null) { this.selected = p; this.refreshHi(); this.showRail(p ?? (this.railHint ? this.railHintPlate : null)); }
+  /** A hint or the first levels' hand points at a plate, and with dir also the way; hover can't take the rail from it (audit Nov 6: the arrow sat on the wrong plate). */
+  pointRail(plate: number, dir: number) { this.railHint = 1; this.railHintPlate = plate; this.railDir = dir; this.showRail(plate); }
   private refreshHi() {
     for (let p = 0; p < this.lv.plates; p++) this.liftT[p] = this.selected === p ? .05 : this.hover === p ? .02 : 0;
     for (const c of this.cols) if (!c.dead) c.hiT = this.selected === c.plate ? 1 : this.hover === c.plate ? .55 : 0;
+    if (this.railHint && this.selected === null) return;
     if (this.railPlate === null && this.hover !== null) this.showRail(this.hover);
     else if (this.selected === null && this.hover === null && !this.railHint) this.showRail(null);
     else if (this.selected === null && this.hover !== null) this.showRail(this.hover);
@@ -472,9 +478,19 @@ export class IslandView {
     for (let i = 0; i < 2 * this.lv.maxTravel + 1; i++) { const s = new Mesh(stopG, new MeshBasicMaterial({ color: '#d7cdbd', transparent: true, depthTest: false, depthWrite: false })); s.renderOrder = 12; stops.push(s); this.rail.add(s); }
     const knob = new Mesh(new TorusGeometry(.13, .04, 8, 24), new MeshBasicMaterial({ color: '#30e5ff', transparent: true, depthTest: false, depthWrite: false })); knob.rotation.x = Math.PI / 2; knob.renderOrder = 13; this.rail.add(knob);
     const arrowG = new ConeGeometry(.17, .34, 3); const arrows = [0, 1].map(() => { const a = new Mesh(arrowG, new MeshBasicMaterial({ color: '#ffffff', transparent: true, depthTest: false, depthWrite: false })); a.renderOrder = 13; this.rail.add(a); return a; });
+    // a hint's arrow: one cell long, flat on the board along the rail, so the way reads at a glance on the diagonal view (playtest 11 P11-2b)
+    const big = new Group(), shaft = .16, head = .32, neck = .5, tip = .86;
+    const arrowAt = (grow: number) => {
+      const g = grow, s = new Shape();
+      s.moveTo(-g, -shaft - g); s.lineTo(neck, -shaft - g); s.lineTo(neck - g * .4, -head - g * 2); s.lineTo(tip + g * 2.2, 0); s.lineTo(neck - g * .4, head + g * 2); s.lineTo(neck, shaft + g); s.lineTo(-g, shaft + g); s.closePath();
+      const geo = new ShapeGeometry(s); geo.rotateX(-Math.PI / 2); return geo;
+    };
+    const flat = (grow: number, color: string, order: number) => { const m = new Mesh(arrowAt(grow), new MeshBasicMaterial({ color, side: DoubleSide, transparent: true, depthTest: false, depthWrite: false })); m.renderOrder = order; big.add(m); };
+    flat(.045, '#4a3526', 13); flat(0, '#fff6e6', 14);
+    big.visible = false; this.rail.add(big);
     this.rail.visible = false;
     this.group.add(this.rail);
-    return { tube, caps, stops, knob, arrows };
+    return { tube, caps, stops, knob, arrows, big };
   }
 
   private plateAnchor(p: number): [number, number] {
@@ -517,16 +533,18 @@ export class IslandView {
     // the rail shows what matters: every legal stop, plus one red stop past each end when something (not the rail's end) refuses it
     // Never further than two stops from the plate (a full rail runs off over the sea, through whoever stands in line),
     // and on a hint only the way the hint means
-    const dir = this.railHint ? this.railDir : 0;
+    const dir = this.railHint && p === this.railHintPlate ? this.railDir : 0;
+    const big = !!dir && (dir > 0 ? range.pos > 0 : range.neg > 0); // the hint's arrow is the track on this stretch: the track's end poked out past its tip
     const reach = 1; // the next stop each way: anything longer ran through creatures and the other plate's slider (the plate's own slider shows how far it has left)
     const lo = dir > 0 ? off : Math.max(-mt, off - range.neg - 1, off - reach), hi = dir < 0 ? off : Math.min(mt, off + range.pos + 1, off + reach);
     const tubeLen = hi - lo + .3, mid = (lo + hi) / 2;
     place(P.tube, mid); P.tube.scale.set(tubeLen, 1, 1); P.tube.rotation.y = ax === 1 ? 0 : Math.PI / 2;
     const sh = P.tube.userData.shadow as Mesh; sh.position.copy(P.tube.position); sh.position.y -= .01; sh.scale.copy(P.tube.scale); sh.rotation.copy(P.tube.rotation);
+    P.tube.visible = sh.visible = !big;
     P.caps.forEach((c, i) => { c.visible = (i ? hi : lo) === (i ? mt : -mt); place(c, (i ? mt + .12 : -mt - .12)); c.rotation.y = ax === 1 ? 0 : Math.PI / 2; });
     P.stops.forEach((st, i) => {
       const k = i - mt; place(st, k);
-      st.visible = k >= lo && k <= hi;
+      st.visible = k >= lo && k <= hi && !(big && k !== off);
       const rel = k - off, legal = rel === 0 || (rel < 0 ? -rel <= range.neg : rel <= range.pos);
       (st.material as MeshBasicMaterial).color.set(legal ? '#fff7e6' : '#d8574a');
       st.scale.setScalar(legal ? 1 : .72);
@@ -534,13 +552,20 @@ export class IslandView {
     place(P.knob, off);
     P.knob.userData.base = P.knob.position.clone();
     P.arrows.forEach((a, i) => {
-      const sign = i ? 1 : -1, ok = (i ? range.pos > 0 : range.neg > 0) && (!dir || dir === sign);
+      const sign = i ? 1 : -1, ok = !dir && (i ? range.pos > 0 : range.neg > 0);
       a.visible = ok;
       // on the stop it points at, tip past the end: beside the ring it read as a funnel, and playtest 5 followed it the wrong way (P5-1)
       place(a, off + sign * .9);
       a.rotation.set(Math.PI / 2, 0, ax === 1 ? -sign * Math.PI / 2 : (sign > 0 ? 0 : Math.PI)); // outward, the way it goes
       a.userData.base = a.position.clone(); a.userData.sign = sign; a.userData.ax = ax;
     });
+    P.big.visible = big;
+    if (P.big.visible) {
+      const step = dir * .16; // starts just past the knob
+      P.big.position.set(ax === 1 ? ax0 + off + step : ax0, y, ax === 1 ? az0 : az0 + off + step);
+      P.big.rotation.y = ax === 1 ? (dir > 0 ? 0 : Math.PI) : (dir > 0 ? -Math.PI / 2 : Math.PI / 2);
+      P.big.userData.base = P.big.position.clone(); P.big.userData.sign = dir; P.big.userData.ax = ax;
+    }
   }
 
   // ---- move preview (design audit S1: only the difference is drawn)
@@ -549,6 +574,9 @@ export class IslandView {
   private ghostArrive = new MeshBasicMaterial({ color: '#fff4cf', transparent: true, opacity: .34, depthWrite: false });
   private ghostFlood = new MeshBasicMaterial({ map: sprites().hatch, transparent: true, opacity: .86, depthWrite: false, side: DoubleSide });
   private ghostLake = new MeshBasicMaterial({ map: sprites().hatchLake, transparent: true, opacity: .86, depthWrite: false, side: DoubleSide });
+  // a hint's hatching is lighter, so the moving plate's own outline still reads through it (concept critic T2)
+  private ghostFloodSoft = new MeshBasicMaterial({ map: sprites().hatch, transparent: true, opacity: .42, depthWrite: false, side: DoubleSide });
+  private ghostLakeSoft = new MeshBasicMaterial({ map: sprites().hatchLake, transparent: true, opacity: .42, depthWrite: false, side: DoubleSide });
   private planeG = new PlaneGeometry(.96, .96);
 
   clearPreview() {
@@ -556,21 +584,29 @@ export class IslandView {
     for (const s of this.badgePool) s.visible = false;
     for (const c of this.creatures) c.hideWish(false);
   }
-  showPreview(diff: MoveDiff | null, tell = true) {
+  showPreview(diff: MoveDiff | null, tell = true, wholePlate = false) {
     this.clearPreview();
     if (!diff) return;
     const s = this.state;
+    // a hint's preview also lays the plate's new footprint over the land it takes: the second press says where the plate ends up (playtest 11 P11-2b)
+    if (wholePlate) for (const cell of diff.arrive) {
+      if (s.plate[cell] < 0 || diff.rise.some(([c]) => c === cell)) continue;
+      const [x, z] = this.xz(cell), m = new Mesh(this.planeG, this.ghostArrive);
+      m.rotation.x = -Math.PI / 2; m.position.set(x, topY(s.elev[cell]) + .025, z); m.renderOrder = 7; this.ghostGroup.add(m);
+    }
     for (const [cell, h] of diff.rise) {
       const [x, z] = this.xz(cell), a = topY(s.elev[cell]), b = topY(h);
       const m = new Mesh(this.ghostBoxG, this.ghostRise); m.scale.set(1, Math.max(.05, b - a), 1); m.position.set(x, (a + b) / 2, z); m.renderOrder = 7; this.ghostGroup.add(m);
-      const sp = makeSprite(sprites().chevrons, .46, 15); sp.position.set(x, b + .3, z); sp.userData.pulse = true; this.ghostGroup.add(sp);
+      // on a hint the arrow says which way: the chevrons only say "rises", so they stay small and still (concept critic T1)
+      const sp = makeSprite(sprites().chevrons, wholePlate ? .26 : .46, 15); sp.position.set(x, b + (wholePlate ? .2 : .3), z); sp.userData.pulse = !wholePlate; this.ghostGroup.add(sp);
     }
     // the board after the move, so each flooded cell can say whether it joins the sea or closes into a lake
     const after = s.plate.slice(); for (const c of diff.arrive) after[c] = 0; for (const c of diff.flood) after[c] = -1;
     const sea = diff.flood.length ? seaMask(this.lv, { ...s, plate: after }) : null;
     for (const cell of diff.flood) {
       const [x, z] = this.xz(cell);
-      const m = new Mesh(this.planeG, sea?.[cell] ? this.ghostFlood : this.ghostLake); m.rotation.x = -Math.PI / 2; m.position.set(x, topY(s.elev[cell]) + .025, z); m.renderOrder = 7; this.ghostGroup.add(m);
+      const hatch = sea?.[cell] ? (wholePlate ? this.ghostFloodSoft : this.ghostFlood) : (wholePlate ? this.ghostLakeSoft : this.ghostLake);
+      const m = new Mesh(this.planeG, hatch); m.rotation.x = -Math.PI / 2; m.position.set(x, topY(s.elev[cell]) + .025, z); m.renderOrder = 7; this.ghostGroup.add(m);
     }
     for (const cell of diff.arrive) {
       if (s.plate[cell] >= 0) continue;
@@ -625,7 +661,7 @@ export class IslandView {
       }
       // a hint's plate breathes, so "this one" is plain among neighbours of nearly the same colour (playtest 4 P4)
       const breathing = this.railHint && this.railPlate === c.plate && this.selected !== c.plate;
-      const dh = (breathing ? .32 + .28 * Math.sin(t * 4.2) : c.hiT) - c.hi;
+      const dh = (breathing ? (this.calm ? .45 : .32 + .28 * Math.sin(t * 4.2)) : c.hiT) - c.hi;
       if (Math.abs(dh) > .004) { c.hi += dh * Math.min(1, dt * 12); writeHi(this.mesh, c.idx, c.hi); }
     }
     for (let i = this.cols.length - 1; i >= 0; i--) if (this.cols[i].dead) this.cols.splice(i, 1);
@@ -664,6 +700,8 @@ export class IslandView {
         const w = Math.sin(t * 5) * .05 * a.userData.sign;
         a.position.set(b.x + (a.userData.ax === 1 ? w : 0), b.y, b.z + (a.userData.ax === 1 ? 0 : w));
       }
+      const big = this.railParts.big, bb = big.userData.base as Vector3 | undefined;
+      if (bb && big.visible) { const w = this.calm ? 0 : (Math.sin(t * 3.2) * .5 + .5) * .07 * big.userData.sign; big.position.set(bb.x + (big.userData.ax === 1 ? w : 0), bb.y, bb.z + (big.userData.ax === 1 ? 0 : w)); }
       const knobG = this.railParts.knob; const glow = 1 + Math.sin(t * 4) * .08; knobG.scale.set(glow, glow, 1);
       // the knob rides the dragged plate; the track stays put
       const kb = knobG.userData.base as Vector3 | undefined;

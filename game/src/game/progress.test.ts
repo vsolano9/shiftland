@@ -65,6 +65,16 @@ describe('Progress', () => {
     expect(p.unlocked(1)).toBe(false);
     expect(p.unlocked(3)).toBe(true);
   });
+  it('an island you solved stays open when an update adds an unsolved teacher before it', () => {
+    const s = new Mem();
+    const old = new Progress(['a', 'c', 'd'], s);
+    old.complete(0, 1, 1); old.complete(1, 1, 1); old.complete(2, 1, 1);
+    const p = new Progress(['a', 'b', 'c', 'd'], s, 0, [1]);
+    expect(p.unlocked(1)).toBe(true); // the new island
+    expect(p.unlocked(2)).toBe(true); // solved before the update
+    expect(p.unlocked(3)).toBe(true);
+    expect(p.next()).toBe(1); // Play goes to the new one
+  });
   it('blocked storage: the game still starts and plays in memory', () => {
     const p = new Progress(names, new Broken());
     expect(p.unlocked(0)).toBe(true);

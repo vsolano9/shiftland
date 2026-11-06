@@ -36,6 +36,8 @@ Playwright, no account, on `https://thechosenvictor.itch.io/shiftland`: Chromium
 
 ## Jam entry
 
+Logged-out read, Nov 6 (Playwright, no account): the entry page answers 200 and shows the title, the repo link and the answers, with no edit link (`jam-entry-loggedout.png`). The jam's Submissions tab says "Submissions will be available after the jam has ended" for every entry, so the list can't show Shiftland until Dec 1 (`jam-entries-loggedout.png`).
+
 Answers as submitted are in `itch-page.md`. All commits are from Nov 3 on, inside the jam (opened Nov 1, closes Dec 1 at 22:37 CET). The entry stays open to edits until then; a code change only needs a new zip on the itch page.
 
 ## Performance (production build, dev PC)

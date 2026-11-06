@@ -228,7 +228,7 @@ class App {
     music.oninput = () => { this.settings.music = +music.value; this.saveSettings(); };
     sfx.oninput = () => { this.settings.sfx = +sfx.value; this.saveSettings(); this.audio.play('select', { plate: 1 }); };
     muted.onchange = () => { this.settings.muted = muted.checked; this.saveSettings(); };
-    reduced.onchange = () => { this.settings.reduced = reduced.checked; this.world.reducedMotion = reduced.checked; this.world.fx.reduced = reduced.checked; document.body.classList.toggle('calm', reduced.checked); this.saveSettings(); };
+    reduced.onchange = () => { this.settings.reduced = reduced.checked; this.world.reducedMotion = reduced.checked; this.world.fx.reduced = reduced.checked; for (const v of this.world.views) v.calm = reduced.checked; document.body.classList.toggle('calm', reduced.checked); this.saveSettings(); };
     const assist = $<HTMLInputElement>('s-assist');
     assist.onchange = () => { this.settings.assist = assist.checked; this.saveSettings(); };
     this.pinEls = this.levels.map((_, i) => {
@@ -375,7 +375,9 @@ class App {
     v.celebrate(false); v.setBloom(false);
     v.reconcile(s.state, true, { fromRestart: true });
     $('stuck').classList.add('hidden-el'); $('b-undo').classList.remove('glow');
+    this.endHintShow();
     this.hintLevel = 0;
+    v.railHint = 0; v.railDir = 0; v.calm = this.settings.reduced; this.hinted = null; // an arrow from the last visit outlived its hand (audit Nov 6)
     this.tries = 0; this.nudged = false; this.hintAsked = false; $('b-hint').classList.remove('glow');
     this.firstMoveMade = s.moves > 0;
     this.setFlying(true); // before the flight: with reduced motion it lands, and unlocks, inside this call
@@ -390,10 +392,11 @@ class App {
     const h = $('hint');
     h.textContent = i === 0 && tut ? 'Drag a plate along its rail' : '';
     h.classList.add('off');
+    h.classList.remove('up'); h.style.top = ''; h.style.left = ''; h.style.maxWidth = ''; // a hint's raised place from another island put this line over the goat's thought (audit Nov 6)
     if (i === 0 && tut) this.world.after(fly ? 1.3 : .1, () => { if (this.view === v && !this.firstMoveMade && this.screen === 'level') h.classList.remove('off'); });
     this.handStart = tut ? this.world.time.value : 0;
     this.handMove = tut && lv.sol?.[0] ? parseMove(lv.sol[0]) : null;
-    if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove) { v.railHint = 1; v.railDir = this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1; v.showRail(this.handMove.plate); } });
+    if (tut) this.world.after(fly ? 1.4 : .2, () => { if (this.view === v && !this.firstMoveMade && this.handMove && this.screen === 'level') v.pointRail(this.handMove.plate, this.handMove.dir === 1 || this.handMove.dir === 2 ? 1 : -1); });
     // Things the game stops saying or starts asking, said once at the door of the island where they change (second playtest P3, P7).
     if (this.controller.resumed) { this.controller.resumed = false; this.world.after(fly ? 1.6 : .3, () => { if (this.view === v && this.screen === 'level') this.flashHint('Right where you left off'); }); }
     // asking a creature is the best teacher in the game, and only one line in Settings ever said so (playtest 6 P6-11)
@@ -408,7 +411,7 @@ class App {
     this.world.focusIsland(v.index, fly ? 1.35 : .01, () => { this.setFlying(false);
       if (this.view !== v) return;
       const say = () => { if (this.view === v && this.screen === 'level') this.showBlurb(11); }; // long enough to read it twice: it is the level's one clue (playtest 3 P6)
-      if (chapter) window.setTimeout(say, 1700); else say();
+      if (chapter) window.setTimeout(say, 2200); else say(); // after the chapter card has faded: the two overlapped for half a second (playtest 13)
     });
     if (fly) this.audio.play('whoosh');
   }
@@ -465,7 +468,8 @@ class App {
     const s = this.controller.session, v = this.view;
     if (!sol) { /* "see": a few boards are solvable past the search's depth */ this.flashHint('I can see no way forward from here. Try Undo'); $('b-undo').classList.add('glow'); return; }
     const m = parseMove(sol.first);
-    v.setSelected(null); v.railHint = 1; v.railDir = 0; v.showRail(m.plate); // the first press names the plate, not the way
+    v.pointRail(m.plate, 0); v.setSelected(null); // the first press names the plate, not the way
+    v.setQuiet(true); this.hintView = v; // wish bubbles sat on the hand and the knob, and the chips say the same (playtest 11 P11-2b, T3)
     // once the star is out of reach this run, the hints stop warning about it (second playtest P10)
     const gone = s.hinted || (s.par !== undefined && s.moves + sol.min > s.par);
     // 7 moves to go on a par 6 island, and nothing said a fresh start was nearer (playtest 6 P6-1)
@@ -480,8 +484,8 @@ class App {
     }
     s.hinted = true;
     this.controller.saveRun();
-    v.railDir = m.dir === 1 || m.dir === 2 ? 1 : -1; v.showRail(m.plate);
-    this.handMove = m; this.handStart = this.world.time.value; this.hinted = { ...m, at: s.state };
+    v.pointRail(m.plate, m.dir === 1 || m.dir === 2 ? 1 : -1);
+    this.handMove = m; this.handStart = this.world.time.value; this.hinted = { ...m, at: s.state }; this.handLean = true;
     const togo = `${sol.min} move${sol.min === 1 ? '' : 's'} to go`;
     // the plate going straight back where it came from read as "undo" to a cold player on The Cut (playtest 11): say it carries the land it bit
     const last = s.log[s.log.length - 1], why = moveWhy(v.lv, s.state, m.plate, m.dir);
@@ -493,9 +497,10 @@ class App {
   /** A panel over the plate it names hid the very hand it describes (playtest 5 P5-7): it moves up when the rail runs under it. */
   private hintOffPlate(plate: number, dir: number) {
     const h = $('hint'), r = h.getBoundingClientRect(), a = this.view.railAnchor(plate), D = new Vector3(DX[dir], 0, DY[dir]);
-    const under = [-1, 0, 1, 2].some(k => {
+    // the hand travels one cell: asking for two sent the panel up over the back of the board when it was clear of the hand (critic T4, Nov 6)
+    const under = [-1, 0, .5, 1].some(k => {
       const [x, y] = this.world.project(a.clone().addScaledVector(D, k));
-      return x > r.left - 50 && x < r.right + 50 && y > r.top - 50 && y < r.bottom + 50;
+      return x > r.left - 34 && x < r.right + 34 && y > r.top - 46 && y < r.bottom + 10;
     });
     h.classList.toggle('up', under);
     // on a short landscape phone the chips stand in a column down the left: a raised panel keeps to the right of them
@@ -505,6 +510,21 @@ class App {
   }
   private hintLevel = 0;
   private hints = new HintSearch(createHintWorker);
+  private hintView: IslandView | null = null; private handLean = false; private leaning = false; private hintPreview = false;
+  /** The second hint's show on the board ends: bubbles back, plate at rest, preview gone. */
+  private endHintShow() {
+    const v = this.hintView; this.hintView = null;
+    this.handLean = false;
+    if (v) { v.setQuiet(false); if (this.leaning) v.setDrag(null); if (this.hintPreview) v.clearPreview(); }
+    this.leaning = false; this.hintPreview = false;
+  }
+  /** A hint is about the board it was asked on: after Undo or Restart its hand and arrow pointed at a move that no longer existed. */
+  private forgetHint(v: IslandView) {
+    this.endHintShow();
+    if (!this.hintLevel) return;
+    this.hintLevel = 0; this.handStart = 0; this.handMove = null; this.hinted = null;
+    v.railHint = 0; v.railDir = 0; v.showRail(null);
+  }
 
   // ---- HUD
   private buildChips() {
@@ -699,6 +719,7 @@ class App {
   private restartView() {
     const v = this.view, s = this.controller.session;
     $('done').classList.add('hidden'); v.celebrate(false); v.setBloom(false); this.completeTimer = false;
+    this.forgetHint(v);
     this.hintLevel = 0; v.showMarks = true; this.solveGen++;
     clearTimeout(this.flashT); clearTimeout(this.hintSlow); $('hint').classList.add('off'); // a hint about the old board says nothing about this one
     if (v.railHint) { v.railHint = 0; v.railDir = 0; v.showRail(null); }
@@ -716,6 +737,7 @@ class App {
     const v = this.view, s = this.controller.session, lv = s.lv;
     this.firstMoveMade = true;
     this.dropHint();
+    this.endHintShow();
     this.handStart = 0; this.handMove = null; v.railHint = 0;
     $('hint').classList.add('off'); $('b-undo').classList.remove('glow'); $('stuck').classList.add('hidden-el');
     if (this.hintLevel) v.showRail(plate); // the pointed-at plate lets go: the hint was for the board before this move
@@ -762,7 +784,7 @@ class App {
       this.flashHint('Not yet. Try the other way', 2.4);
       this.world.after(1.2, () => {
         const next = this.controller.session === s && s.state === at && !this.drag ? solve(lv, 6, at)?.firstSolution[0] : undefined;
-        if (next) { this.handMove = parseMove(next); this.handStart = this.world.time.value; }
+        if (next) { const m = parseMove(next); this.handMove = m; this.handStart = this.world.time.value; v.pointRail(m.plate, m.dir === 1 || m.dir === 2 ? 1 : -1); }
       });
     }
     this.world.after(MOVE_TIME + .05, () => {
@@ -811,6 +833,9 @@ class App {
   private tries = 0; private nudged = false; private hintAsked = false;
   private afterUndo() {
     const v = this.view, s = this.controller.session;
+    this.dropHint(); // a search still running was about the board before this undo
+    this.forgetHint(v);
+    clearTimeout(this.flashT); $('hint').classList.add('off'); // "2 moves to go" stayed up on a board 3 moves away (audit Nov 6)
     v.clearPreview();
     const r = v.reconcile(s.state, true); void r;
     this.audio.play('undo');
@@ -956,8 +981,15 @@ class App {
       const u = ((t - this.handStart) % 2.2) / 2.2, e = u < .2 ? 0 : u > .75 ? 1 : (u - .2) / .55, k = e * e * (3 - 2 * e);
       const [ax, ay] = this.world.project(a), [bx, by] = this.world.project(b);
       hand.style.opacity = u > .9 ? '0' : '1';
-      hand.style.transform = `translate(${(ax + (bx - ax) * k - 19).toFixed(1)}px, ${(ay + (by - ay) * k - 4).toFixed(1)}px) scale(${u < .2 ? 1.05 : .95})`;
-    }
+      const fit = Math.min(1, Math.max(.65, Math.hypot(bx - ax, by - ay) / 60)); // on a phone's small board a full-size hand covered the arrow it demonstrates (audit Nov 6)
+      hand.style.transform = `translate(${(ax + (bx - ax) * k - 19).toFixed(1)}px, ${(ay + (by - ay) * k - 4).toFixed(1)}px) scale(${((u < .2 ? 1.05 : .95) * fit).toFixed(3)})`;      // the hinted plate leans the way the hand goes, and what the move would do lies on the board (playtest 11 P11-2b: "the first slide shows nothing")
+      if (this.handLean && this.hintView === this.view) {
+        const s = this.controller.session;
+        if (!this.hintPreview) { const next = shift(s.lv, s.state, m.plate, d); if (next) this.view.showPreview(previewDiff(s.lv, s.state, next), false, true); this.hintPreview = true; }
+        if (!this.settings.reduced) { const l = k * (u > .9 ? (1 - u) / .1 : 1) * .22; this.view.setDrag(m.plate, DX[d] * l, DY[d] * l); this.leaning = true; }
+        else if (this.leaning) { this.view.setDrag(null); this.leaning = false; } // switched on mid-show: the plate froze a tenth of a cell out (audit Nov 6)
+      }
+    } else if (this.leaning) { this.view.setDrag(null); this.leaning = false; }
   }
 
   // ---- input
@@ -1030,6 +1062,7 @@ class App {
     if (this.screen === 'map' && e.pointerType === 'mouse') { const i = this.world.pickIsland(e.clientX, e.clientY); (e.target as HTMLElement).style.cursor = i !== null && this.progress.unlocked(i) ? 'pointer' : 'default'; return; }
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
     const { plate, start, y } = this.drag, v = this.view;
+    if (this.hintView === v) { this.endHintShow(); v.setQuiet(true); } // the player's hand takes over, before this drag makes its own offset and preview (Codex review, Nov 6: afterwards it wiped them)
     const pt = this.world.groundPoint(e.clientX, e.clientY, y); if (!pt) return;
     const dx = pt.x - start.x, dz = pt.z - start.z;
     (e.target as HTMLElement).style.cursor = 'grabbing';
@@ -1049,7 +1082,8 @@ class App {
     if (!this.drag || e.pointerId !== this.drag.pointer) return;
     const p = this.drag.plate, across = this.drag.across, far = this.drag.far, tapped = far < .12, refused = this.drag.refused; // a finger shakes: this much is still a tap
     this.drag = null; this.dragging = false;
-    this.view.setQuiet(false);
+    this.view.setQuiet(this.hintView === this.view); // a tap during the hint's show leaves it running
+    this.hintPreview = false; // and the release cleared its preview, so the frame lays it again
     this.view.noteDragEnd(p);
     this.view.setDrag(null);
     const before = this.controller.session.moves;
@@ -1066,7 +1100,8 @@ class App {
     if (!this.drag) return;
     const p = this.drag.plate;
     this.drag = null; this.dragging = false;
-    this.view.setQuiet(false);
+    this.view.setQuiet(this.hintView === this.view); // a tap during the hint's show leaves it running
+    this.hintPreview = false; // and the release cleared its preview, so the frame lays it again
     this.view.noteDragEnd(p); this.view.setDrag(null);
     this.controller.cancelDrag();
     this.controller.release();

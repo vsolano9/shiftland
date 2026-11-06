@@ -35,12 +35,15 @@ export class Progress {
       }
     } catch { /* unreadable or corrupt: start fresh */ }
     if (!storage) this.persistent = false;
+    this.leftOff = this.savedRun()?.name ?? null;
   }
+  /** The island a saved run was on when the game loaded: an update adding a teacher before it must not lock the player out and wipe that run (Codex review, Nov 6). */
+  private leftOff: string | null = null;
 
   record(name: string): LevelRecord | undefined { return this.data.levels[name]; }
   solved(i: number): boolean { return !!this.data.levels[this.names[i]]?.solved; }
   unlocked(i: number): boolean {
-    if (i === 0 || this.solved(i - 1)) return true;
+    if (i === 0 || this.solved(i) || this.solved(i - 1) || this.names[i] === this.leftOff) return true; // an island you have solved or were playing stays open, even if a later update adds a new one before it (Ferry Lane, Nov 6)
     if (i < this.orderedUntil) return false;
     // an island that teaches a rule can't be skipped: what comes after it assumes the player has met that rule
     if (this.teachers.some(t => t < i && !this.solved(t))) return false;

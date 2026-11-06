@@ -513,7 +513,7 @@ export class World {
 
   setActive(v: IslandView | null) {
     if (v === this.active) return;
-    if (this.active) { this.active.clearPreview(); this.active.setSelected(null); this.active.setHover(null); this.active.celebrate(false); this.active.showMarks = false; this.active.update(0, this.time.value); }
+    if (this.active) { this.active.clearPreview(); this.active.railHint = 0; this.active.setSelected(null); this.active.setHover(null); this.active.celebrate(false); this.active.showMarks = false; this.active.update(0, this.time.value); }
     this.active = v;
     if (v) {
       const span = v.span + 7;

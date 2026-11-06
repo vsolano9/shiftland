@@ -6,7 +6,7 @@ A tectonic-shift puzzle for [GitHub Game Off 2026](https://itch.io/jam/game-off-
 
 A small island is cut into tectonic plates. Slide one along its rail: where it pushes into its neighbour the land rises into mountains, and where it pulls away the sea pours in. Goats want peaks, villages want to stay low and whole, lighthouses want a coast, buoys want open sea, oases want a still lake and penguins want a floe by the water. Make them all happy at once, in as few shifts as you can.
 
-- 25 islands across meadow, coast, desert, tundra and a finale
+- 26 islands across meadow, coast, desert, tundra and a finale
 - every island is solver-checked: it can always be solved, and par is the true minimum
 - free undo and restart, a live preview of each shift, and hints when you are stuck
 - mouse, keyboard or touch: drag a plate along its rail, or select it and use the arrow keys. Z undo, R restart, H hint, M map

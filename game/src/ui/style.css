@@ -73,7 +73,7 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
 #card.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
 #card .big { font-size: clamp(26px, 3.4vw, 40px); font-weight: 700; line-height: 1.1; }
 #card .small { font-size: clamp(14px, 1.6vw, 19px); font-weight: 500; }
-#hand { position: absolute; left: 0; top: 0; width: 46px; height: 46px; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); transition: opacity .25s; z-index: 3; }
+#hand { position: absolute; left: 0; top: 0; width: 46px; height: 46px; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); transition: opacity .25s; z-index: 3; transform-origin: 19px 4px; /* the fingertip, which stays on the rail at any size */ }
 #hand svg { width: 100%; height: 100%; }
 
 /* Level complete: the chips have said their piece, the panel takes over */
@@ -194,9 +194,6 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #ending h2 { font-size: 24px; }
   #ending p { font-size: 14px; margin: 2px 0 8px; }
   #e-thanks { font-size: 11px; margin-top: 8px; }
-  #logo { left: 4vw; transform: none; width: 44vw; top: 10vh; margin-top: 0; }
-  #tagline { left: 4vw; width: 44vw; transform: none; text-align: center; bottom: auto; top: calc(10vh + 14.7vw + 6px); margin-top: 0; }
-  #play { left: 26vw; bottom: 9vh; top: auto; margin-top: 0; }
   #goals { left: 10px; right: auto; top: calc(70px + var(--safe-t)); bottom: auto; flex-direction: column; align-items: flex-start; padding: 0; }
   #hint { bottom: calc(8px + var(--safe-b)); left: 60%; max-width: 76vw; }
   #blurb { top: 6px; max-width: 42vw; font-size: 13px; }

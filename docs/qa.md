@@ -125,7 +125,41 @@ All nine solved, 0 page errors. Unaided: 11, 12, 13 (stars). With Hint: 8, 9, 10
 
 "good game, i completed all levels". The map showed 25 / 25 stars (`D:\Work\_local\evidence\2026-11-06-shiftland-victor-play\map-25-of-25.jpg`), and a star means solved within par without showing the move, so every island including the Coast was solved at par at most, with no second hint on the solving run. At most about 36 minutes passed between the shot of his first move and that map, by the two screenshots' timestamps. His words afterwards: "it was fun, so aha it is. i solved some in first try and some with hints, some were hard but it can all be solved", and "the sound is good".
 
-This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as polish (solver effort still jumps 4, 32, 97; agent testers still struggled), to recheck with someone other than Victor, who is one strong player and knows the project.
+This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as polish (solver effort still jumps 4, 32, 97; agent testers still struggled), to recheck with someone other than Victor, who is one strong player and knows the project. Nov 6: with Ferry Lane and the new second hint a cold agent solved all of 7 to 11 (playtest 13 below), so the agent evidence no longer shows a wall there. A person's cold play comes when the jam opens for ratings.
+
+### After Victor's play (2026-11-06, for P10-2 and P11-2b)
+
+- **Ferry Lane**, island 8 between The Long Pier and Harbour Row (par 2, effort 10): one plate bites straight in and goes home, which is the move The Cut asks for. The Coast now reads effort 4, 10, 32, 97, 116, 137 and the game has 26 islands. Saves are keyed by name, so a solved island that now sits after an unsolved Ferry Lane stays open (`progress.ts`, unit test).
+- **The second hint shows the whole move**: a big arrow along the rail, the hand sliding it, the plate leaning that way, and a preview of what changes on the whole plate. Undo, Restart or the move itself take the show away (e2e `the second hint shows the move…`). Concept: `concepts/hint-move-v1.png`.
+
+### Design audit (fresh-eyes reviewer, Nov 6, live in Chromium)
+
+| Id | Finding | Result |
+|---|---|---|
+| A1 | Hover moved the hint's big arrow to the wrong plate, on island 1 too | Fixed: `IslandView.pointRail` ties the arrow to its plate; hover can't take the rail; selecting another plate shows that plate's plain rail, and letting go brings the hint back. e2e `a hint keeps its rail…` |
+| A2 | The arrow survived leaving the island, with no hand | Fixed: `setActive` and `enterLevel` clear it. Same e2e |
+| A3 | Undo left "2 moves to go" on a board 3 moves away | Fixed: Undo hides the line and drops a running hint search. Same e2e |
+| A4 | Ferry Lane has the same solution shape as Stolen Peak, and might strengthen The Cut's trap | Kept, on evidence: the cold player below carried its lesson into Harbour Row, The Cut and Salt Point. One agent's play, so it's support, not proof |
+| A5, A6 | A fast first drag lost its preview; a tap during the show brought bubbles back | Fixed (Codex review found the first). e2e `the second hint shows the move…` drags with one whole-cell mouse move |
+| A7 | Esc hid the rail while hand and lean carried on | Fixed by A1: letting go of a selection shows the hinted rail again |
+| A8, A9 | Reduced motion: the plate froze a tenth of a cell out when switched on mid-show; arrow and plate kept pulsing | Fixed: the lean lets go; `IslandView.calm` holds them still |
+| A10 | The tutorial line sat on the goat's thought | Fixed at the cause: a hint's raised place carried over from another island, and `enterLevel` now resets it. e2e checks the class |
+| A11 | White fleck at the arrow tip | Fixed: it was the track's end poking out (`B0-tip.png` in session scratch). The track and far stops hide while the big arrow lies on them; e2e checks the track, and `thecut-h2-desk.png` shows no fleck |
+| A12 | On a phone the hand covered the arrow | Fixed: the hand scales with the cell, down to .65, around its fingertip (`thecut-h2-phone.png`) |
+| A13 | `design-plates.md` still said 25 islands | Fixed |
+
+### Playtest 13 (islands 7 to 11 cold, 26-island build; a Sonnet verifier, real mouse and keys, no solutions)
+
+All five solved, no errors, verdict PASS: "mostly fair". 7, 8 and 9 earned stars; 9 took hint 1; 10 and 11 took both hints. Compare playtest 11, where 9 and 10 (now 10 and 11) went unsolved. It came closest to quitting on Salt Point, at 3 of 3 moves with 2 of 3 wants, when the first hint said "From here it takes 6: Restart is shorter", which it called honest and useful. It solved these far faster than playtest 11, about 2 minutes each, so it is one fast reader of screenshots: The Coast's ramp is better but still not proven for a person. Victor's own play, before Ferry Lane existed, solved everything ("some were hard but it can all be solved"). Shots: `2026-11-06-shiftland-polish\pt13\shots\`.
+
+| Id | Finding | Result |
+|---|---|---|
+| P13-1 | The chapter card and the island's note overlapped for half a second (`i7_a.png`) | Fixed: the note comes 2.2 s after landing, once the card has faded |
+| P13-2 | The rail shows arrows both ways while a plate is selected | Kept: both ways are legal, and a drag shows the way it goes (`i11_p1.png`) |
+| P13-3 | The goat looks off its tower in the win shot (`i11_done.png`) | Measured, not a fault: root at the cell's centre, legs centred on it; marked on screen in `goatmark-10-3.png`. The offset is the win's hop (`creatures.ts`) |
+| P13-4 | The second hint's text gone by a later shot (`i11_h3b.png`) | Kept: it stays at least 6 s. The hand and arrow stay until the move |
+| P13-5 | Orange chevrons lie on the plate that doesn't move, with the moving plate elsewhere (`i11_h2a.png`) | Kept: chevrons mark where land will rise, as in every drag preview; the tester could still tell plate and way from the shots alone |
+| P13-6 | Tall strata on Ferry Lane and Harbour Row look confusing | Kept: that is how a raised stack reads throughout; nothing else reported it |
 
 ### Playtest 11 findings (islands 7 to 10 cold, 25-island build with Harbour Row, before the knob fix; a Sonnet verifier through the pilot, 36 minutes)
 

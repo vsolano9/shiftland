@@ -19,7 +19,7 @@ A small island is cut into tectonic plates. Slide one along its rail:
 
 Goats want peaks. Villages want to stay low and whole. Lighthouses want a coast. Buoys want open sea. Oases want a still lake, and penguins want a floe by the water. Make them all happy at once in as few shifts as you can.
 
-- 25 islands across meadow, coast, desert, tundra and a finale
+- 26 islands across meadow, coast, desert, tundra and a finale
 - every level is solver-checked: it can always be solved, and par is the true minimum
 - free undo and restart; a live preview shows what a shift will do before you let go
 - hints when you are stuck: the first points at a plate, the second shows the move
@@ -39,13 +39,13 @@ Source: github.com/vsolano9/shiftland. All rights reserved: the code is public t
 ## Metadata
 
 - Kind: HTML, "This file will be played in the browser"; viewport 960×540, "Mobile friendly" on, fullscreen button on, "Automatically start on page load" off (audio unlock needs a click). 960×540 because at 1280×720 itch's Follow / Add To Collection / Related games buttons covered the game's top-right buttons in windows under about 1700 wide, and the frame overflowed a 1024-wide window (Nov 6).
-- Theme (concept `concepts/itch-page-theme-v1.png`): background `#0b6e8a`, column `#fff6e6`, text `#4a3526`, links `#d9482c`, screenshots in the sidebar (the default hid them). Banner `press/banner.png`, 1920×200, shown at 960×100: it pushes the frame below itch's buttons at every window width. `press/embed-splash.png` sits behind the Run game button. `npm run press` re-renders both; banner and splash don't update on itch by themselves.
+- Theme (concept `concepts/itch-page-theme-v1.png`): background `#0b6e8a`, column `#fff6e6`, text `#4a3526`, links `#d9482c`, Lato at "Very Large" (19 px; "Large" read small beside the concept), screenshots in the sidebar (the default hid them). Banner `press/banner.png`, 1920×200, shown at 960×100: it pushes the frame below itch's buttons at every window width. `press/embed-splash.png` sits behind the Run game button. `npm run press` re-renders both; banner and splash don't update on itch by themselves.
 - Pricing: no payments. Comments on.
 - Genre: Puzzle. Tags: low-poly, puzzle, relaxing, short, singleplayer (itch's tag box refused `browser` and `game-off-2026`).
 - itch's AI form: "Yes", with Text & Dialog and Code ticked; Graphics and Sounds unticked, because the shipped art and sound are made by the code at runtime (the body says so). The live page reads "AI Assisted, Code, Text".
 - Jam form, submitted Nov 6 10:46 CET (`https://itch.io/jam/game-off-2026/rate/5309017`):
   - GitHub repository URL: `https://github.com/vsolano9/shiftland`
-  - Game description: "Slide tectonic plates to raise mountains and let the sea in. Goats want peaks, villages want to stay low and whole, lighthouses want a coast, buoys want open sea, oases want a still lake and penguins want a floe by the water. Make them all happy at once in as few shifts as you can. 25 solver-checked islands, free undo, a live preview of every shift, hints when you are stuck. Plays in the browser with mouse, keyboard or touch."
+  - Game description: "Slide tectonic plates to raise mountains and let the sea in. Goats want peaks, villages want to stay low and whole, lighthouses want a coast, buoys want open sea, oases want a still lake and penguins want a floe by the water. Make them all happy at once in as few shifts as you can. 26 solver-checked islands, free undo, a live preview of every shift, hints when you are stuck. Plays in the browser with mouse, keyboard or touch."
   - Theme: "Plate tectonics: every move shifts a piece of the island. Push a plate into its neighbour and the land rises; pull it away and the sea pours in."
   - AI usage: Code, Art / graphics / animation, Music / sound effects / voice, Writing, Game design, Testing. Extent: "Almost everything - predominantly AI-generated". This form asks how AI was used during development, so art and sound are ticked here (AI wrote the code that makes them, and made the concept images); itch's own form asks about generated assets in the build, so those stay unticked there.
   - An edit to the description or the island count on the page should also be made here and through "Edit this submission".

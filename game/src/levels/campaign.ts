@@ -20,6 +20,20 @@ const COAST: Spec[] = [
       aha: { move: 'P1E', says: 'the pier slides out to sea: the lamp leaves the land behind and the buoy floats where the pier stood', shows: ['reclaims', 'ticks2'] } },
   },
   {
+    name: 'Ferry Lane', biome: 'coast', teaches: 'a bite can take a whole row: pull back and it leaves a channel from shore to shore, where a single plate pulled apart only opens the far side', axis: '--', expectPar: 2,
+    blurb: 'A straight bite leaves a straight channel when it goes home.',
+    // Added on Nov 6 ahead of Harbour Row and The Cut: agent testers met The Cut's channel with nothing before it but one-cell bites (P10-2, P11-1).
+    map: `
+      ~  ~  ~  ~  ~  ~  ~  ~
+      ~  ~  a0 b0 b0 ~  ~  ~
+      ~  a0 a0 b0* b0L b0 ~  ~
+      ~  a0 a0 b0 b0 b0 ~  ~
+      ~  ~  a0 b0 b0 ~  ~  ~
+      ~  ~  ~  ~  ~  ~  ~  ~`,
+    fixture: { intended: 'P0E P0W', trap: { move: 'P0W', finish: 4, why: 'pulling away opens water behind the plate, not under the buoy: the bite has to come first' },
+      aha: { move: 'P0W', says: 'the plate comes home with the whole row it bit, and the channel it leaves frees the buoy and reaches the lamp', shows: ['carries', 'ticks2'] } },
+  },
+  {
     name: 'Harbour Row', biome: 'coast', role: 'puzzle', teaches: 'dip the shore, then send the other plate in and back: the high cell meets the lighthouse, not the village', axis: '|-', expectPar: 3,
     blurb: 'A lighthouse stands at any height if it touches the sea.',
     // Mirrored east to west (phone playtest): raised land hid something on 6 of the 26 boards within three moves; now on 1.

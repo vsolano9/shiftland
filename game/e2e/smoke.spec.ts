@@ -81,7 +81,7 @@ test('hovering a slider leaves it grabbable: the same press still takes the same
   await page.evaluate(() => {
     const a = window.__shiftland as unknown as { controller: { open(i: number): void; move(p: number, d: number): void }; progress: { unlocked(): boolean } };
     a.progress.unlocked = () => true;
-    a.controller.open(10); // Low Tide: sliders stand close together once two plates have moved
+    a.controller.open(11); // Low Tide: sliders stand close together once two plates have moved
     a.controller.move(0, 0); a.controller.move(1, 3);
   });
   await page.waitForTimeout(2600);

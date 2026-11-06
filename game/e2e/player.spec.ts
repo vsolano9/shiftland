@@ -54,8 +54,8 @@ for (const q of [0, 3]) test(`shadows rest only on the settled map and come back
 
 test('a long fruitless try lights Hint once and says the next island is open', async ({ page }) => {
   const errors = await start(page);
-  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 9; p.solved = i => i < 8; })()`); // eight solved: The Cut and the one after it are open
-  await open(page, 8); // The Cut, par 3: the nudge waits for 14 moves
+  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 10; p.solved = i => i < 9; })()`); // nine solved: The Cut and the one after it are open
+  await open(page, 9); // The Cut, par 3: the nudge waits for 14 moves
   const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
   const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
   for (let k = 0; k < 13; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(120); } // a back and forth on a, which never solves
@@ -63,7 +63,7 @@ test('a long fruitless try lights Hint once and says the next island is open', a
   expect(await glow()).toBe(false);
   await move(0, 3); // move 14
   await expect.poll(glow, { timeout: 8_000 }).toBe(true);
-  expect((await state(page)).hint).toBe('Stuck? Hint names a plate to try, or play island 10 from the map and come back');
+  expect((await state(page)).hint).toBe('Stuck? Hint names a plate to try, or play island 11 from the map and come back');
   await page.keyboard.press('h');
   expect(await glow()).toBe(false);
   for (let k = 0; k < 16; k++) { await move(0, k % 2 ? 1 : 3); await page.waitForTimeout(100); }
@@ -74,17 +74,17 @@ test('a long fruitless try lights Hint once and says the next island is open', a
 
 test('a hint asked for before the nudge, or while it waits, keeps the nudge away', async ({ page }) => {
   const errors = await start(page);
-  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 8; p.solved = i => i < 7; })()`);
+  await page.evaluate(`(() => { const p = ${SL}.progress; p.unlocked = i => i <= 10; p.solved = i => i < 9; })()`);
   const glow = () => page.evaluate(`document.getElementById('b-hint').classList.contains('glow')`);
   const move = (p: number, d: number) => page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${p}, dir: ${d} })`);
   const back = async (n: number) => { for (let k = 0; k < n; k++) { await move(0, k % 2 ? 3 : 1); await page.waitForTimeout(110); } };
-  await open(page, 8);
+  await open(page, 9);
   await page.keyboard.press('h'); // before the threshold
   await back(16);
   await page.waitForTimeout(2500);
   expect(await glow()).toBe(false);
   expect((await state(page)).hint).not.toContain('Stuck?');
-  await open(page, 6); await open(page, 8); // a new visit
+  await open(page, 6); await open(page, 9); // a new visit
   await back(14); // the nudge is now waiting out its delay
   await page.keyboard.press('h'); // the search answers from a worker ("Thinking it over…" first), inside the nudge's delay
   await page.waitForTimeout(2500); // past the delay
@@ -95,7 +95,7 @@ test('a hint asked for before the nudge, or while it waits, keeps the nudge away
 
 test('a rail handle sits on its own plate, even beside a cell the plate has raised', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 23); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
+  await open(page, 24); // Give and Take, along the natural wrong line where the hint hand once floated over the water (playtest 6 P6-7)
   const sol = (await state(page)).sol;
   for (const m of [sol[0], sol[4], sol[1], sol[1], sol[4]]) {
     await page.evaluate(`${SL}.controller.act({ kind: 'move', plate: ${Number(m[1])}, dir: ${'NESW'.indexOf(m[2])} })`);
@@ -108,7 +108,7 @@ test('a rail handle sits on its own plate, even beside a cell the plate has rais
 
 test('a chip about the wrong water shows that water, and a hint steps off its plate', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 12); // Breakwater: the oasis's water reaches the sea at the start
+  await open(page, 13); // Breakwater: the oasis's water reaches the sea at the start
   const dots = () => page.evaluate(`${SL}.view.leakDots.filter(d => d.visible).length`) as Promise<number>;
   expect(await dots()).toBe(0);
   await page.locator('.chip').first().hover();
@@ -117,7 +117,7 @@ test('a chip about the wrong water shows that water, and a hint steps off its pl
   await page.locator('.chip').first().click();
   await expect(page.locator('#hint')).toContainText('that water reaches the sea');
   await page.mouse.move(5, 5);
-  await open(page, 16); // Wishing Well: the first hinted plate's rail runs under the panel at this size
+  await open(page, 17); // Wishing Well: the first hinted plate's rail runs under the panel at this size
   await page.click('#b-hint');
   await expect(page.locator('#hint')).not.toHaveClass(/off/, { timeout: 15_000 });
   await page.waitForTimeout(1100);
@@ -133,7 +133,7 @@ test('a chip about the wrong water shows that water, and a hint steps off its pl
 
 test('keys alone solve an island, then restart, undo, hint and map', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 9); // Salt Point
+  await open(page, 10); // Salt Point
   const { sol } = await state(page);
   const arrow: Record<string, string> = { N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' };
   for (const m of sol) {
@@ -176,7 +176,7 @@ test('keys alone solve an island, then restart, undo, hint and map', async ({ pa
 
 test('settings opened and closed five times cost nothing, and the next drag still works', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 9);
+  await open(page, 10);
   for (let k = 0; k < 5; k++) {
     await page.click('#b-set');
     await expect(page.locator('#settings')).toBeVisible();
@@ -198,6 +198,102 @@ test('settings opened and closed five times cost nothing, and the next drag stil
   expect(errors).toEqual([]);
 });
 
+test('the second hint shows the move, and Undo, Restart or the move itself take the whole show away', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9); // The Cut
+  const hand = () => page.evaluate(`!document.getElementById('hand').classList.contains('hidden-el')`) as Promise<boolean>;
+  const ghosts = () => page.evaluate(`${SL}.view.ghostGroup.children.length`) as Promise<number>;
+  const big = () => page.evaluate(`${SL}.view.railParts.big.visible && ${SL}.view.rail.visible`) as Promise<boolean>;
+  const show = async () => {
+    await page.keyboard.press('h'); await page.waitForTimeout(1200); // a second press inside a second is a double tap and is ignored (PH12)
+    expect(await hand()).toBe(false);
+    await page.keyboard.press('h');
+    await expect.poll(hand, { timeout: 4000 }).toBe(true);
+    await expect.poll(ghosts, { timeout: 4000 }).toBeGreaterThan(0);
+    expect(await big()).toBe(true);
+  };
+  const gone = async () => {
+    await expect.poll(hand, { timeout: 2000 }).toBe(false);
+    await expect.poll(ghosts, { timeout: 2000 }).toBe(0);
+    expect(await big()).toBe(false);
+  };
+  await show();
+  // the hinted move itself
+  await page.evaluate(`(() => { const a = ${SL}, m = a.controller.session.lv.sol[0]; a.controller.act({ kind: 'move', plate: Number(m[1]), dir: 'NESW'.indexOf(m[2]) }); })()`);
+  await gone();
+  await page.waitForTimeout(800);
+  // Undo after a hint on the second move: the hand must not stay on a move for a board that has gone
+  await show();
+  await page.keyboard.press('z');
+  await gone();
+  await page.waitForTimeout(800);
+  await show();
+  await page.keyboard.press('r');
+  await gone();
+  // the player's own drag, its first mouse move already a whole cell: its live preview stays and the hand goes (Codex review, Nov 6)
+  await show();
+  const r = await page.evaluate(`(() => {
+    const a = ${SL}, m = a.controller.session.lv.sol[0], A = a.view.railAnchor(Number(m[1])), B = A.clone(), D = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]];
+    B.x += D[0]; B.z += D[1];
+    return { a: a.world.project(A), b: a.world.project(B) };
+  })()`) as { a: [number, number]; b: [number, number] };
+  await page.mouse.move(r.a[0], r.a[1]);
+  await page.mouse.down();
+  await page.mouse.move(r.b[0], r.b[1]);
+  await page.waitForTimeout(300);
+  expect(await hand()).toBe(false);
+  expect(await ghosts()).toBeGreaterThan(0);
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(`${SL}.controller.session.moves`)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('a hint keeps its rail through hover and selection, and leaves nothing behind on Undo or the map (audit Nov 6)', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9); // The Cut, three plates
+  const rail = () => page.evaluate(`(() => { const v = ${SL}.view; return { plate: v.railPlate, hint: v.railHint, big: v.railParts.big.visible && v.rail.visible, tube: v.railParts.tube.visible }; })()`) as Promise<{ plate: number | null; hint: number; big: boolean; tube: boolean }>;
+  await page.keyboard.press('h'); await page.waitForTimeout(1200);
+  await page.keyboard.press('h');
+  await expect.poll(async () => (await rail()).big, { timeout: 4000 }).toBe(true);
+  const hinted = (await rail()).plate!, other = (hinted + 1) % 3;
+  expect((await rail()).tube).toBe(false); // the track's end used to poke out past the arrow's tip
+  // hovering another plate and leaving it
+  await page.evaluate(`${SL}.view.setHover(${other})`);
+  expect(await rail()).toMatchObject({ plate: hinted, big: true });
+  await page.evaluate(`${SL}.view.setHover(null)`);
+  expect(await rail()).toMatchObject({ plate: hinted, big: true });
+  // selecting another plate shows that plate's plain rail, with no hint arrow on it; letting go brings the hint back
+  await page.evaluate(`${SL}.view.setSelected(${other})`);
+  expect(await rail()).toMatchObject({ plate: other, big: false, tube: true });
+  await page.evaluate(`${SL}.view.setSelected(null)`);
+  expect(await rail()).toMatchObject({ plate: hinted, big: true });
+  // the map and back: no arrow survives its hand, on the map or on return
+  await page.keyboard.press('m');
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(`${SL}.view.rail.visible`)).toBe(false);
+  await open(page, 9);
+  await page.evaluate(`${SL}.view.setHover(${other})`);
+  await page.evaluate(`${SL}.view.setHover(null)`);
+  expect(await rail()).toMatchObject({ hint: 0, big: false });
+  // Undo takes the hint's words as well as its hand
+  await page.evaluate(`(() => { const a = ${SL}, m = a.controller.session.lv.sol[0]; a.controller.act({ kind: 'move', plate: Number(m[1]), dir: 'NESW'.indexOf(m[2]) }); })()`);
+  await page.waitForTimeout(800);
+  await page.keyboard.press('h'); await page.waitForTimeout(1200);
+  await page.keyboard.press('h');
+  await expect.poll(async () => (await state(page)).hint, { timeout: 4000 }).toMatch(/to go/);
+  await page.keyboard.press('z');
+  await page.waitForTimeout(400);
+  expect((await state(page)).hintOff).toBe(true);
+  expect(await rail()).toMatchObject({ hint: 0, big: false });
+  // a hint's raised panel doesn't follow the player to the first island, where it would sit on the goat's thought
+  await page.keyboard.press('h'); await page.waitForTimeout(1200);
+  await page.evaluate(`document.getElementById('hint').classList.add('up')`);
+  await open(page, 0);
+  expect(await page.evaluate(`document.getElementById('hint').classList.contains('up')`)).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('the hinted plate moved the other way says so and lights Undo; the hinted way says nothing', async ({ page }) => {
   const errors = await start(page);
   const hintTwice = async () => {
@@ -211,7 +307,7 @@ test('the hinted plate moved the other way says so and lights Undo; the hinted w
     return a.controller.session.moves;
   })()`) as Promise<number>;
   let found = -1;
-  for (const i of [8, 9, 10, 11, 12, 13, 14, 15]) {
+  for (const i of [9, 10, 11, 12, 13, 14, 15, 16]) {
     await open(page, i);
     await hintTwice();
     expect((await state(page)).hint).toMatch(/to go/);
@@ -234,7 +330,7 @@ test('the hinted plate moved the other way says so and lights Undo; the hinted w
 
 test('a hint to slide a plate back after its bite says the land it bit comes with it (The Cut, playtest 11)', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 8);
+  await open(page, 9);
   expect(await page.evaluate(`${SL}.controller.session.lv.name`)).toBe('The Cut');
   await page.evaluate(`(() => { const c = ${SL}.controller; c.act({ kind: 'move', plate: 0, dir: 1 }); c.act({ kind: 'move', plate: 2, dir: 1 }); })()`); // P0E, then P2E bites
   await page.waitForTimeout(1500);
@@ -252,7 +348,7 @@ test('a hint to slide a plate back after its bite says the land it bit comes wit
 
 test('a nudge says drag further, a short confident drag moves, and a hint names its plate until Restart', async ({ page }) => {
   const errors = await start(page);
-  await open(page, 9);
+  await open(page, 10);
   const drag = async (cells: number, back = false) => {
     const pts = await page.evaluate(`(() => {
       const a = ${SL}, m = a.controller.session.lv.sol[0], d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[m[2]], A = a.view.railAnchor(Number(m[1])), B = A.clone();
@@ -371,7 +467,7 @@ test('a newer message is not cut short by an older one, and the note comes back'
 test('a dead end warns after a quiet wait, and Undo clears it', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = await start(page);
-  await open(page, 18); // Anchor Rock: P0E is a proven dead end
+  await open(page, 19); // Anchor Rock: P0E is a proven dead end
   await page.evaluate(`${SL}.controller.move(0, 1)`);
   await page.waitForTimeout(2500);
   expect((await state(page)).stuck).toBe(false); // proved by now, and still quiet

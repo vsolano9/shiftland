@@ -1,5 +1,7 @@
 # Game Off 2026 (SHIFT): plan
 
+Status 2026-11-06, later: submitted to the jam at 10:46 CET. The same day's polish adds Ferry Lane as island 8 (26 islands now, a bridge before The Cut), a second hint that shows the move with a big arrow and the plate leaning, and a solved island staying open when an update adds an unsolved teacher before it (`qa.md`, `release.md`).
+
 Status 2026-11-06: Victor played all 25 islands and approved everything: "it was fun, so aha it is ... And yeah i approve everything and the sound is good as well." G0, G2 and G4 are done; G3's scheduled plays are replaced by this play and any later notes. Release state: `release.md`.
 
 Status 2026-11-05: LICENSE is all rights reserved (Victor, Nov 4: no open source); a private play link for G2 is in `qa.md`; map perf, the quality-step freeze, a stuck-player Hint nudge, a cold playtest of islands 8-16 (Playtest 10: win silhouettes, a one-line second hint, hidden hint text dropped, a line when the hinted plate goes the other way, and Harbour Row back as island 8 against the Coast's difficulty cliff, 25 islands now; a full mouse play of all 25 found and fixed a knob that grabbed its neighbour's plate; full mouse and touch plays pass 25 of 25. Playtest 11 played 7-10 cold: the cliff moved to The Cut, unsolved with every hint, so P10-2 stays open; its second hint now says "Slide it back: the land it bit comes with it" when a plate goes back with land it bit) and an audio pass from a blind Gemini listen were done (`qa.md`, `release.md`). Still waiting on Victor: G0, G2, G3, G4.

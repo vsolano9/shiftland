@@ -13,6 +13,10 @@ export type Sfx = 'hover' | 'select' | 'slide' | 'stop' | 'uplift' | 'crack' | '
 const LOOKAHEAD = 0.4, TICK_MS = 100, FADE = 0.65; // FADE: time constant, so a crossfade is ~95% done at 2 s
 const MAX_NOTES = 48, MAX_SFX = 14, OCEAN_GAIN = 0.34, LOG_CAP = 500;
 const PANS = [-0.6, -0.25, 0, 0.25, 0.6];
+
+// Filters in the stereo mix are fixed at two channels. Left to follow their input they switch between mono and stereo as
+// voices start and stop, which Firefox warns may glitch. A mono voice upmixes to L = R either way, so the sound is the same.
+const stereo = (n: BiquadFilterNode): BiquadFilterNode => { n.channelCount = 2; n.channelCountMode = 'explicit'; return n; };
 /** The mood filter's cutoff: 1.5 kHz with nobody happy (warm, the melody still there), about 18 kHz (out of the way) with everyone. Measured: top octaves 15-40 dB down, loudness within 1 dB. */
 export const moodHz = (m: number) => 1500 * 2 ** (m * 3.6);
 
@@ -126,8 +130,8 @@ export class GameAudio {
     const c = this.ctx!;
     const master = c.createGain(); master.gain.value = this.isMuted ? 0 : 1;
     // gentle glue, then a trim (browsers add make-up gain inside the compressor), then the safety limiter
-    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
-    const shelf = c.createBiquadFilter(); shelf.type = 'highshelf'; shelf.frequency.value = 6500; shelf.gain.value = -3;
+    const hp = stereo(c.createBiquadFilter()); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
+    const shelf = stereo(c.createBiquadFilter()); shelf.type = 'highshelf'; shelf.frequency.value = 6500; shelf.gain.value = -3;
     const glue = c.createDynamicsCompressor();
     glue.threshold.value = -16; glue.knee.value = 14; glue.ratio.value = 2.5; glue.attack.value = 0.012; glue.release.value = 0.28;
     const trim = c.createGain(); trim.gain.value = 0.62;
@@ -151,8 +155,8 @@ export class GameAudio {
     const music = c.createGain(), duck = c.createGain(), musicWet = c.createGain(), duckWet = c.createGain();
     music.gain.value = musicWet.gain.value = this.musicVol;
     // the mood filter: the song sits a little under water until the island's creatures are happy, and opens up as they are
-    const mood = c.createBiquadFilter(); mood.type = 'lowpass'; mood.Q.value = 0.5; mood.frequency.value = moodHz(this.moodLevel);
-    const moodWet = c.createBiquadFilter(); moodWet.type = 'lowpass'; moodWet.Q.value = 0.5; moodWet.frequency.value = moodHz(this.moodLevel);
+    const mood = stereo(c.createBiquadFilter()); mood.type = 'lowpass'; mood.Q.value = 0.5; mood.frequency.value = moodHz(this.moodLevel);
+    const moodWet = stereo(c.createBiquadFilter()); moodWet.type = 'lowpass'; moodWet.Q.value = 0.5; moodWet.frequency.value = moodHz(this.moodLevel);
     this.moodFilters = [mood, moodWet];
     music.connect(mood); mood.connect(duck); duck.connect(master); musicWet.connect(moodWet); moodWet.connect(duckWet); duckWet.connect(rev);
     const sfx = c.createGain(); sfx.gain.value = this.sfxVol;
@@ -241,7 +245,7 @@ export class GameAudio {
     // Delay: dotted time from the song's tempo, its feedback darkening, into the same fader as the dry signal.
     const beat = 60 / song.bpm, delay = mk(c.createDelay(2));
     delay.delayTime.value = Math.min(1.9, beat * song.send.delayBeats);
-    const dark = mk(c.createBiquadFilter()); dark.type = 'lowpass'; dark.frequency.value = 2100;
+    const dark = mk(stereo(c.createBiquadFilter())); dark.type = 'lowpass'; dark.frequency.value = 2100;
     const feedback = gain(0.34, delay);
     delay.connect(dark); dark.connect(feedback); dark.connect(fade);
     const pluckIn = gain(1, fade, gain(song.send.delay, delay), wet(song.send.reverb));
@@ -255,7 +259,7 @@ export class GameAudio {
 
     // Pad: one low-pass with a very slow drift in cutoff, a voice panned to each side for width.
     const mid = (song.pad.cutoff[0] + song.pad.cutoff[1]) / 2, depth = (song.pad.cutoff[1] - song.pad.cutoff[0]) / 2;
-    const padFilter = mk(c.createBiquadFilter());
+    const padFilter = mk(stereo(c.createBiquadFilter()));
     padFilter.type = 'lowpass'; padFilter.frequency.value = mid; padFilter.Q.value = 0.4;
     const padOut = gain(song.pad.gain * 0.78, fade, wet(song.send.reverb * 0.7));
     padFilter.connect(padOut);
