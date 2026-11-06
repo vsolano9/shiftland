@@ -10,9 +10,12 @@ import { chromium } from '@playwright/test';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), PORT = 4338, out = resolve(tmpdir(), 'shiftland-gif-frames');
 rmSync(out, { recursive: true, force: true }); mkdirSync(out, { recursive: true });
 const server = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(PORT), '--strictPort'], { cwd: root, stdio: 'ignore' });
-const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] });
+let serverGone = false;
+server.on('exit', () => { serverGone = true; }); // --strictPort: an older server on this port would otherwise answer, and the GIF would show its build
+const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] }).catch(err => { server.kill(); throw err; });
 try {
-  for (let tries = 0; ; tries++) { try { await fetch(`http://localhost:${PORT}/`); break; } catch (err) { if (tries > 60) throw err; await new Promise(done => setTimeout(done, 500)); } }
+  await new Promise(done => setTimeout(done, 300));
+  for (let tries = 0; ; tries++) { if (serverGone) throw new Error(`port ${PORT} is taken: stop what is on it`); try { await fetch(`http://localhost:${PORT}/`); break; } catch (err) { if (tries > 60) throw err; await new Promise(done => setTimeout(done, 500)); } }
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } }); // recorded large and scaled down by gif.py: at 640x360 the phone layout's panels stood over the goat
   await page.goto(`http://localhost:${PORT}/`);
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 60_000 });

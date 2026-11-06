@@ -1,5 +1,7 @@
 # Shiftland
 
+![Shiftland: an island cut into tectonic plates, with a goat on the peak it pushed up](press/cover.png)
+
 A tectonic-shift puzzle for [GitHub Game Off 2026](https://itch.io/jam/game-off-2026) (theme: SHIFT).
 
 **Play it in the browser:** https://thechosenvictor.itch.io/shiftland

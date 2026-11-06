@@ -60,7 +60,7 @@ try {
 
   await page.goto(`http://localhost:${PORT}/`);
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 90000 });
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(calm => { localStorage.clear(); if (calm) localStorage.setItem('shiftland.settings.v1', JSON.stringify({ reduced: true })); }, !!process.env.FULLPLAY_REDUCED);
   await page.reload();
   await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 90000 });
   await page.waitForTimeout(800);

@@ -32,7 +32,7 @@ try {
   await page.click('#btn-play'); await page.waitForTimeout(1500);
   const count = await page.evaluate(() => window.__shiftland.world.views.length);
   const trail = [];
-  const knob = () => page.evaluate(() => { const a = window.__shiftland, v = a.view, m = v.markSegments(); if (!m.length) return null; const s = m[Math.floor(Math.random() * m.length)], A = s.a.clone().lerp(s.b, .5), d = [[0, -1], [1, 0], [0, 1], [-1, 0]][Math.floor(Math.random() * 4)], B = A.clone(); B.x += d[0]; B.z += d[1]; return [a.world.project(A), a.world.project(B)]; });
+  const knob = () => page.evaluate(([u, w]) => { const a = window.__shiftland, v = a.view, m = v.markSegments(); if (!m.length) return null; const s = m[Math.floor(u * m.length)], A = s.a.clone().lerp(s.b, .5), d = [[0, -1], [1, 0], [0, 1], [-1, 0]][Math.floor(w * 4)], B = A.clone(); B.x += d[0]; B.z += d[1]; return [a.world.project(A), a.world.project(B)]; }, [rnd(), rnd()]); // from the seed, so a failure replays
   const drag = async (hold, thenEsc) => {
     const k = await knob(); const a = k ? k[0] : [rnd() * W, rnd() * H], b = k ? k[1] : [rnd() * W, rnd() * H];
     await page.mouse.move(a[0], a[1]); await page.mouse.down(); await page.mouse.move(b[0], b[1], { steps: 4 });

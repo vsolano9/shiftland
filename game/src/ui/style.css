@@ -189,6 +189,13 @@ body.calm #ui *, body.calm #ui *::before, body.calm #ui *::after { animation: no
   #tagline { left: 3vw; width: 46vw; transform: none; text-align: center; bottom: auto; top: 50%; margin-top: calc(7.67vw - 58px); }
   #play { left: 26vw; bottom: auto; top: 50%; margin-top: calc(7.67vw - 14px); }
 }
+/* the logo grows with the window, so on a large one Play and the line under it grow too: at 2560 wide they looked left behind (Nov 6) */
+@media (min-aspect-ratio: 13/10) and (min-width: 1600px) {
+  #tagline { font-size: 1.8vw; margin-top: calc(7.67vw - 4.5vw); }
+  #play { margin-top: calc(7.67vw - 1.1vw); }
+  #btn-play { font-size: 2.66vw; padding: .38em 1.4em .41em 1.1em; gap: .4em; border-radius: .65em; }
+  #btn-play svg { width: .88em; height: .88em; }
+}
 @media (max-height: 560px) and (orientation: landscape) {
   #ending .panel { left: auto; right: 2vw; bottom: auto; top: 50%; transform: translateY(-50%); width: 42vw; padding: 12px 16px; border-radius: 20px; }
   #ending h2 { font-size: 24px; }
