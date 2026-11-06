@@ -2,7 +2,7 @@
 
 Results against the release checklist in `PLAN.md`. Evidence paths are under `D:\Work\_local\evidence\2026-11-04-shiftland\` unless a full path is given. Updated 2026-11-04.
 
-**Nothing is public.** The repo stays private and the itch page is not created until Victor approves (G0, G4).
+Victor approved the repo going public, the itch page and the submission on Nov 6 (G0, G4).
 
 ## Checklist
 
@@ -17,13 +17,13 @@ Results against the release checklist in `PLAN.md`. Evidence paths are under `D:
 | R7 | Touch | pass in emulation: the 25-island build played through by one-finger swipes at 390x844 on Nov 5 (25 of 25 at par, ending reached, 245 s, 0 errors); 844x390 last played on 24 islands; no real phone tried | `_local\evidence\2026-11-05-shiftland\touch25.log`, `p12\a24p.log`, `p12\a24l.log` |
 | R8 | Save and settings | pass in e2e | `npm run e2e` |
 | R9 | Performance | pass on the dev PC, map included (re-measured Nov 5), see below; no mid laptop tried | `p12\perf.log`, `2026-11-05-shiftland\perf.log` |
-| R10 | Audio | event log and metrics pass; a blind machine listen (Gemini, Nov 5) led to changes in `qa.md`; **no person has heard it** | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
+| R10 | Audio | event log and metrics pass; a blind machine listen (Gemini, Nov 5) led to changes in `qa.md`; Victor on Nov 6: "the sound is good" | `npm run e2e`, `D:\Work\_local\evidence\2026-11-04-shiftland-audio\report.md` |
 | R11 | Look | critic rounds run; the open majors are answered in the session's `Taste:` line | `D:\Work\_local\taste-critic\` |
 | R12 | No shipped AI media | pass: no image or audio file in `dist/` | `npm run pack:check` |
 | R13 | Repo ready | README and LICENSE (all rights reserved) are in. Secret scan Nov 5: gitleaks over all 139 commits, 1 hit, a false positive (the `ENDING_KEY` localStorage name in `app.ts`). Going public also shows: the commit author email, the AI concept images in `concepts/` (never shipped), and internal `D:\Work\_local` evidence paths in `docs/`; Victor decides at G4 whether `docs/` and `concepts/` stay. Rerun the scan on the final commit | `gitleaks git .` |
 | R14 | itch page | text in `itch-page.md`; press images in `press/`; the disclosure must be matched to the real form at G4 | `press/` |
-| R15 | Victor's approvals | **waiting on Victor** | |
-| R16 | Submitted and verified | **waits on R15** | |
+| R15 | Victor's approvals | pass: approved Nov 6 ("i approve everything"), see below | |
+| R16 | Submitted and verified | not yet | |
 
 ## Performance (production build, dev PC)
 
@@ -40,10 +40,12 @@ Nov 4 numbers were measured with a playtest running on the same PC (`p12\perf.lo
 
 ## What only Victor can do
 
-- G0: approve the itch draft page and the public repo. Until then R6 can't be run, and the itch iframe (WebGL2, audio unlock, sizing) is untested.
-- G2: passed 2026-11-06. Victor played the whole game, 25 / 25 stars, "good game" (`qa.md`, Victor's first play). G3: later plays of the current build.
-- Say how the audio sounds: he played with it available on 2026-11-06 but has given no notes on it yet.
-- G4: approve the page text, disclosure, repo going public and the submission.
+All answered by Victor on 2026-11-06: "it was fun, so aha it is. i solved some in first try and some with hints, some were hard but it can all be solved. good work ... And yeah i approve everything and the sound is good as well."
+
+- G0 approved: itch draft page and public repo.
+- G2 passed: "it was fun, so aha it is"; 25 / 25 stars (`qa.md`, Victor's first play).
+- Audio: "the sound is good".
+- G4 approved: page text, disclosure, repo going public and the submission ("i approve everything").
 
 ## Known limits
 

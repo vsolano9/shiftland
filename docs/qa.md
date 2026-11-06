@@ -123,7 +123,7 @@ All nine solved, 0 page errors. Unaided: 11, 12, 13 (stars). With Hint: 8, 9, 10
 
 ### Victor's first play (2026-11-06, build `17da6d9`, the first person to play)
 
-"good game, i completed all levels". The map showed 25 / 25 stars (`D:\Work\_local\evidence\2026-11-06-shiftland-victor-play\map-25-of-25.jpg`), and a star means solved within par without showing the move, so every island including the Coast was solved at par at most, with no second hint on the solving run. At most about 36 minutes passed between the shot of his first move and that map, by the two screenshots' timestamps. Replays are not recorded, so first-try results and first-hint use are unknown.
+"good game, i completed all levels". The map showed 25 / 25 stars (`D:\Work\_local\evidence\2026-11-06-shiftland-victor-play\map-25-of-25.jpg`), and a star means solved within par without showing the move, so every island including the Coast was solved at par at most, with no second hint on the solving run. At most about 36 minutes passed between the shot of his first move and that map, by the two screenshots' timestamps. His words afterwards: "it was fun, so aha it is. i solved some in first try and some with hints, some were hard but it can all be solved", and "the sound is good".
 
 This changes P10-2 and P11-2b: the cliff is not a blocker. They stay open as polish (solver effort still jumps 4, 32, 97; agent testers still struggled), to recheck with someone other than Victor, who is one strong player and knows the project.
 
