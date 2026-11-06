@@ -26,6 +26,15 @@ describe('an update that adds an island', () => {
     expect(c.session.moves).toBe(1);
     expect(JSON.parse(storage.getItem('shiftland.run.v1')!).name).toBe('Harbour Row');
   });
+  it('brings back an attempt at replaying a solved island', () => {
+    const { c, storage } = make(), name = all[0].name!, wrong = all[0].sol![0] === 'P0E' ? { plate: 0, dir: 3 as Dir } : { plate: 0, dir: 1 as Dir };
+    playSolution(c);
+    c.open(0);
+    c.act({ kind: 'move', plate: wrong.plate, dir: wrong.dir });
+    expect([c.session.solved, c.session.moves]).toEqual([false, 1]);
+    const again = make(storage).c;
+    expect([again.session.lv.name, again.session.moves, again.resumed]).toEqual([name, 1, true]);
+  });
   it('opens nothing extra for a run that no longer plays, or after Reset progress', () => {
     const names = all.map(l => l.name!), at = names.indexOf('Harbour Row');
     const saved = (log: number[]) => { const s = mem(), levels: Record<string, unknown> = {}; for (let k = 0; k < at - 1; k++) levels[names[k]] = { solved: true, best: 1, stars: 1 }; s.setItem('shiftland.progress.v1', JSON.stringify({ v: 1, levels })); s.setItem('shiftland.run.v1', JSON.stringify({ name: 'Harbour Row', log, hinted: false })); return s; };

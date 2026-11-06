@@ -30,7 +30,7 @@ export class Controller {
               private emit: (e: GameEvent) => void = () => {}) {
     // back where the player left off, if that island still plays the same way; otherwise the first unsolved one
     const run = progress.savedRun(), at = run ? levels.findIndex(l => l.name === run.name) : -1;
-    if (run && at >= 0 && !progress.solved(at) && this.open(at, run)) {
+    if (run && at >= 0 && this.open(at, run)) { // a solved island too: someone replaying for the star lost the attempt on a reload (stress run, Nov 6)
       if (this.resumed) return;
       progress.forgetLeftOff(); // a run that no longer plays keeps nothing open: stay only if the island is open anyway
       if (progress.unlocked(at)) return;

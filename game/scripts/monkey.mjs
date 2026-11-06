@@ -49,8 +49,27 @@ try {
     open: () => page.evaluate(i => window.__shiftland.controller.open(i), Math.floor(rnd() * count)),
     enter: () => page.keyboard.press('Enter'), blur: () => page.evaluate(() => window.dispatchEvent(new Event('blur'))),
     settings: async () => { await page.evaluate(() => document.getElementById('s-reduced')?.click()); },
+    solve: async () => { // random input rarely wins: this reaches the card, then one of what a player does there
+      const ok = await page.evaluate(() => { const a = window.__shiftland; if (a.screen !== 'level' || a.controller.session.solved) return false; a.controller.act({ kind: 'restart' }); return true; });
+      if (!ok) return;
+      await page.waitForTimeout(500);
+      for (const m of await page.evaluate(() => window.__shiftland.controller.session.lv.sol)) { await page.keyboard.press(String(Number(m[1]) + 1)); await page.keyboard.press({ N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' }[m[2]]); await page.waitForTimeout(550); }
+      await page.waitForTimeout(pick([100, 700, 1500]));
+      const then = pick(['#d-next', '#d-replay', '#d-map', 'z', 'r', 'm', 'Enter', 'wait']);
+      if (then.startsWith('#')) await page.evaluate(s => document.querySelector(s)?.click(), then); else if (then !== 'wait') await page.keyboard.press(then);
+    },
+    reload: async () => { // a run left unfinished comes back as it was, on the same island with the same moves
+      await page.waitForTimeout(250);
+      const was = await page.evaluate(() => { const a = window.__shiftland, s = a.controller.session; return { name: s.lv.name, moves: s.moves, solved: s.solved, saved: localStorage.getItem('shiftland.run.v1') }; });
+      await page.reload();
+      await page.waitForFunction(() => window.__shiftland?.world.frames > 5, undefined, { timeout: 90000 });
+      await page.evaluate(() => { window.__shiftland.progress.unlocked = () => true; });
+      const now = await page.evaluate(() => { const s = window.__shiftland.controller.session; return { name: s.lv.name, moves: s.moves }; });
+      if (was.moves > 0 && !was.solved && was.saved && (now.name !== was.name || now.moves !== was.moves)) throw new Error(`a reload lost the run: was ${was.name} at ${was.moves}, now ${now.name} at ${now.moves}`);
+      await page.click('#btn-play'); await page.waitForTimeout(1500);
+    },
   };
-  const names = Object.keys(actions), weights = { drag: 8, hint: 3, hint2: 3, undo: 3, open: 2, wait: 2, dragEsc: 2, dragHold: 2, arrow: 3 };
+  const names = Object.keys(actions), weights = { drag: 8, hint: 3, hint2: 3, undo: 3, open: 2, wait: 2, dragEsc: 2, dragHold: 2, arrow: 3, solve: 3 };
   const bag = names.flatMap(n => Array(weights[n] ?? 1).fill(n));
   for (let i = 0; i < steps; i++) {
     const act = pick(bag);

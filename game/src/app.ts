@@ -1136,7 +1136,7 @@ class App {
     this.controller.release();
   }
   private keyDown(e: KeyboardEvent) {
-    if (e.repeat && !e.key.startsWith('Arrow')) return;
+    if (e.repeat) { if (e.key.startsWith('Arrow')) e.preventDefault(); return; } // one press, one move: a held arrow spent move after move. Still no scrolling the page around the game.
     if (!$('settings').classList.contains('hidden')) { if (e.key === 'Escape') $('settings').classList.add('hidden'); return; }
     if (this.screen === 'title' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.toMap(true); return; }
     if (this.screen === 'map') {

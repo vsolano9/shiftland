@@ -307,6 +307,18 @@ test('the first island keeps its lesson through a hint and Restart (review, Nov 
   expect(errors).toEqual([]);
 });
 
+test('a held arrow key is one move', async ({ page }) => {
+  const errors = await start(page);
+  await open(page, 9);
+  const m = await page.evaluate(`${SL}.controller.session.lv.sol[0]`) as string;
+  await page.keyboard.press(String(Number(m[1]) + 1));
+  const key = { N: 'ArrowUp', E: 'ArrowRight', S: 'ArrowDown', W: 'ArrowLeft' }[m[2]]!;
+  await page.keyboard.down(key); for (let i = 0; i < 4; i++) { await page.keyboard.down(key); await page.waitForTimeout(40); } await page.keyboard.up(key); // later downs without an up arrive as repeats
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(`${SL}.controller.session.moves`)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test('a refusal about the last drag goes when the next one starts (playtest 15)', async ({ page }) => {
   const errors = await start(page);
   await open(page, 9);
